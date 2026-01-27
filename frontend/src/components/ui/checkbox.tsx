@@ -1,0 +1,26 @@
+import * as React from "react"
+import { Check } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+// Simplified Checkbox for MVP without Radix dependency if possible, 
+// using vanilla React state or just styling an input type=checkbox hidden? 
+// actually let's just make a stylized wrapper around input or a button.
+// For speed and robustness without installing @radix-ui/react-checkbox:
+
+const Checkbox = React.forwardRef<
+    HTMLInputElement,
+    React.InputHTMLAttributes<HTMLInputElement>
+>(({ className, ...props }, ref) => (
+    <input
+        type="checkbox"
+        ref={ref}
+        className={cn(
+            "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground accent-primary",
+            className
+        )}
+        {...props}
+    />
+))
+Checkbox.displayName = "Checkbox"
+
+export { Checkbox }

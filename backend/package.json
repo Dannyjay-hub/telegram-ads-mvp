@@ -1,0 +1,30 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "@supabase/supabase-js": "^2.39.0",
+    "@types/cors": "^2.8.19",
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "grammy": "^1.20.3",
+    "hono": "^4.11.5",
+    "input": "^1.0.1",
+    "telegram": "^2.26.22"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^20.10.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "author": "",
+  "license": "ISC"
+}

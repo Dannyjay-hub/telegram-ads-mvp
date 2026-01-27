@@ -1,0 +1,58 @@
+Telegram MVP Contest
+
+🏆 Reward: $15,000+ $BUILD grant to make the product prod-ready
+
+Goal
+Build an MVP Telegram Mini App for an ads marketplace that connects channel owners and advertisers, using an escrow-style deal flow.
+
+MVP Scope
+1) Marketplace model (both sides must be supported)
+
+Channel owner listings:
+Channel owner lists their channel, sets pricing, and adds a bot as an admin (for stats verification and future auto-posting).
+
+Extra: think about PR manager flow and ability to add 1+ users to manage channel, for example fetch admins of the channel with selected rights. You must re-check if user still an admin on financial and other important operations.
+
+Advertiser requests:
+Advertiser creates a request/campaign brief; channel owners (influencers) can apply.
+
+Both entry points must converge into a single unified workflow for negotiation, approvals, escrow, and auto-posting. For messaging, use a text bot; don't create a chat in a mini-app.
+
+Implement practical filters for both offer types(pricing, subscribers, views, etc.)
+
+2) Verified channel stats (from Telegram)
+Automatically fetch and display verified channel stats available via Telegram, including (at minimum):
+— subscribers
+— average views / reach
+— language charts
+— Telegram Premium stats
+— any other metrics exposed by Telegram channel analytics
+
+3) Ad formats and pricing
+Support setting prices for different ad formats within a single channel, eg.: post, forward/repost, story, and other formats you deem suitable, but only post is OK for MVP. This should be a free format rather than a strict ad type.
+
+4) Escrow deal flow
+Implement an escrow-style flow:
+payment by advertiser → funds held by us → auto-posting confirms delivery → release or refund
+This should be secure; it is recommended to use a new address/wallet for each deal or for each user, except for a hot wallet.
+Include basic lifecycle controls such as:
+— auto-cancel / timeout if the deal stalls (no activity for X time)
+— clear deal statuses and transitions
+
+5) Creative approval workflow
+A clear approval loop must exist:
+advertiser submits preferences / brief → channel owner accepts or rejects → if accepted, channel owner drafts the post and submits it for review → advertiser approves or requests edits → once approved, the post is auto-published at the agreed time
+
+6) Auto-posting
+Auto-post the approved creative to the channel and verify it's not deleted, edited, etc. — verify that creative is done and stay in channel for enough time before releasing funds to channel owner.
+
+Stack
+We do not restrict the tech stack. We want to see your product thinking, engineering decisions, and system design. Your code should be clean and ready to opensource.
+Backend is the main focus. If you’re short on frontend capacity, a lightweight UI is acceptable, prioritize working flows over visual polish, it can be vibecoded, for reference use other tools on tools.tg
+
+Submission
+GitHub repo + README (run/deploy instructions)
+Demo: a test bot deployed on Telegram
+Short written project overview (architecture, key decisions, future thoughts, and known limitations) — can be on Github.
+
+

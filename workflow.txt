@@ -1,0 +1,418 @@
+Telegram Mini App Workflow
+
+The Ads Marketplace Mini App is a robust and well interconnected platform serving both Telegram Channel Owners and Telegram Advertisers with tools for optimizing ad placement and monetization on Telegram.
+
+Once the app is opened. Users can immediately see two clearly distinct buttons for advertisers and for channel owners. Each button leads to a unique set of functionalities crucial to each party.
+
+Let's start with advertisers.
+Once the advertisers button is clicked, users will have five options to choose from:
+-Launch Campaign
+-View Campaigns
+-Channel Marketplace
+-View Active Partnerships
+-Ad Manager
+  Here’s a short brief of what each option entails:
+1. Launch Campaign: Here, advertisers can create public campaigns to promote their product/service on multiple channels at the same time.
+
+2. View Campaigns: Here advertisers can see active campaigns that have been created and ended campaigns. Users can view the details of any of these campaigns including participants, payouts, timeline, campaign brief etc.
+
+3. Channel Marketplace: This shows advertisers a complete list of available channels to place ads and is suitable for targeted advertisement with a specific channel of a specific size/audience/location.
+
+4. View Active Partnerships: Here advertisers can see active/ended partnerships with Channel Owners.
+
+5. Ad Manager: Here, advertisers can interact with channel owners via chat, revealing other functionalities specific to active campaigns and partnerships. Chat is only through bot directly in telegram. No chat in app.
+
+Here are more in-depth look into the Advertiser features on the apps:
+
+Launch Campaign.
+With this feature, Advertisers are able to create a custom ad campaign where they can:
+-Prepare a campaign brief/description
+-Set a fixed number of channel slots to work with (can be edited)
+-Choose whether to create an open or closed campaign Open campaign: Open to any channel owner to apply and no further review as long as the channel meets criteria (Any channel that meets subscribers, views or any other set criteria can apply automatically and go straight to draft post)
+Closed Campaign: Any channel that meets the criteria can apply but the advertiser ultimately has to review and accept the channel first before they go ahead to draft the post.
+-Set a total budget and individual channel budget (Individual channel budget x number of channels you want to work with. For Open Campaigns: (Advertiser total budget will be escrowed once the campaign is fully created. Can be cancelled at any time but if there are any pending interactions with channel owners or eligible payouts, those must be fulfilled first) For Closed Campaigns: (Once Advertiser accepts the channel the individual channel budget is escrowed till either the campaign is fulfilled or cancelled)
+- Set eligibility criteria like (channel size and engagement metrics etc.)
+- Set a bonus budget (for channels with exceptional performance)
+-Invite specific channels to participate.  Open campaign: you can invite any channel you want and when they accept then they join in the campaign and move to the drafting post Closed campaign: You can invite any channel but once you invite the channel the channel individual budget is immediately escrowed. If the channel accepts the campaign then it moves to drafting post and if the channel declines then your money returns back to you
+-Set campaign duration etc.     
+
+
+Campaign drafts can be saved so advertisers can revisit at a later time.
+Once the campaign is released, it will be displayed on the public marketplace which will be visible to all channels for Channel Owners to see and apply to (Advertiser Campaigns on Channel Owners’ Dashboard).
+
+Channels applying will be auto-filtered by the eligibility criteria set by the advertiser when creating the campaign (Certain channels not meeting a preset criteria are unable to apply but can see campaign details. The apply button will just be greyed out).
+
+Eligible channels can view the details and either accept the budget allocation or decide not to participate.
+
+Upon accepting the campaign, Channel Owners can click the Ad Manager button on their dashboard where they can interact with the advertiser.
+
+View Campaigns.
+The functionality here is simple. There will be two tabs for Active Campaigns and Ended Campaigns. Advertisers can view the details and status of both and all the data that comes with it (No. of participants, Budget Spent, Impressions etc.).
+
+Channel Marketplace.
+Here, Advertisers can see a public list of available channels on the Ads Marketplace. They can filter the channels they are interested in working with, see a summary of the channel including their average engagement metrics, price per content type etc.
+
+Advertisers can click on any of these channels to see a more complete description of each channel. They can select one or more content types they’d like and a corresponding number of those to create. This will automatically calculate a cost. 
+
+Advertisers can then accept the offer based on their selections. The advertisers must have the funds in their wallet before they can accept an offer. After accepting, the funds will be escrowed and the active partnership will be visible on the View Active Partnerships page.
+
+Once funds are escrowed, the Ad Manager becomes active on each active partnership and can be used for communication, brief sharing, post review and scheduling of posts. Payouts are made after posts are deemed eligible by the bot based on preset conditions such as Time Elapsed since post published.
+
+Advertisers can also place a bid to the channel owner to negotiate for a better price per content type. Here, the advertiser selects the post type as normal desired and can now type a custom amount to pay per post to create a new total amount.
+
+The bid is placed and Channel owners can reject or accept the new bid which will either proceed towards ad Manager or close the deal.
+
+Advertisers cannot continue to bid indefinitely until the Channel Owner eventually agrees. They are restricted to three bidding tries daily. Channel owners are able to report spam bids as well.
+
+View Active Partnerships
+Here, advertisers can see all the individual channels they are partnering with for Ads. They can click any of the channels to see the agreed terms and they can click the Ad Manager icon to be redirected to the bot for communication and more. 
+
+Inactive or ended partnerships are also visible on this page and advertisers can see the details of those deals as well. 
+
+Ad Manager.
+Advertisers can use the Ad Manager to interact and chat with Channel Owners with whom they are partnered with and also Channel Owners who are submitting posts for review or looking to chat.
+
+Ideally, the Ad Manager Button will act as an Unread messages folder, displaying all pending conversations. However, the button can also be made easily accessible from the  View Active Partnerships page as a form of Quick Access Button. 
+It can also be placed in multiple other places. The point being that, since it’s the most crucial part of the advertiser dashboard, it should be easy to access.
+
+In the Ad Manager, advertisers can:
+-Communicate with channel owners by sending messages to the bot.
+- View submitted drafts which they can approve or request changes 
+-Decide post schedule
+-Payouts are automatic.
+
+The bot must be mandatorily added as an admin on the channel while the channel owner lists the channel to get statistics. The bot will also be able to auto post according to the schedule, monitor engagement on the post and detect if the post has been tampered with within a set period of time. 
+ 
+If no harm has been done, payouts are automatically made after the safety time has elapsed where a post has been deemed successfully advertised.
+
+That presents a summary of the five functionalities on the advertiser side of things.
+
+Now let us move to Channel Owners.
+
+Back at the launch page of the Mini App, once the Channel Owners button is clicked, users will have five options to choose from:
+-Llist Channel
+-Advertiser Campaigns
+-Partnerships
+-Ad Manager
+
+List Channel
+Here, Channel creators opt in to the Marketplace that places their channels in a list eligible for advertisement.
+
+Channel owners can describe their Channel, place their price per content type, add the bot to their Channel to automatically confirm if the Lister is an admin on the channel and has enough privileges enabled in the channel, collate average engagement metrics etc.  How Channel Listing works
+	•	After Channel owner opens the dashboard and navigates to Channels owner button and clicks on List channel
+	•	User Selects Channel (uses channel username to select) 
+	•	Check if channel is already listed 	UI Display (if draft exists):**
+```
+Unfinished Listing Found
+You started listing this channel on Jan 20, 2026.
+[Resume Draft]  [Start Fresh]
+	•	Bot Setup & Permission Verification
+  UI States for Bot Setup
+
+**State A: Bot Not Added**
+
+Step 1 of 3: Add Bot to Your Channel
+
+To list your channel, our marketplace bot needs to be 
+added as an administrator.
+
+What the bot does:
+✓ Verifies channel statistics
+✓ Auto-posts approved advertisements
+✓ Monitors post delivery for payment release
+
+[Add Bot as Admin]
+   ↓ Opens: t.me/AdMarketplaceBot?startchannel (our bot link)
+
+After adding the bot, click below to verify:
+[✓ Verify Bot Setup]
+
+State B: Bot Added But Missing Permissions**
+
+⚠️ Step 2 of 3: Grant Required Permissions
+
+The bot is in your channel but needs these permissions:
+
+Missing Permissions: example
+❌ Post Messages
+❌ Post Stories  
+✓ Manage Direct Messages (granted)
+
+How to fix:
+1. Open your channel settings
+2. Go to Administrators
+3. Find "Ad Marketplace Bot"
+4. Enable the missing permissions above
+[Open Channel Settings] [✓ Verify Permissions]  State C: User Lacks Permissions**
+
+⚠️ Insufficient Permissions
+
+You need posting permissions to list this channel 
+for advertisements.
+
+Your current permissions:
+❌ Post Messages
+❌ Post Stories
+✓ Manage Chat
+
+Options:
+- Ask the channel owner to grant you these permissions
+- Have the channel owner list the channel instead
+
+[Contact Support] [Go Back]
+
+State D: Ready to Proceed
+✅ Verification Complete!
+
+Channel: Tech News Daily
+Your Role: Administrator
+Bot Status: ✓ Ready
+
+Available Ad Formats:
+✓ Regular Posts
+✓ Stories (24h)
+✓ Direct Messages
+
+[Continue to Listing Details]
+
+	•	Channel Description & Details
+	•	Add a brief description of channel, 500 characters max
+	•	Include category of channel
+	•	Add channel tags for filter purposes (startup, saas, etc)
+	•	Primary language
+	•	Auto fetch channel statistics. With the bot added as an admin to the channel let’s get very indepth statistics of the channel that will be important for the advertisers in choosing a channel
+	•	Pricing Configuration
+	•	7.1 Set Prices Per Ad Format
+Base Price: $[200] USD 
+ Description (optional): 
+ Standard post in channel feed, stays 
+for at least 24 hours - $200
+ Add Custom Options: 
+• Pinned for 24h: +$[50]    
+• Pinned for 48h: +$[100]   
+ Story (24h): $250 24-hour story placement with link   And others like forwarding/repost
+
+Suggested Pricing (based on similar channels):
+💡 Channels with 50K subscribers typically charge:
+   • Posts: $150-$300
+   • Stories: $60-$120
+
+[Save Pricing] [Continue →] - channel can add prices another time or edit current prices.
+ Enlistment drafts can be saved and revisited later by Channel owners.
+Once enlistment is complete, the channel will be added to the public marketplace on the advertisers dashboard.
+
+	•	PR MANAGERS
+Team Management (Optional for channel owners  Add PR managers to help manage deals on this channel.
+
+Primary Owner: @JohnOwner (you)
+└─ Receives all payments
+└─ Cannot be removed unless ownership has been transferred to another user. Consistently check permissions at every point of finalising a campaign deal
+
+PR Managers:
+Currently none
+
+[+ Add PR Manager]
+
+What can PR managers do?
+✓ Approve deal requests from advertisers
+✓ Review and approve ad creatives
+✓ Negotiate terms and pricing
+✗ Cannot receive payments
+✗ Cannot delist the channel
+
+⚠️ PR managers are automatically removed if they lose 
+   admin status on Telegram.
+
+[Skip This Step] [Save & Continue →]  - At every point in the flow leading to payment, the user that is making a decision has to be rechecked if they are still an admin and if a user is no longer an admin, the process isn’t completed and the user is removed as a manager on the channel.   🎉 Listing Published!
+
+Your channel "Tech News Daily" is now live in the 
+marketplace.
+
+What happens next?
+1. Advertisers can discover your channel
+2. You'll receive deal requests via bot messages
+3. Review and accept deals that fit your audience
+4. Approve ad creatives before they go live
+5. Get paid automatically after successful delivery
+
+
+	•	Post Publishing
+	•	 Edit Listing
+
+Channel: Tech News Daily
+Status: Active 
+
+What would you like to edit?
+[ Description & Details]
+[ Pricing]
+ [Sample Posts]
+ [PR Managers]
+[Refresh Statistics]
+
+⚠️ Note: Active deals will not be affected by pricing changes.
+
+[Cancel] [Save Changes] 
+	•	Pause/Unpause Listing
+Pause UI:**
+```
+⏸️ Pause Listing
+
+Pausing your listing will:
+- Hide it from advertiser searches
+- Stop new deal requests
+- Preserve your existing active deals
+- Allow you to unpause anytime
+
+Why are you pausing? (optional)
+○ Taking a break
+○ Channel undergoing changes
+○ Too many requests.
+
+	•	Delist Channel
+
+Are you sure you want to remove "Tech News Daily" from 
+the marketplace?
+
+Current Status:
+- Active Deals: 0 ✓
+- Pending Payments: 0 ✓
+- Pending Requests: 2 (will be cancelled)
+
+This action will:
+❌ Remove your channel from search results
+❌ Cancel all pending deal requests (2)
+❌ Stop all new deal requests
+✓ Preserve your completed deal history
+✓ Keep the bot in your channel (you can remove it manually)
+
+You can re-list your channel anytime.
+
+Why are you delisting? (optional)
+○ No longer interested in sponsored content
+○ Channel is closing
+○ Switching to another platform
+○ Other: _____________
+
+[Cancel] [Confirm Delist]
+
+10. Background Maintenance Periodic Re-Verification of All Active Listings
+Auto-Remove PR Managers Who Lost Admin Status Refresh Channel Statistics  11. Edge Cases & Error Handling Edge Case 1: User Loses Admin Mid-Publishing
+Edge Case 2: Bot Removed During Listing Process
+Edge Case 3: Multiple Admins Try to List Same Channel
+Pricing Changed During Active Deals   Summary Checklist for "List Channel" Feature**
+
+☑ Step 1: Channel Selection
+  ☐ Fetch user's admin channels
+  ☐ Check if channel already listed
+  ☐ Handle existing drafts
+
+☑ Step 2: Bot Setup & Verification
+  ☐ Check user is admin
+  ☐ Check bot is added to channel as admin
+  ☐ Check bot has required permissions (post, stories, DM)
+  ☐ Check user has required permissions for offered formats
+  ☐ Provide clear setup instructions
+
+☑ Step 3: Channel Description
+  ☐ Description (min 50 chars)
+  ☐ Category selection
+  ☐ Tags (up to 5)
+  ☐ Primary language
+  ☐ Target audience description
+  ☐ Save draft capability
+
+☑ Step 4: Auto-Fetch Stats
+  ☐ Subscriber count
+  ☐ Average views/reach
+  ☐ Engagement rate
+  ☐ Premium users %
+  ☐ Language distribution
+  ☐ Growth rate
+  ☐ Last updated timestamp
+
+☑ Step 5: Pricing Configuration
+  ☐ Set price per ad format (post, story, DM, others)
+  ☐ Add custom format descriptions
+  ☐ Optional add-ons (pinned, duration, etc.)
+  ☐ Suggested pricing based on similar channels
+
+☑ Step 7: PR Managers (Optional for channel owners)
+  ☐ Add PR managers (must be Telegram admins)
+  ☐ Set permissions per manager
+  ☐ Display team hierarchy
+  ☐ Auto-remove if they lose admin status
+
+☑ Step 8: Final Review & Publish
+  ☐ Re-verify all permissions
+  ☐ Re-verify bot status
+  ☐ Validate all required fields
+  ☐ Refresh channel stats
+  ☐ Display review screen
+  ☐ Handle issues before publishing
+  ☐ Publish atomically
+  ☐ Send confirmation notification
+  ☐ Index for search
+
+☑ Post-Publication Management
+  ☐ Edit active listing
+  ☐ Pause/unpause listing
+  ☐ Delist channel
+  ☐ Handle active deals before delisting
+
+☑ Background Jobs
+  ☐ Periodic re-verification (before any process)
+  ☐ Stats refresh (daily)
+
+☑ Edge Cases
+  ☐ User loses admin mid-process
+  ☐ Bot removed during listing
+  ☐ Multiple admins listing same channel
+  ☐ Pricing changes with active deals
+  ☐ Race conditions during publishing
+
+☑ Security
+  ☐ Re-verify before financial operations
+  ☐ Check both user AND bot permissions
+  ☐ Verify specific permissions per ad format
+  ☐ Lock mechanisms to prevent race conditions
+  ☐ Audit logging for all actions
+
+
+
+
+Advertiser Campaigns
+Here, Channel owners can see a list of public campaigns (open or closed) created by advertisers.
+
+Eligibility for each campaign will be determined automatically so some Campaigns will be greyed out to certain Channel owners.
+
+Eligible campaigns can be clicked and the brief seen. Channel owners can decide to accept the terms and participate in the campaign or decide not to and keep looking through other campaigns.
+
+Once an open campaign is accepted, the Ad Manager button becomes active to the channel owner for post submission, communication etc.  Once a closed campaign is applied for then the request is shown to the advertiser where the advertiser can view the channel details and accept to go ahead with the channel for the campaign. At the point of acceptance the funds are escrowed from the advertiser
+
+This tab will also have two other tabs to show campaigns currently being participated in and campaigns that have ended.
+
+Partnerships.
+When an advertiser looks through the enlisted channels and accepts an offer/bids. It shows up in this tab for Channel Owners.
+
+They can see pending partnerships, active partnerships and ended partnerships all on this tab.
+
+Active Partnerships will have the Ad Manager bot enabled for Quick access to the communication module. Ended partnerships will not have this and neither will pending partnerships.
+
+Pending Partnerships are where bid offers from advertisers will be seen. Channel Owners can reject or accept the bid and add a comment. If a bid is accepted, the partnership moves over to active. If rejected, it moves over to ended with a label “Cancelled”. All comments will be done through the bot
+
+Ad Manager
+The Ad Manager button ideally will be accessible from the Active partnerships tab or any of the Active campaigns.
+
+However, it will also have its own dedicated button where the Channel Owner can see all the advertisers that are currently engaged in an active communication (This is different from campaigns or partnerships that have not started verbal engagement. Those will come up once a chat is initiated).
+
+Here, Channel Owners can see unread messages from advertisers and click any to open the bot to chat, make submissions etc.
+
+That concludes the Channel Owner side of things.
+
+BOTH FLOWS GO THROUGH THE SAME SYSTEM  After funds has been escrowed and accepted by either the advertiser when a channel owner applies for a closed campaign or after an advertiser accepts the offers on a listed channel. Every single acceptance comes through one path  Funds get escrowed 
+Draft Post, story or whatever format review. 
+The channel owner drafts the post using the brief  The advertiser approves the draft post
+If advertiser doesn’t approve, the advertiser makes a comment and gives feedback on the draft post The channel owner makes the correction and sends for review Process goes on until advertiser accepts the draft post Time is then scheduled for the post
+Once the time has been agreed upon, the bot automatically schedules the post to go live at the agreed time Once the post goes live, the post must stay minimum of 24 hours before deal is completed If post is deleted, then a message is sent to the channel owner that post has been deleted and campaign cancelled. 
+Before post is auto published, the information will be given to the channel owner to make sure to leave the post up for more than 24 hours before the deal can be completed Once the deal has been completed, the funds goes straight to the channel owner Only the channel owner can withdraw, or a PR manager that has been given withdrawal permission
+At every step of this flow, the bot reverifies if the user that is currently making an action is still an admin of the channel. Before post is agreed, before time is agreed, before withdrawal  This will be the combined system for all movement after acceptance    There could also be a settings button or a support button. However, the main functionalities of the mini app have been fully covered in extensive detail. 
