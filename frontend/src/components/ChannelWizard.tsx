@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 
@@ -26,6 +26,7 @@ export function ChannelWizard() {
     const [basePrice, setBasePrice] = useState('')
     const [rateCard, setRateCard] = useState<any[]>([]) // Legacy support
     const [newPackage, setNewPackage] = useState({ title: '', price: '', type: 'Post', description: '' })
+    const [showPackageForm, setShowPackageForm] = useState(false)
 
     // Listing Details
     const [description, setDescription] = useState('')
@@ -365,119 +366,13 @@ export function ChannelWizard() {
                             </GlassCard>
 
                             <GlassCard className="p-6 space-y-6">
-                                <h3 className="font-semibold">Service Packages</h3>
+                                <h3 className="font-semibold">Pricing Configuration</h3>
 
-                                {/* List of Saved Packages */}
-                                <div className="space-y-3">
-                                    {rateCard.map((pkg, idx) => (
-                                        <div key={idx} className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-white/5">
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-base">{pkg.title}</span>
-                                                    <span className="text-[10px] uppercase bg-white/10 px-1.5 py-0.5 rounded text-muted-foreground tracking-wider">{pkg.type}</span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pkg.description}</p>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <span className="font-bold text-lg">${pkg.price}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                                                    onClick={() => {
-                                                        const newCard = [...rateCard];
-                                                        newCard.splice(idx, 1);
-                                                        setRateCard(newCard);
-                                                    }}
-                                                >
-                                                    &times;
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Add New Package Form */}
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-                                    <h4 className="text-sm font-semibold">New Package</h4>
-
-                                    <div className="space-y-2">
-                                        <Label>Package Title</Label>
-                                        <Input
-                                            placeholder="e.g. 24h Pinned Post"
-                                            value={newPackage.title}
-                                            onChange={(e) => setNewPackage({ ...newPackage, title: e.target.value })}
-                                            className="bg-black/20"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Price ($)</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="100"
-                                                value={newPackage.price}
-                                                onChange={(e) => setNewPackage({ ...newPackage, price: e.target.value })}
-                                                className="bg-black/20"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Type</Label>
-                                            <select
-                                                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                                                value={newPackage.type}
-                                                onChange={(e) => setNewPackage({ ...newPackage, type: e.target.value })}
-                                            >
-                                                <option value="Post">Post</option>
-                                                <option value="Story">Story</option>
-                                                <option value="Forward">Forward</option>
-                                                <option value="Others">Others</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label>Description</Label>
-                                        <textarea
-                                            className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                            placeholder="What's included? (e.g. link in bio, 24h pin)"
-                                            value={newPackage.description}
-                                            onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="flex justify-end gap-3 pt-2">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setNewPackage({ title: '', price: '', type: 'Post', description: '' })}
-                                            className="hover:bg-white/5"
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (!newPackage.title || !newPackage.price) return;
-                                                setRateCard([...rateCard, {
-                                                    title: newPackage.title,
-                                                    price: Number(newPackage.price),
-                                                    type: newPackage.type,
-                                                    description: newPackage.description
-                                                }]);
-                                                setNewPackage({ title: '', price: '', type: 'Post', description: '' });
-                                            }}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                                        >
-                                            Save Package
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* Base Price Fallback */}
-                                <div className="space-y-2 pt-2 border-t border-white/5">
+                                {/* Base Price First */}
+                                <div className="space-y-2">
                                     <Label>Base Price (Fallback)</Label>
                                     <p className="text-xs text-muted-foreground -mt-1 mb-2">
-                                        Used if no packages are selected or available.
+                                        Starting price for general inquiries.
                                     </p>
                                     <div className="relative">
                                         <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
@@ -489,6 +384,139 @@ export function ChannelWizard() {
                                         />
                                     </div>
                                 </div>
+
+                                {/* Service Packages Header with Add Button */}
+                                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                    <div className="flex items-center gap-2">
+                                        <Zap className="w-4 h-4 text-primary" />
+                                        <h4 className="font-semibold">Service Packages</h4>
+                                    </div>
+                                    {!showPackageForm && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setShowPackageForm(true)}
+                                            className="border-primary/30 text-primary"
+                                        >
+                                            <Plus className="w-4 h-4 mr-1" />
+                                            Add Package
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {/* List of Saved Packages */}
+                                {rateCard.length > 0 && (
+                                    <div className="space-y-3">
+                                        {rateCard.map((pkg, idx) => (
+                                            <div key={idx} className="flex justify-between items-center py-2">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold">{pkg.title}</span>
+                                                        <span className="text-[10px] uppercase bg-white/10 px-1.5 py-0.5 rounded text-muted-foreground tracking-wider">{pkg.type}</span>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pkg.description}</p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold text-lg">${pkg.price}</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-400/10"
+                                                        onClick={() => {
+                                                            const newCard = [...rateCard];
+                                                            newCard.splice(idx, 1);
+                                                            setRateCard(newCard);
+                                                        }}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Add New Package Form - Collapsible */}
+                                {showPackageForm && (
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4 animate-in slide-in-from-top-2 fade-in">
+                                        <h4 className="text-sm font-semibold">New Package</h4>
+
+                                        <div className="space-y-2">
+                                            <Label>Package Title</Label>
+                                            <Input
+                                                placeholder="e.g. 24h Pinned Post"
+                                                value={newPackage.title}
+                                                onChange={(e) => setNewPackage({ ...newPackage, title: e.target.value })}
+                                                className="bg-black/20"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Price ($)</Label>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="100"
+                                                    value={newPackage.price}
+                                                    onChange={(e) => setNewPackage({ ...newPackage, price: e.target.value })}
+                                                    className="bg-black/20"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Type</Label>
+                                                <select
+                                                    className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                    value={newPackage.type}
+                                                    onChange={(e) => setNewPackage({ ...newPackage, type: e.target.value })}
+                                                >
+                                                    <option value="Post">Post</option>
+                                                    <option value="Story">Story</option>
+                                                    <option value="Forward">Forward</option>
+                                                    <option value="Others">Others</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>Description</Label>
+                                            <textarea
+                                                className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                placeholder="What's included? (e.g. link in bio, 24h pin)"
+                                                value={newPackage.description}
+                                                onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="flex justify-end gap-3 pt-2">
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    setNewPackage({ title: '', price: '', type: 'Post', description: '' });
+                                                    setShowPackageForm(false);
+                                                }}
+                                                className="hover:bg-white/5"
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                onClick={() => {
+                                                    if (!newPackage.title || !newPackage.price) return;
+                                                    setRateCard([...rateCard, {
+                                                        title: newPackage.title,
+                                                        price: Number(newPackage.price),
+                                                        type: newPackage.type,
+                                                        description: newPackage.description
+                                                    }]);
+                                                    setNewPackage({ title: '', price: '', type: 'Post', description: '' });
+                                                    setShowPackageForm(false);
+                                                }}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                            >
+                                                Save Package
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </GlassCard>
 
                             {/* Team Management Section */}
