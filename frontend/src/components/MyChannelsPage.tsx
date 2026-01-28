@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getMyChannels, type Channel, API_URL, getHeaders } from '@/lib/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Settings, RefreshCw, Loader2, Tag, ArrowLeft } from 'lucide-react'
+import { Plus, Settings, Loader2, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { ChannelAnalyticsCard } from './ChannelAnalyticsCard'
@@ -12,7 +12,6 @@ export function MyChannelsPage() {
     const { user } = useTelegram();
     const [channels, setChannels] = useState<Channel[]>([])
     const [loading, setLoading] = useState(true)
-    const [syncingId, setSyncingId] = useState<string | null>(null)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -29,22 +28,6 @@ export function MyChannelsPage() {
             console.error(e)
         } finally {
             setLoading(false)
-        }
-    }
-
-    const handleSyncAdmins = async (channelId: string) => {
-        setSyncingId(channelId);
-        try {
-            const res = await fetch(`${API_URL}/channels/${channelId}/sync_admins`, {
-                method: 'POST',
-                headers: getHeaders()
-            });
-            if (!res.ok) throw new Error('Failed to sync');
-            alert('Admins Synced Successfully! PR Managers can now access this channel.');
-        } catch (e) {
-            alert('Failed to sync admins. Is the bot an admin?');
-        } finally {
-            setSyncingId(null);
         }
     }
 
@@ -109,15 +92,6 @@ export function MyChannelsPage() {
                                         </Button>
                                         <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/edit/${channel.id}`)}>
                                             <Settings className="w-3 h-3 mr-1" /> Settings
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs border-primary/20 text-primary hover:bg-primary/10"
-                                            onClick={() => handleSyncAdmins(channel.id)}
-                                            disabled={!!syncingId}
-                                        >
-                                            {syncingId === channel.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                                         </Button>
                                     </>
                                 )}
