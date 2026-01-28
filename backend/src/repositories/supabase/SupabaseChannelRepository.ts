@@ -83,6 +83,9 @@ export class SupabaseChannelRepository implements IChannelRepository {
     async findAll(filters?: { minSubscribers?: number, maxPrice?: number }): Promise<Channel[]> {
         let query = supabase.from('channels').select('*');
 
+        // Only show active channels in the marketplace (exclude drafts)
+        query = query.eq('is_active', true);
+
         if (filters?.maxPrice) {
             query = query.lte('base_price_amount', filters.maxPrice);
         }
@@ -175,19 +178,21 @@ export class SupabaseChannelRepository implements IChannelRepository {
 
     async update(id: string, updates: any): Promise<Channel> {
         const dbUpdates: any = {};
-        if (updates.stats_json) dbUpdates.stats_json = updates.stats_json;
-        if (updates.avg_views) dbUpdates.avg_views = updates.avg_views;
-        if (updates.verified_stats) dbUpdates.verified_stats = updates.verified_stats;
-        if (updates.rateCard) dbUpdates.rate_card = updates.rateCard;
+        if (updates.stats_json !== undefined) dbUpdates.stats_json = updates.stats_json;
+        if (updates.avg_views !== undefined) dbUpdates.avg_views = updates.avg_views;
+        if (updates.verified_stats !== undefined) dbUpdates.verified_stats = updates.verified_stats;
+        if (updates.rateCard !== undefined) dbUpdates.rate_card = updates.rateCard;
+        if (updates.basePriceAmount !== undefined) dbUpdates.base_price_amount = updates.basePriceAmount;
         // Phase 1 updates
-        if (updates.pricing) dbUpdates.pricing = updates.pricing;
-        if (updates.permissions) dbUpdates.permissions = updates.permissions;
-        if (updates.status) dbUpdates.status = updates.status;
+        if (updates.pricing !== undefined) dbUpdates.pricing = updates.pricing;
+        if (updates.permissions !== undefined) dbUpdates.permissions = updates.permissions;
+        if (updates.status !== undefined) dbUpdates.status = updates.status;
         if (updates.isVerified !== undefined) dbUpdates.is_verified = updates.isVerified;
 
-        if (updates.description) dbUpdates.description = updates.description;
-        if (updates.category) dbUpdates.category = updates.category;
-        if (updates.tags) dbUpdates.tags = updates.tags;
+        if (updates.description !== undefined) dbUpdates.description = updates.description;
+        if (updates.category !== undefined) dbUpdates.category = updates.category;
+        if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+        if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
         dbUpdates.updated_at = new Date().toISOString();
 

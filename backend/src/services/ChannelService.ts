@@ -79,9 +79,17 @@ export class ChannelService {
     async verifyAndAddChannel(
         telegramChannelId: number,
         userId: number,
-        pricing?: any, // Phase 1: Pricing JSON
+        channelData?: {
+            pricing?: any,
+            basePriceAmount?: number,
+            description?: string,
+            category?: string,
+            tags?: string[],
+            rateCard?: any[]
+        },
         initialStatus: string = 'active'
     ): Promise<Channel> {
+        console.log('[verifyAndAddChannel] Called with:', { telegramChannelId, userId, channelData, initialStatus });
 
         // 1. Strict Permission Check (Barrier)
         const permStatus = await this.verifyChannelPermissions(telegramChannelId);
@@ -91,16 +99,34 @@ export class ChannelService {
 
         // 2. Check if channel already exists
         const existing = await this.channelRepo.findByTelegramId(telegramChannelId);
+        console.log('[verifyAndAddChannel] Existing channel:', existing ? existing.id : 'NONE');
+
         if (existing) {
-            // Check if this user is allowed (RBAC) - For now just ensure they are an admin
+            // Channel exists - UPDATE it with the new data if provided
+            console.log('[verifyAndAddChannel] Updating existing channel with:', channelData);
+            if (channelData) {
+                const updated = await this.channelRepo.update(existing.id, {
+                    description: channelData.description,
+                    category: channelData.category,
+                    tags: channelData.tags,
+                    rateCard: channelData.rateCard,
+                    basePriceAmount: channelData.basePriceAmount,
+                    pricing: channelData.pricing,
+                    status: initialStatus as any,
+                    isActive: initialStatus === 'active'
+                });
+                await this.syncChannelAdmins(existing.id);
+                return updated;
+            }
             await this.syncChannelAdmins(existing.id);
             return existing;
         }
 
         // 3. Fetch Stats & Info
         const verification = await this.verifyChannel(telegramChannelId);
+        console.log('[verifyAndAddChannel] Creating NEW channel with data:', channelData);
 
-        // 4. Create Channel
+        // 4. Create Channel with all provided data
         const channel = await this.channelRepo.create({
             telegramChannelId,
             title: verification.title,
@@ -111,10 +137,15 @@ export class ChannelService {
             status: initialStatus as any,
             isVerified: true,
             permissions: permStatus.details,
-            pricing: pricing || { base_price: 100 }, // Default pricing
-            basePriceAmount: pricing?.base_price || 100,
-            basePriceCurrency: 'USD'
+            pricing: channelData?.pricing || { base_price: 100 },
+            basePriceAmount: channelData?.basePriceAmount || 100,
+            basePriceCurrency: 'USD',
+            description: channelData?.description,
+            category: channelData?.category,
+            tags: channelData?.tags,
+            rateCard: channelData?.rateCard || []
         });
+        console.log('[verifyAndAddChannel] Created channel:', channel.id, 'with description:', channel.description);
 
         // 5. Add Creator as Owner
         // We need a direct way to add admins, or use the sync logic.
@@ -210,7 +241,23 @@ export class ChannelService {
             verifiedStats: updates.verifiedStats,
             pricing: updates.pricing,
             status: updates.status,
-            isActive: updates.status ? (updates.status === 'active') : undefined
+            isActive: updates.status ? (updates.status === 'active') : undefined,
+            description: updates.description,
+            category: updates.category,
+            tags: updates.tags
         });
+    }
+
+    /**
+     * Get Telegram admins for a channel (from Telegram API)
+     */
+    async getTelegramAdmins(telegramChannelId: number): Promise<any[]> {
+        try {
+            const admins = await getChatAdministrators(telegramChannelId);
+            return admins;
+        } catch (error) {
+            console.error('Failed to get Telegram admins:', error);
+            return [];
+        }
     }
 }

@@ -104,18 +104,20 @@ export function MyChannelsPage() {
                                     </Button>
                                 ) : (
                                     <>
+                                        <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/${channel.id}/view`)}>
+                                            View
+                                        </Button>
                                         <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/edit/${channel.id}`)}>
                                             <Settings className="w-3 h-3 mr-1" /> Settings
                                         </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="flex-1 text-xs border-primary/20 text-primary hover:bg-primary/10"
+                                            className="text-xs border-primary/20 text-primary hover:bg-primary/10"
                                             onClick={() => handleSyncAdmins(channel.id)}
                                             disabled={!!syncingId}
                                         >
-                                            {syncingId === channel.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                                            Verify Admins
+                                            {syncingId === channel.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                                         </Button>
                                     </>
                                 )}

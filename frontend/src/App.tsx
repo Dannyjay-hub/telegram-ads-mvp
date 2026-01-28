@@ -11,6 +11,7 @@ import { CampaignsList } from '@/components/CampaignsList'
 import { PartnershipsList } from '@/components/PartnershipsList'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
+import { ChannelViewPage } from '@/components/ChannelViewPage'
 
 function AppContent() {
 
@@ -72,6 +73,9 @@ function AppContent() {
           <Route path="/campaigns" element={<CampaignsList />} />
           <Route path="/channels/new" element={<ChannelWizard />} />
           <Route path="/channels/edit/:id" element={<ChannelWizard />} />
+          <Route path="/channels/:id/view" element={<ChannelViewPage />} />
+          <Route path="/channels/:id/settings" element={<ChannelWizard />} />
+          <Route path="/marketplace/channel/:id" element={<ChannelViewPage />} />
           <Route path="/channels/my" element={<MyChannelsPage />} />
           <Route path="/channels/dashboard" element={<ChannelOwnerDashboard />} /> {/* Keep for backward compat if needed, or remove? Keeping for now but redirecting logic is in dashboard.tsx */}
           <Route path="/channels/partnerships" element={<PartnershipsList />} />

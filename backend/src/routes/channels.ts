@@ -4,6 +4,7 @@ import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChan
 import { ChannelService } from '../services/ChannelService';
 import { getChatMember, getChannelStats, getBotPermissions, resolveChannelId } from '../services/telegram';
 import { bot } from '../botInstance';
+import { supabase } from '../db';
 
 const app = new Hono();
 
@@ -35,6 +36,285 @@ app.get('/my', async (c) => {
 
         const channels = await channelService.listChannelsByAdmin(Number(telegramId));
         return c.json(channels);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// GET /channels/:id - Get single channel details
+app.get('/:id', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const channel = await channelRepo.findById(id);
+        if (!channel) {
+            return c.json({ error: 'Channel not found' }, 404);
+        }
+        return c.json(channel);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// GET /channels/:id/admins - Get channel admins with role hierarchy
+app.get('/:id/admins', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const { data, error } = await supabase
+            .from('channel_admins')
+            .select('user_id, role, permissions, created_at, users(telegram_id, username, first_name)')
+            .eq('channel_id', id);
+
+        if (error) throw error;
+
+        // Separate owner from PR managers
+        const owner = (data || []).find((a: any) => a.role === 'owner');
+        const prManagers = (data || [])
+            .filter((a: any) => a.role === 'pr_manager')
+            // Only include entries with valid telegram_id (filter out orphaned records)
+            .filter((a: any) => a.users?.telegram_id);
+
+        console.log('[GET /admins] Found', prManagers.length, 'valid PR managers');
+
+        return c.json({
+            owner: owner ? {
+                user_id: owner.user_id,
+                telegram_id: owner.users?.telegram_id,
+                username: owner.users?.username || owner.users?.first_name || 'Owner',
+                role: 'owner',
+                permissions: owner.permissions
+            } : null,
+            pr_managers: prManagers.map((pm: any) => ({
+                user_id: pm.user_id,
+                telegram_id: pm.users?.telegram_id,
+                username: pm.users?.username || pm.users?.first_name || `User ${pm.users?.telegram_id}`,
+                role: 'pr_manager',
+                permissions: pm.permissions,
+                added_at: pm.created_at
+            })),
+            // For backward compatibility, include flat list
+            all: (data || []).map((admin: any) => ({
+                user_id: admin.user_id,
+                role: admin.role,
+                telegram_id: admin.users?.telegram_id
+            }))
+        });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// GET /channels/:id/eligible-pr-managers - Telegram admins who can be added as PR managers
+app.get('/:id/eligible-pr-managers', async (c) => {
+    try {
+        const id = c.req.param('id');
+
+        // Get channel's telegram ID
+        const channel = await channelRepo.findById(id);
+        if (!channel) return c.json({ error: 'Channel not found' }, 404);
+
+        // Get current admins from our DB
+        const { data: currentAdmins } = await supabase
+            .from('channel_admins')
+            .select('users(telegram_id)')
+            .eq('channel_id', id);
+
+        const existingTelegramIds = (currentAdmins || []).map((a: any) => a.users?.telegram_id);
+
+        // Get Telegram admins for this channel
+        const telegramAdmins = await channelService.getTelegramAdmins(channel.telegramChannelId);
+
+        // Filter out those who are already in our system
+        const eligible = telegramAdmins.filter((ta: any) =>
+            !existingTelegramIds.includes(ta.user.id) && !ta.user.is_bot
+        );
+
+        return c.json(eligible.map((e: any) => ({
+            telegram_id: e.user.id,
+            username: e.user.username || e.user.first_name,
+            first_name: e.user.first_name,
+            status: e.status
+        })));
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// POST /channels/:id/pr-managers - Add a PR manager
+app.post('/:id/pr-managers', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        let { telegram_id, username } = body;
+        const requesterId = Number(c.req.header('X-Telegram-ID'));
+
+        // Check if requester is the owner
+        const { data: ownerCheck, error: ownerError } = await supabase
+            .from('channel_admins')
+            .select('role, users(telegram_id)')
+            .eq('channel_id', id)
+            .eq('role', 'owner')
+            .single();
+
+        console.log('[PR Manager] Ownership check:', {
+            requesterId,
+            ownerCheck,
+            ownerError,
+            ownerTelegramId: (ownerCheck as any)?.users?.telegram_id
+        });
+
+        if (!ownerCheck || (ownerCheck as any).users?.telegram_id !== requesterId) {
+            return c.json({ error: 'Only the channel owner can add PR managers' }, 403);
+        }
+
+        // Get channel info
+        const channel = await channelRepo.findById(id);
+        if (!channel) return c.json({ error: 'Channel not found' }, 404);
+
+        // Get Telegram admins for this channel
+        const telegramAdmins = await channelService.getTelegramAdmins(channel.telegramChannelId);
+        console.log('[PR Manager] Telegram admins:', telegramAdmins.map((a: any) => ({ id: a.user.id, username: a.user.username })));
+
+        // If username provided, find the admin by username
+        let targetAdmin: any = null;
+        if (username) {
+            username = username.replace('@', '').toLowerCase();
+            targetAdmin = telegramAdmins.find((ta: any) =>
+                ta.user.username?.toLowerCase() === username
+            );
+            if (!targetAdmin) {
+                return c.json({ error: `@${username} is not an admin of this Telegram channel. Add them as admin on Telegram first.` }, 400);
+            }
+            telegram_id = targetAdmin.user.id;
+        } else if (telegram_id) {
+            // Verify by telegram_id
+            targetAdmin = telegramAdmins.find((ta: any) => ta.user.id === telegram_id);
+            if (!targetAdmin) {
+                return c.json({ error: 'User must be a Telegram admin of this channel' }, 400);
+            }
+        } else {
+            return c.json({ error: 'Either username or telegram_id is required' }, 400);
+        }
+
+        // Check that the admin has actual permissions (not just admin status with 0 permissions)
+        console.log('[PR Manager] Target admin permissions:', targetAdmin);
+        const hasPermissions = targetAdmin.can_post_messages ||
+            targetAdmin.can_edit_messages ||
+            targetAdmin.can_delete_messages ||
+            targetAdmin.status === 'creator';
+
+        if (!hasPermissions) {
+            return c.json({
+                error: `@${targetAdmin.user.username || username} has no admin permissions. They must have at least one permission (post, edit, or delete messages) on Telegram to be a PR manager.`
+            }, 400);
+        }
+
+        // Create or get user
+        let { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('telegram_id', telegram_id)
+            .single();
+
+        if (!existingUser) {
+            const telegramUser = telegramAdmins.find((ta: any) => ta.user.id === telegram_id)?.user;
+            const { data: newUser } = await supabase
+                .from('users')
+                .insert({
+                    telegram_id,
+                    username: telegramUser?.username,
+                    first_name: telegramUser?.first_name,
+                    role: 'publisher'
+                })
+                .select('id')
+                .single();
+            existingUser = newUser;
+        }
+
+        // Check if already added
+        const { data: existingAdmin } = await supabase
+            .from('channel_admins')
+            .select('role')
+            .eq('channel_id', id)
+            .eq('user_id', existingUser.id)
+            .single();
+
+        if (existingAdmin) {
+            return c.json({ error: `@${username || targetAdmin.user.username} is already a ${existingAdmin.role} of this channel.` }, 400);
+        }
+
+        // Add as PR manager
+        const { error: insertError } = await supabase
+            .from('channel_admins')
+            .insert({
+                channel_id: id,
+                user_id: existingUser?.id,
+                role: 'pr_manager',
+                permissions: {
+                    can_approve_deal: true,
+                    can_negotiate: true,
+                    can_withdraw: false
+                }
+            });
+
+        if (insertError) throw insertError;
+
+        return c.json({
+            success: true,
+            telegram_id,
+            username: targetAdmin?.user?.username || username
+        });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// DELETE /channels/:id/pr-managers/:telegramId - Remove a PR manager
+app.delete('/:id/pr-managers/:telegramId', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const telegramId = Number(c.req.param('telegramId'));
+        const requesterId = Number(c.req.header('X-Telegram-ID'));
+
+        // Check if requester is the owner
+        const { data: ownerCheck, error: ownerError } = await supabase
+            .from('channel_admins')
+            .select('role, users(telegram_id)')
+            .eq('channel_id', id)
+            .eq('role', 'owner')
+            .single();
+
+        console.log('[DELETE PR] Requester ID:', requesterId, typeof requesterId);
+        console.log('[DELETE PR] Owner check result:', ownerCheck, 'Error:', ownerError);
+        console.log('[DELETE PR] Owner telegram_id:', ownerCheck?.users?.telegram_id, typeof ownerCheck?.users?.telegram_id);
+
+        // Use String comparison to handle bigint/number type mismatches
+        const ownerTelegramId = ownerCheck?.users?.telegram_id;
+        if (!ownerCheck || String(ownerTelegramId) !== String(requesterId)) {
+            console.log('[DELETE PR] Owner check FAILED - IDs do not match');
+            return c.json({ error: 'Only the channel owner can remove PR managers' }, 403);
+        }
+
+        console.log('[DELETE PR] Owner check PASSED');
+
+        // Find and delete the PR manager
+        const { data: pmUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('telegram_id', telegramId)
+            .single();
+
+        if (!pmUser) return c.json({ error: 'User not found' }, 404);
+
+        const { error: deleteError } = await supabase
+            .from('channel_admins')
+            .delete()
+            .eq('channel_id', id)
+            .eq('user_id', pmUser.id)
+            .eq('role', 'pr_manager');
+
+        if (deleteError) throw deleteError;
+
+        return c.json({ success: true });
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }
@@ -99,7 +379,26 @@ app.post('/verify_permissions', async (c) => {
             });
         }
 
-        // 3. State D: Ready
+        // 3. Check if channel already exists in database
+        console.log('[Duplicate Check] Looking for channel with telegram_channel_id:', resolvedId, typeof resolvedId);
+        const { data: existingChannel, error: checkError } = await supabase
+            .from('channels')
+            .select('id, title, status, telegram_channel_id')
+            .eq('telegram_channel_id', resolvedId)
+            .maybeSingle();
+
+        console.log('[Duplicate Check] Result:', existingChannel, 'Error:', checkError);
+
+        if (existingChannel) {
+            return c.json({
+                state: 'ALREADY_LISTED',
+                message: `This channel "${existingChannel.title || 'Unknown'}" is already listed on the platform.`,
+                existing_channel_id: existingChannel.id,
+                status: existingChannel.status
+            }, 409); // 409 Conflict
+        }
+
+        // 4. State D: Ready
         const channelStats = await getChannelStats(resolvedId);
 
         if (!channelStats) {
@@ -129,10 +428,18 @@ app.post('/verify_permissions', async (c) => {
 app.post('/', async (c) => {
     try {
         const body = await c.req.json();
-        const { telegram_channel_id, status } = body;
+        const {
+            telegram_channel_id,
+            status,
+            description,
+            category,
+            tags,
+            base_price_amount,
+            pricing,
+            rateCard
+        } = body;
 
         // In a real app we'd get userId from Auth Middleware context
-        // const userId = c.get('user').telegram_id;
         const headerId = c.req.header('X-Telegram-ID');
         const mockUserId = headerId ? Number(headerId) : 704124192;
 
@@ -143,7 +450,14 @@ app.post('/', async (c) => {
         const channel = await channelService.verifyAndAddChannel(
             telegram_channel_id,
             mockUserId,
-            undefined, // pricing (handled inside or if passed)
+            {
+                pricing: pricing,
+                basePriceAmount: base_price_amount,
+                description,
+                category,
+                tags,
+                rateCard
+            },
             status // Pass status (e.g. 'draft')
         );
         return c.json(channel, 201);
