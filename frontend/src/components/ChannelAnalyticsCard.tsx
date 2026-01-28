@@ -1,7 +1,7 @@
 import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip
 } from 'recharts';
-import { GlassCard } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -129,14 +129,7 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
                         </div>
                     </div>
                 </div>
-            ) : (
-                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-center">
-                    <p className="text-sm text-blue-200">
-                        Detailed charts unavailable. Sync stats to fetch latest data.
-                        <br /><span className="text-xs opacity-70">(Note: Requires channel &gt; 50 subs for deep analytics)</span>
-                    </p>
-                </div>
-            )}
+            ) : null}
         </div>
     );
 }
