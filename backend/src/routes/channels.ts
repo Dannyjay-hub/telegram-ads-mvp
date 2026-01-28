@@ -559,7 +559,22 @@ app.put('/:id', async (c) => {
 
         // In real app: Check ownership via X-Telegram-ID vs Channel Admins
 
-        const updated = await channelService.updateChannel(id, body);
+        // Convert snake_case from frontend to camelCase expected by service layer
+        const updates = {
+            basePriceAmount: body.base_price_amount,
+            pricing: body.pricing,
+            rateCard: body.rateCard,
+            verifiedStats: body.verifiedStats,
+            status: body.status,
+            description: body.description,
+            category: body.category,
+            tags: body.tags
+        };
+
+        console.log('[PUT /channels/:id] Received body:', body);
+        console.log('[PUT /channels/:id] Converted updates:', updates);
+
+        const updated = await channelService.updateChannel(id, updates);
         return c.json(updated);
     } catch (e: any) {
         return c.json({ error: e.message }, 400);
