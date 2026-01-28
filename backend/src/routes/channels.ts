@@ -404,7 +404,7 @@ app.post('/verify', async (c) => {
 // POST /channels/verify_permissions - Strict Bot Verification State Machine
 app.post('/verify_permissions', async (c) => {
     try {
-        const { channel_id } = await c.req.json();
+        const { channel_id, skip_existing_check } = await c.req.json();
         const headerId = c.req.header('X-Telegram-ID');
         const userId = headerId ? Number(headerId) : 704124192; // Mock ID default
 
@@ -419,22 +419,25 @@ app.post('/verify_permissions', async (c) => {
         }
 
         // 1. Check if channel already exists in database (fast, DB-only check)
-        console.log('[Duplicate Check] Looking for channel with telegram_channel_id:', resolvedId, typeof resolvedId);
-        const { data: existingChannel, error: checkError } = await supabase
-            .from('channels')
-            .select('id, title, status, telegram_channel_id')
-            .eq('telegram_channel_id', resolvedId)
-            .maybeSingle();
+        // Skip this check if we're just re-verifying permissions for an update
+        if (!skip_existing_check) {
+            console.log('[Duplicate Check] Looking for channel with telegram_channel_id:', resolvedId, typeof resolvedId);
+            const { data: existingChannel, error: checkError } = await supabase
+                .from('channels')
+                .select('id, title, status, telegram_channel_id')
+                .eq('telegram_channel_id', resolvedId)
+                .maybeSingle();
 
-        console.log('[Duplicate Check] Result:', existingChannel, 'Error:', checkError);
+            console.log('[Duplicate Check] Result:', existingChannel, 'Error:', checkError);
 
-        if (existingChannel) {
-            return c.json({
-                state: 'ALREADY_LISTED',
-                message: `This channel "${existingChannel.title || 'Unknown'}" is already listed on the platform.`,
-                existing_channel_id: existingChannel.id,
-                status: existingChannel.status
-            }, 409); // 409 Conflict
+            if (existingChannel) {
+                return c.json({
+                    state: 'ALREADY_LISTED',
+                    message: `This channel "${existingChannel.title || 'Unknown'}" is already listed on the platform.`,
+                    existing_channel_id: existingChannel.id,
+                    status: existingChannel.status
+                }, 409); // 409 Conflict
+            }
         }
 
         // 2. Check Bot Permissions (Strict)

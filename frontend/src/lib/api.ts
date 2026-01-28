@@ -174,11 +174,14 @@ export async function verifyChannel(id: number) {
     return response.json();
 }
 
-export async function verifyChannelPermissions(id: string | number) {
+export async function verifyChannelPermissions(id: string | number, options?: { skipExistingCheck?: boolean }) {
     const response = await fetch(`${API_URL}/channels/verify_permissions`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ channel_id: id })
+        body: JSON.stringify({
+            channel_id: id,
+            skip_existing_check: options?.skipExistingCheck || false
+        })
     });
     return response.json();
 }

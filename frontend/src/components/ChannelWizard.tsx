@@ -192,7 +192,7 @@ export function ChannelWizard() {
             // If updating an existing channel, re-verify bot permissions first
             if (id && channelId) {
                 // Re-verify bot has permissions before allowing update
-                const permCheck = await verifyChannelPermissions(channelId);
+                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true });
                 if (permCheck.state === 'A_BOT_NOT_ADDED') {
                     showAlert('Bot has been removed from the channel. Please re-add the bot as admin.');
                     setLoading(false);
