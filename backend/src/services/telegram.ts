@@ -116,3 +116,122 @@ export async function resolveChannelId(usernameOrId: string | number): Promise<n
         return null; // Return null to indicate failure (e.g., bot not added or bad username)
     }
 }
+
+export interface TeamMemberStatus {
+    userId: number | string;
+    username?: string;
+    role: 'bot' | 'owner' | 'pr_manager';
+    isValid: boolean;
+    reason?: string;
+}
+
+export interface TeamVerificationResult {
+    valid: boolean;
+    invalidMembers: TeamMemberStatus[];
+    allMembers: TeamMemberStatus[];
+}
+
+/**
+ * Verify that all team members (bot, owner, PR managers) still have valid admin permissions.
+ * Called before channel updates and escrow actions.
+ */
+export async function verifyTeamPermissions(
+    channelId: string | number,
+    ownerId: number | string,
+    prManagers: Array<{ telegram_id: number | string; username?: string }>
+): Promise<TeamVerificationResult> {
+    const allMembers: TeamMemberStatus[] = [];
+    const invalidMembers: TeamMemberStatus[] = [];
+
+    if (!bot) {
+        console.warn('⚠️ BOT_TOKEN missing, returning mock valid team');
+        return { valid: true, invalidMembers: [], allMembers: [] };
+    }
+
+    // 1. Check Bot permissions
+    try {
+        const me = await bot.api.getMe();
+        const botMember = await bot.api.getChatMember(channelId, me.id);
+        const botStatus: TeamMemberStatus = {
+            userId: me.id,
+            username: me.username,
+            role: 'bot',
+            isValid: botMember.status === 'administrator' &&
+                ('can_post_messages' in botMember && botMember.can_post_messages === true)
+        };
+        if (!botStatus.isValid) {
+            botStatus.reason = 'Bot is not admin or lacks post_messages permission';
+            invalidMembers.push(botStatus);
+        }
+        allMembers.push(botStatus);
+    } catch (e: any) {
+        const botStatus: TeamMemberStatus = {
+            userId: 0,
+            role: 'bot',
+            isValid: false,
+            reason: `Bot verification failed: ${e.message}`
+        };
+        invalidMembers.push(botStatus);
+        allMembers.push(botStatus);
+    }
+
+    // 2. Check Owner permissions
+    try {
+        const ownerMember = await bot.api.getChatMember(channelId, Number(ownerId));
+        const ownerStatus: TeamMemberStatus = {
+            userId: ownerId,
+            role: 'owner',
+            isValid: ownerMember.status === 'creator' || ownerMember.status === 'administrator'
+        };
+        if (!ownerStatus.isValid) {
+            ownerStatus.reason = 'Owner is no longer a channel admin';
+            invalidMembers.push(ownerStatus);
+        }
+        allMembers.push(ownerStatus);
+    } catch (e: any) {
+        const ownerStatus: TeamMemberStatus = {
+            userId: ownerId,
+            role: 'owner',
+            isValid: false,
+            reason: `Owner verification failed: ${e.message}`
+        };
+        invalidMembers.push(ownerStatus);
+        allMembers.push(ownerStatus);
+    }
+
+    // 3. Check each PR Manager
+    for (const pm of prManagers) {
+        if (!pm.telegram_id) continue; // Skip invalid entries
+
+        try {
+            const pmMember = await bot.api.getChatMember(channelId, Number(pm.telegram_id));
+            const pmStatus: TeamMemberStatus = {
+                userId: pm.telegram_id,
+                username: pm.username,
+                role: 'pr_manager',
+                isValid: pmMember.status === 'creator' || pmMember.status === 'administrator'
+            };
+            if (!pmStatus.isValid) {
+                pmStatus.reason = `@${pm.username || pm.telegram_id} is no longer a channel admin`;
+                invalidMembers.push(pmStatus);
+            }
+            allMembers.push(pmStatus);
+        } catch (e: any) {
+            const pmStatus: TeamMemberStatus = {
+                userId: pm.telegram_id,
+                username: pm.username,
+                role: 'pr_manager',
+                isValid: false,
+                reason: `@${pm.username || pm.telegram_id}: ${e.message}`
+            };
+            invalidMembers.push(pmStatus);
+            allMembers.push(pmStatus);
+        }
+    }
+
+    return {
+        valid: invalidMembers.length === 0,
+        invalidMembers,
+        allMembers
+    };
+}

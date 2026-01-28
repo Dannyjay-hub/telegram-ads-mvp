@@ -2,7 +2,7 @@
 import { Hono } from 'hono';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { ChannelService } from '../services/ChannelService';
-import { getChatMember, getChannelStats, getBotPermissions, resolveChannelId } from '../services/telegram';
+import { getChatMember, getChannelStats, getBotPermissions, resolveChannelId, verifyTeamPermissions } from '../services/telegram';
 import { bot } from '../botInstance';
 import { supabase } from '../db';
 
@@ -99,6 +99,52 @@ app.get('/:id/admins', async (c) => {
             }))
         });
     } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// POST /channels/:id/verify-team - Verify all team members (bot, owner, PR managers) still have admin perms
+app.post('/:id/verify-team', async (c) => {
+    try {
+        const id = c.req.param('id');
+
+        // 1. Get channel info (need telegram_channel_id and owner)
+        const { data: channel, error: channelError } = await supabase
+            .from('channels')
+            .select('telegram_channel_id, owner_id')
+            .eq('id', id)
+            .single();
+
+        if (channelError || !channel) {
+            return c.json({ error: 'Channel not found' }, 404);
+        }
+
+        // 2. Get all PR managers for this channel
+        const { data: admins } = await supabase
+            .from('channel_admins')
+            .select('users(telegram_id, username)')
+            .eq('channel_id', id)
+            .eq('role', 'pr_manager');
+
+        const prManagers = (admins || [])
+            .filter((a: any) => a.users?.telegram_id)
+            .map((a: any) => ({
+                telegram_id: a.users.telegram_id,
+                username: a.users.username
+            }));
+
+        // 3. Verify team permissions via Telegram API
+        const result = await verifyTeamPermissions(
+            channel.telegram_channel_id,
+            channel.owner_id,
+            prManagers
+        );
+
+        console.log('[verify-team] Result:', JSON.stringify(result, null, 2));
+
+        return c.json(result);
+    } catch (e: any) {
+        console.error('[verify-team] Error:', e.message);
         return c.json({ error: e.message }, 500);
     }
 });

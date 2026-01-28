@@ -164,6 +164,45 @@ export function ChannelWizard() {
     const handleRegister = async (status: 'active' | 'draft' = 'active') => {
         setLoading(true);
         try {
+            // If updating an existing channel, verify team permissions first
+            if (id) {
+                const verifyRes = await fetch(`${API_URL}/channels/${id}/verify-team`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                });
+                const verifyData = await verifyRes.json();
+
+                if (!verifyData.valid && verifyData.invalidMembers?.length > 0) {
+                    const invalidList = verifyData.invalidMembers
+                        .map((m: any) => `• ${m.role === 'bot' ? 'Bot' : m.role === 'owner' ? 'Owner' : '@' + (m.username || m.userId)}: ${m.reason}`)
+                        .join('\n');
+
+                    const message = `Some team members no longer have admin permissions:\n\n${invalidList}\n\nPlease fix permissions before updating.`;
+                    showAlert(message);
+
+                    // Offer to auto-remove invalid PR managers
+                    const invalidPMs = verifyData.invalidMembers.filter((m: any) => m.role === 'pr_manager');
+                    if (invalidPMs.length > 0) {
+                        const shouldRemove = confirm('Would you like to remove the invalid PR managers from your team?');
+                        if (shouldRemove) {
+                            for (const pm of invalidPMs) {
+                                await fetch(`${API_URL}/channels/${id}/pr-managers/${pm.userId}`, {
+                                    method: 'DELETE',
+                                    headers: getHeaders()
+                                });
+                            }
+                            // Update local state
+                            setPrManagers(prev => prev.filter(
+                                (p: any) => !invalidPMs.some((inv: any) => String(inv.userId) === String(p.telegram_id))
+                            ));
+                            showAlert('Invalid PR managers removed. Please try updating again.');
+                        }
+                    }
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const payload = {
                 telegram_channel_id: Number(channelId),
                 title: verifiedStats?.title,
