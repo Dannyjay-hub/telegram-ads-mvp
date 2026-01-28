@@ -87,9 +87,17 @@ export function MarketplacePage() {
                             <div className="p-4">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-lg">
-                                            {channel.title.charAt(0)}
-                                        </div>
+                                        {channel.photoUrl ? (
+                                            <img
+                                                src={channel.photoUrl}
+                                                alt={channel.title}
+                                                className="w-10 h-10 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-lg">
+                                                {channel.title.charAt(0)}
+                                            </div>
+                                        )}
                                         <div>
                                             <h3 className="font-bold">{channel.title}</h3>
                                             <p className="text-xs text-muted-foreground">@{channel.username}</p>
