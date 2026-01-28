@@ -72,8 +72,9 @@ export function MyChannelsPage() {
                                     <div className={`px-2 py-1 rounded text-xs font-bold ${channel.isActive ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
                                         {channel.isActive ? 'Active' : 'Pending'}
                                     </div>
-                                    <div className="text-sm font-semibold text-muted-foreground">
-                                        ${channel.basePriceAmount}
+                                    <div className="text-sm font-semibold text-muted-foreground flex flex-col items-end">
+                                        <span className="text-[10px] uppercase tracking-wider opacity-70">Base Price</span>
+                                        <span>${channel.basePriceAmount}</span>
                                     </div>
                                 </div>
                             </div>
