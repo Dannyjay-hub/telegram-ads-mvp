@@ -104,6 +104,30 @@ export class ChannelService {
         if (existing) {
             // Channel exists - UPDATE it with the new data if provided
             console.log('[verifyAndAddChannel] Updating existing channel with:', channelData);
+
+            // IMPORTANT: Ensure the registering user is set as owner if no owner exists
+            const ownerUserId = await this.getUserId(userId);
+            if (ownerUserId) {
+                const { data: existingOwner } = await supabase
+                    .from('channel_admins')
+                    .select('id')
+                    .eq('channel_id', existing.id)
+                    .eq('role', 'owner')
+                    .single();
+
+                if (!existingOwner) {
+                    // No owner record exists - create one for the registering user
+                    console.log('[verifyAndAddChannel] No owner found, setting user as owner:', userId);
+                    const { error: ownerError } = await supabase.from('channel_admins').insert({
+                        channel_id: existing.id,
+                        user_id: ownerUserId,
+                        role: 'owner',
+                        permissions: { can_withdraw: true, can_approve_deal: true, can_negotiate: true }
+                    } as any);
+                    if (ownerError) console.error('Failed to set owner for existing channel:', ownerError);
+                }
+            }
+
             if (channelData) {
                 const updated = await this.channelRepo.update(existing.id, {
                     description: channelData.description,
