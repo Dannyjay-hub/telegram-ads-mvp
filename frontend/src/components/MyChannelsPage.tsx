@@ -59,7 +59,14 @@ export function MyChannelsPage() {
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="font-bold text-lg">{channel.title}</h3>
-                                    <p className="text-sm text-muted-foreground">@{channel.username}</p>
+                                    <a
+                                        href={`https://t.me/${channel.username}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-primary hover:underline"
+                                    >
+                                        @{channel.username}
+                                    </a>
                                 </div>
                                 <div className={`px-2 py-1 rounded text-xs font-bold ${channel.isActive ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
                                     {channel.isActive ? 'Active' : 'Pending'}
