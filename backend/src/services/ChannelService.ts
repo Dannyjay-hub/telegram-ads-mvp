@@ -67,6 +67,8 @@ export class ChannelService {
                 is_admin: true,
                 title: channelInfo.title,
                 username: channelInfo.username,
+                photoUrl: channelInfo.photoUrl,
+                avgViews: channelInfo.avg_views,
                 stats: {
                     subscribers: channelInfo.memberCount
                 }
@@ -155,8 +157,10 @@ export class ChannelService {
             telegramChannelId,
             title: verification.title,
             username: verification.username,
+            photoUrl: verification.photoUrl || undefined,
             verifiedStats: verification.stats,
             statsJson: verification.stats as any,
+            avgViews: verification.avgViews,
             isActive: initialStatus === 'active', // Only active if status is active
             status: initialStatus as any,
             isVerified: true,

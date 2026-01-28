@@ -475,7 +475,7 @@ app.post('/verify_permissions', async (c) => {
             channel_details: {
                 title: channelStats.title,
                 username: channelStats.username,
-                // photo_url: (channelInfo.photo as any)?.small_file_id, 
+                photoUrl: channelStats.photoUrl,
                 subscribers: channelStats.memberCount,
                 avg_views: (channelStats as any).avg_views
             },

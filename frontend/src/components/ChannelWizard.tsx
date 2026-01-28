@@ -143,7 +143,8 @@ export function ChannelWizard() {
                     title: permRes.channel_details?.title || 'Channel',
                     username: permRes.channel_details?.username || 'unknown',
                     subscribers: permRes.channel_details?.subscribers || 0,
-                    avg_views: permRes.channel_details?.avg_views || 0 // Expect this
+                    avg_views: permRes.channel_details?.avg_views || 0,
+                    photoUrl: permRes.channel_details?.photoUrl || null
                 });
 
                 // To get real subs, we might need a second call, but let's proceed to Step 1
@@ -348,9 +349,17 @@ export function ChannelWizard() {
                     {step === 1 && (
                         <div className="space-y-6 animate-in slide-in-from-right-4">
                             <GlassCard className="p-6 text-center animate-in scale-in-95">
-                                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-green-500">
-                                    <Check className="w-8 h-8" />
-                                </div>
+                                {verifiedStats?.photoUrl ? (
+                                    <img
+                                        src={verifiedStats.photoUrl}
+                                        alt={verifiedStats?.title}
+                                        className="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-green-500">
+                                        <Check className="w-8 h-8" />
+                                    </div>
+                                )}
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{verifiedStats?.title || 'Verified'}</h2>
                                 <p className="text-muted-foreground">@{verifiedStats?.username}</p>
 
