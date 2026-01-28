@@ -85,6 +85,22 @@ export function ChannelWizard() {
                 })
                 setStep(1)
                 setVerifState('D_READY')
+
+                // Fetch PR managers and auto-expand if any exist
+                try {
+                    const adminsRes = await fetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() });
+                    if (adminsRes.ok) {
+                        const data = await adminsRes.json();
+                        setOwner(data.owner);
+                        setPrManagers(data.pr_managers || []);
+                        // Auto-expand Team section if there are PR managers
+                        if (data.pr_managers && data.pr_managers.length > 0) {
+                            setShowPRManagerSection(true);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load PR manager data', e);
+                }
             }
         } catch (e) {
             console.error(e)
