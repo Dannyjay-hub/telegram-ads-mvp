@@ -68,19 +68,13 @@ export function MyChannelsPage() {
                                         @{channel.username}
                                     </a>
                                 </div>
-                                <div className={`px-2 py-1 rounded text-xs font-bold ${channel.isActive ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
-                                    {channel.isActive ? 'Active' : 'Pending'}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                                <div className="bg-white/5 p-2 rounded">
-                                    <span className="text-muted-foreground block text-xs">Subscribers</span>
-                                    <span className="font-semibold">{channel.verifiedStats?.subscribers || 0}</span>
-                                </div>
-                                <div className="bg-white/5 p-2 rounded">
-                                    <span className="text-muted-foreground block text-xs">Base Price</span>
-                                    <span className="font-semibold">${channel.basePriceAmount}</span>
+                                <div className="flex flex-col items-end gap-1">
+                                    <div className={`px-2 py-1 rounded text-xs font-bold ${channel.isActive ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                                        {channel.isActive ? 'Active' : 'Pending'}
+                                    </div>
+                                    <div className="text-sm font-semibold text-muted-foreground">
+                                        ${channel.basePriceAmount}
+                                    </div>
                                 </div>
                             </div>
 
