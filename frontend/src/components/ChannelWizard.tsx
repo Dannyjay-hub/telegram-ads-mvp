@@ -42,6 +42,7 @@ export function ChannelWizard() {
     const [showPRManagerSection, setShowPRManagerSection] = useState(false)
     const [showPRManagerForm, setShowPRManagerForm] = useState(false)
     const [prError, setPrError] = useState<string | null>(null)
+    const [deletingPRId, setDeletingPRId] = useState<string | null>(null)
 
     // Helper function for alerts
     const showAlert = (message: string) => {
@@ -66,7 +67,12 @@ export function ChannelWizard() {
     const loadChannel = async () => {
         setInitialLoading(true)
         try {
-            const myChannels = await getMyChannels(user?.telegramId?.toString() || '704124192')
+            if (!user?.telegramId) {
+                showAlert('Please authenticate first');
+                navigate('/');
+                return;
+            }
+            const myChannels = await getMyChannels(user.telegramId.toString())
             const channel = myChannels.find(c => c.id === id)
 
             if (channel) {
@@ -315,19 +321,40 @@ export function ChannelWizard() {
 
                                 {/* Error State: Missing Permissions */}
                                 {verifState === 'B_MISSING_PERMISSIONS' && (
-                                    <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-lg flex gap-3 animate-in fade-in slide-in-from-top-2">
-                                        <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0" />
-                                        <div className="space-y-1">
+                                    <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-orange-400" />
                                             <p className="text-sm font-bold text-orange-200">Missing Permissions</p>
-                                            <p className="text-xs text-orange-200 mb-2">The bot or you are missing rights:</p>
-                                            <ul className="text-xs text-orange-300/80 list-disc pl-4">
-                                                {missingPerms.length > 0 ? missingPerms.map(p => (
-                                                    <li key={p}>Missing: <b>{p.replace('_', ' ')}</b></li>
-                                                )) : (
-                                                    <li>Check Admin Rights</li>
-                                                )}
-                                            </ul>
                                         </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* Bot Permissions */}
+                                            <div className="bg-black/20 p-3 rounded-lg">
+                                                <p className="text-xs font-bold text-orange-200 mb-2">🤖 Bot Needs:</p>
+                                                <ul className="text-xs space-y-1">
+                                                    {missingPerms.filter(p => p.includes('post') || p.includes('edit') || p.includes('delete')).map(p => (
+                                                        <li key={p} className="text-red-400">✗ {p.replace(/_/g, ' ')}</li>
+                                                    ))}
+                                                    {missingPerms.filter(p => p.includes('post') || p.includes('edit') || p.includes('delete')).length === 0 && (
+                                                        <li className="text-green-400">✓ All permissions OK</li>
+                                                    )}
+                                                </ul>
+                                            </div>
+                                            {/* User Permissions */}
+                                            <div className="bg-black/20 p-3 rounded-lg">
+                                                <p className="text-xs font-bold text-orange-200 mb-2">👤 You Need:</p>
+                                                <ul className="text-xs space-y-1">
+                                                    {missingPerms.filter(p => p.includes('admin') || p.includes('user')).map(p => (
+                                                        <li key={p} className="text-red-400">✗ {p.replace(/_/g, ' ')}</li>
+                                                    ))}
+                                                    {missingPerms.filter(p => p.includes('admin') || p.includes('user')).length === 0 && missingPerms.length > 0 && (
+                                                        <li className="text-green-400">✓ Your permissions OK</li>
+                                                    )}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-orange-300/70">
+                                            Go to Telegram → Channel Settings → Administrators to fix permissions.
+                                        </p>
                                     </div>
                                 )}
 
@@ -337,7 +364,7 @@ export function ChannelWizard() {
                                         <div className="space-y-2">
                                             <Label className="text-white">Channel ID</Label>
                                             <Input
-                                                placeholder="-100..."
+                                                placeholder="@username or -1001234567890"
                                                 value={channelId}
                                                 onChange={e => {
                                                     setChannelId(e.target.value);
@@ -568,7 +595,15 @@ export function ChannelWizard() {
                                             </Button>
                                             <Button
                                                 onClick={() => {
-                                                    if (!newPackage.title || !newPackage.price) return;
+                                                    if (!newPackage.title || !newPackage.price) {
+                                                        showAlert('Please fill in title and price');
+                                                        return;
+                                                    }
+                                                    // Check for duplicate titles
+                                                    if (rateCard.some(pkg => pkg.title.toLowerCase() === newPackage.title.toLowerCase())) {
+                                                        showAlert('A package with this title already exists');
+                                                        return;
+                                                    }
                                                     setRateCard([...rateCard, {
                                                         title: newPackage.title,
                                                         price: Number(newPackage.price),
@@ -661,8 +696,10 @@ export function ChannelWizard() {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                                                                disabled={deletingPRId === pm.telegram_id}
                                                                 onClick={async () => {
                                                                     if (!confirm(`Remove @${pm.username} as PR manager?`)) return;
+                                                                    setDeletingPRId(pm.telegram_id);
                                                                     try {
                                                                         const headers = getHeaders() as Record<string, string>;
                                                                         if (user?.telegramId) {
@@ -685,10 +722,16 @@ export function ChannelWizard() {
                                                                         showAlert('PR Manager removed');
                                                                     } catch (e: any) {
                                                                         showAlert(e.message || 'Failed to remove PR manager');
+                                                                    } finally {
+                                                                        setDeletingPRId(null);
                                                                     }
                                                                 }}
                                                             >
-                                                                <X className="w-4 h-4" />
+                                                                {deletingPRId === pm.telegram_id ? (
+                                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                                ) : (
+                                                                    <X className="w-4 h-4" />
+                                                                )}
                                                             </Button>
                                                         </div>
                                                     ))}
