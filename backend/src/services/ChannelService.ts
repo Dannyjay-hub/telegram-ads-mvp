@@ -244,7 +244,8 @@ export class ChannelService {
             isActive: updates.status ? (updates.status === 'active') : undefined,
             description: updates.description,
             category: updates.category,
-            tags: updates.tags
+            tags: updates.tags,
+            language: updates.language
         });
     }
 

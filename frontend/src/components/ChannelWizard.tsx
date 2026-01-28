@@ -31,7 +31,7 @@ export function ChannelWizard() {
     // Listing Details
     const [description, setDescription] = useState('')
     const [category, setCategory] = useState('')
-    const [tags, setTags] = useState('')
+    const [language, setLanguage] = useState('')
 
     // Channel error state
     const [channelError, setChannelError] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export function ChannelWizard() {
                 setRateCard(channel.rateCard || [])
                 setDescription(channel.description || '')
                 setCategory(channel.category || '')
-                setTags(channel.tags?.join(', ') || '')
+                setLanguage(channel.language || '')
                 setVerifiedStats({
                     title: channel.title,
                     username: channel.username?.replace('@', ''),
@@ -209,7 +209,7 @@ export function ChannelWizard() {
                 username: verifiedStats?.username,
                 description: description,
                 category: category,
-                tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+                language: language,
                 base_price_amount: Number(basePrice) || 100,
                 // New Phase 1 Pricing Structure
                 pricing: {
@@ -393,11 +393,11 @@ export function ChannelWizard() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Tags (Comma separated)</Label>
+                                            <Label>Language</Label>
                                             <Input
-                                                placeholder="bitcoin, daily, news"
-                                                value={tags}
-                                                onChange={e => setTags(e.target.value)}
+                                                placeholder="English, Spanish, Chinese..."
+                                                value={language}
+                                                onChange={e => setLanguage(e.target.value)}
                                             />
                                         </div>
                                     </div>

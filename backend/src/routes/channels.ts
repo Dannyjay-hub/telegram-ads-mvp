@@ -568,7 +568,8 @@ app.put('/:id', async (c) => {
             status: body.status,
             description: body.description,
             category: body.category,
-            tags: body.tags
+            tags: body.tags,
+            language: body.language
         };
 
         console.log('[PUT /channels/:id] Received body:', body);

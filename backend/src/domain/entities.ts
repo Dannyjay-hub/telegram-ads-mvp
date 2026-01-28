@@ -42,6 +42,7 @@ export interface Channel {
     description?: string;
     category?: string;
     tags?: string[];
+    language?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }

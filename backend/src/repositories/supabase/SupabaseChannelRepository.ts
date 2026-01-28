@@ -25,6 +25,7 @@ export class SupabaseChannelRepository implements IChannelRepository {
             description: row.description,
             category: row.category,
             tags: row.tags,
+            language: row.language,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at)
         };
@@ -49,7 +50,8 @@ export class SupabaseChannelRepository implements IChannelRepository {
                 rate_card: channel.rateCard || [],
                 description: channel.description,
                 category: channel.category,
-                tags: channel.tags
+                tags: channel.tags,
+                language: channel.language
             } as any)
             .select()
             .single();
@@ -192,6 +194,7 @@ export class SupabaseChannelRepository implements IChannelRepository {
         if (updates.description !== undefined) dbUpdates.description = updates.description;
         if (updates.category !== undefined) dbUpdates.category = updates.category;
         if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+        if (updates.language !== undefined) dbUpdates.language = updates.language;
         if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
         dbUpdates.updated_at = new Date().toISOString();

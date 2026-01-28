@@ -32,6 +32,7 @@ export interface Channel {
     description?: string;
     category?: string;
     tags?: string[];
+    language?: string;
     avgViews?: number;
 }
 

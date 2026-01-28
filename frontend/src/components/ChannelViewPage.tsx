@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
-import { ArrowLeft, Settings, RefreshCw, Check, Users, Eye, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Settings, RefreshCw, Check, Users, Eye, TrendingUp, ExternalLink, Globe } from 'lucide-react'
 import { type Channel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 
@@ -125,7 +125,15 @@ export function ChannelViewPage() {
                         </span>
                     )}
                 </div>
-                <p className="text-muted-foreground">@{channel.username}</p>
+                <a
+                    href={`https://t.me/${channel.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary/80 inline-flex items-center gap-1 transition-colors"
+                >
+                    @{channel.username}
+                    <ExternalLink className="w-3 h-3" />
+                </a>
 
                 {channel.description && (
                     <p className="text-sm text-muted-foreground mt-4 border-t border-white/10 pt-4">
@@ -199,8 +207,8 @@ export function ChannelViewPage() {
                 </div>
             </GlassCard>
 
-            {/* Category & Tags */}
-            {(channel.category || (channel.tags && channel.tags.length > 0)) && (
+            {/* Category & Language */}
+            {(channel.category || (channel as any).language) && (
                 <GlassCard className="p-4 mb-6">
                     <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">
                         Details
@@ -211,13 +219,11 @@ export function ChannelViewPage() {
                             <span className="bg-primary/20 text-primary text-xs px-2 py-1 rounded">{channel.category}</span>
                         </div>
                     )}
-                    {channel.tags && channel.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            {channel.tags.map((tag, idx) => (
-                                <span key={idx} className="bg-white/10 text-xs px-2 py-1 rounded">
-                                    #{tag}
-                                </span>
-                            ))}
+                    {(channel as any).language && (
+                        <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">Language: </span>
+                            <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">{(channel as any).language}</span>
                         </div>
                     )}
                 </GlassCard>
