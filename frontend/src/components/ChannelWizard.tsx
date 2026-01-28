@@ -189,8 +189,23 @@ export function ChannelWizard() {
     const handleRegister = async (status: 'active' | 'draft' = 'active') => {
         setLoading(true);
         try {
-            // If updating an existing channel, verify team permissions first
-            if (id) {
+            // If updating an existing channel, re-verify bot permissions first
+            if (id && channelId) {
+                // Re-verify bot has permissions before allowing update
+                const permCheck = await verifyChannelPermissions(channelId);
+                if (permCheck.state === 'A_BOT_NOT_ADDED') {
+                    showAlert('Bot has been removed from the channel. Please re-add the bot as admin.');
+                    setLoading(false);
+                    return;
+                }
+                if (permCheck.state === 'B_MISSING_PERMISSIONS') {
+                    const missingList = permCheck.missing?.join(', ') || 'some permissions';
+                    showAlert(`Bot is missing permissions: ${missingList}. Please fix in Telegram before updating.`);
+                    setLoading(false);
+                    return;
+                }
+
+                // Then verify team permissions
                 const verifyRes = await fetch(`${API_URL}/channels/${id}/verify-team`, {
                     method: 'POST',
                     headers: getHeaders()
@@ -284,7 +299,13 @@ export function ChannelWizard() {
     return (
         <div className="pb-20 max-w-lg mx-auto p-4">
             <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+                <Button variant="ghost" size="icon" onClick={() => {
+                    if (step === 1) {
+                        setStep(0);
+                    } else {
+                        navigate('/');
+                    }
+                }}>
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <h1 className="text-xl font-bold">Add Channel</h1>
@@ -331,10 +352,10 @@ export function ChannelWizard() {
                                             <div className="bg-black/20 p-3 rounded-lg">
                                                 <p className="text-xs font-bold text-orange-200 mb-2">🤖 Bot Needs:</p>
                                                 <ul className="text-xs space-y-1">
-                                                    {missingPerms.filter(p => p.includes('post') || p.includes('edit') || p.includes('delete')).map(p => (
-                                                        <li key={p} className="text-red-400">✗ {p.replace(/_/g, ' ')}</li>
+                                                    {missingPerms.filter(p => !p.includes('User') && !p.includes('Admin Rights')).map(p => (
+                                                        <li key={p} className="text-red-400">✗ {p}</li>
                                                     ))}
-                                                    {missingPerms.filter(p => p.includes('post') || p.includes('edit') || p.includes('delete')).length === 0 && (
+                                                    {missingPerms.filter(p => !p.includes('User') && !p.includes('Admin Rights')).length === 0 && (
                                                         <li className="text-green-400">✓ All permissions OK</li>
                                                     )}
                                                 </ul>
@@ -343,10 +364,10 @@ export function ChannelWizard() {
                                             <div className="bg-black/20 p-3 rounded-lg">
                                                 <p className="text-xs font-bold text-orange-200 mb-2">👤 You Need:</p>
                                                 <ul className="text-xs space-y-1">
-                                                    {missingPerms.filter(p => p.includes('admin') || p.includes('user')).map(p => (
-                                                        <li key={p} className="text-red-400">✗ {p.replace(/_/g, ' ')}</li>
+                                                    {missingPerms.filter(p => p.includes('User') || p.includes('Admin Rights')).map(p => (
+                                                        <li key={p} className="text-red-400">✗ {p}</li>
                                                     ))}
-                                                    {missingPerms.filter(p => p.includes('admin') || p.includes('user')).length === 0 && missingPerms.length > 0 && (
+                                                    {missingPerms.filter(p => p.includes('User') || p.includes('Admin Rights')).length === 0 && missingPerms.length > 0 && (
                                                         <li className="text-green-400">✓ Your permissions OK</li>
                                                     )}
                                                 </ul>
@@ -359,10 +380,10 @@ export function ChannelWizard() {
                                 )}
 
                                 <div className="bg-purple-500/20 border border-purple-500/30 p-4 rounded-lg space-y-3">
-                                    <h3 className="font-bold text-purple-100">2. Enter Channel ID</h3>
+                                    <h3 className="font-bold text-purple-100">2. Enter Channel Username or ID</h3>
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <Label className="text-white">Channel ID</Label>
+                                            <Label className="text-white">Channel Username or ID</Label>
                                             <Input
                                                 placeholder="@username or -1001234567890"
                                                 value={channelId}

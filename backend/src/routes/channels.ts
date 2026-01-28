@@ -418,31 +418,7 @@ app.post('/verify_permissions', async (c) => {
             }, 400);
         }
 
-        // 1. Check Bot Permissions (Strict)
-        const permRes = await channelService.verifyChannelPermissions(resolvedId);
-
-        if (permRes.state !== 'D_READY') {
-            return c.json({
-                state: permRes.state,
-                message: 'Bot verification failed.',
-                missing: permRes.missing,
-                details: permRes.details || permRes.current
-            });
-        }
-
-        // 2. Check User Admin Permissions (Double check)
-        // Ensure the person trying to list is still an admin
-        const userMember = await getChatMember(resolvedId, userId);
-        if (!userMember || (userMember.status !== 'administrator' && userMember.status !== 'creator')) {
-            return c.json({
-                state: 'B_MISSING_PERMISSIONS',
-                message: 'You are not an admin of this channel.',
-                missing: ['User Admin Rights'],
-                details: null
-            });
-        }
-
-        // 3. Check if channel already exists in database
+        // 1. Check if channel already exists in database (fast, DB-only check)
         console.log('[Duplicate Check] Looking for channel with telegram_channel_id:', resolvedId, typeof resolvedId);
         const { data: existingChannel, error: checkError } = await supabase
             .from('channels')
@@ -459,6 +435,30 @@ app.post('/verify_permissions', async (c) => {
                 existing_channel_id: existingChannel.id,
                 status: existingChannel.status
             }, 409); // 409 Conflict
+        }
+
+        // 2. Check Bot Permissions (Strict)
+        const permRes = await channelService.verifyChannelPermissions(resolvedId);
+
+        if (permRes.state !== 'D_READY') {
+            return c.json({
+                state: permRes.state,
+                message: 'Bot verification failed.',
+                missing: permRes.missing,
+                details: permRes.details || permRes.current
+            });
+        }
+
+        // 3. Check User Admin Permissions (Double check)
+        // Ensure the person trying to list is still an admin
+        const userMember = await getChatMember(resolvedId, userId);
+        if (!userMember || (userMember.status !== 'administrator' && userMember.status !== 'creator')) {
+            return c.json({
+                state: 'B_MISSING_PERMISSIONS',
+                message: 'You are not an admin of this channel.',
+                missing: ['User Admin Rights'],
+                details: null
+            });
         }
 
         // 4. State D: Ready
