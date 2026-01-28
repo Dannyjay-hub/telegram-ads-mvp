@@ -221,15 +221,17 @@ export function ChannelWizard() {
 
             if (id) {
                 await updateChannel(id, payload);
+                // After update, go back to My Channels list
+                navigate('/channels/my');
             } else {
                 await registerChannel(payload, user?.telegramId);
+                // After new registration, go to dashboard to see the new channel
+                navigate('/channels/my');
             }
-
-            navigate('/channels/dashboard');
         } catch (e: any) {
             if (e.message.includes('already registered') && !id) {
-                if (confirm('Channel already registered! View dashboard?')) {
-                    navigate('/channels/dashboard');
+                if (confirm('Channel already registered! View your channels?')) {
+                    navigate('/channels/my');
                 }
             } else {
                 alert(e.message || 'Failed to register');
