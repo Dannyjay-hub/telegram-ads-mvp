@@ -700,7 +700,8 @@ export function ChannelWizard() {
                                         <div className="pt-2">
                                             {!showPRManagerForm ? (
                                                 <Button
-                                                    className="w-full bg-white/5 border border-white/10 hover:bg-white/10"
+                                                    variant="outline"
+                                                    className="w-full border-primary/30 text-primary hover:bg-primary/10"
                                                     onClick={() => setShowPRManagerForm(true)}
                                                 >
                                                     <UserPlus className="w-4 h-4 mr-2" />
