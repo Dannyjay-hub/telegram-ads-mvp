@@ -321,6 +321,8 @@ app.delete('/:id/pr-managers/:telegramId', async (c) => {
         const telegramId = Number(c.req.param('telegramId'));
         const requesterId = Number(c.req.header('X-Telegram-ID'));
 
+        console.log('[DELETE PR] Starting deletion for telegramId:', telegramId, 'in channel:', id);
+
         // Check if requester is the owner
         const { data: ownerCheck, error: ownerError } = await supabase
             .from('channel_admins')
@@ -342,26 +344,41 @@ app.delete('/:id/pr-managers/:telegramId', async (c) => {
 
         console.log('[DELETE PR] Owner check PASSED');
 
-        // Find and delete the PR manager
-        const { data: pmUser } = await supabase
+        // Find the user entry for this telegram_id
+        console.log('[DELETE PR] Looking up user with telegram_id:', telegramId);
+        const { data: pmUser, error: userError } = await supabase
             .from('users')
             .select('id')
             .eq('telegram_id', telegramId)
             .single();
 
-        if (!pmUser) return c.json({ error: 'User not found' }, 404);
+        console.log('[DELETE PR] User lookup result:', pmUser, 'Error:', userError);
 
-        const { error: deleteError } = await supabase
+        if (!pmUser) {
+            console.log('[DELETE PR] User not found in database, returning 404');
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        console.log('[DELETE PR] Found user_id:', pmUser.id, '- now deleting from channel_admins');
+
+        const { error: deleteError, count } = await supabase
             .from('channel_admins')
             .delete()
             .eq('channel_id', id)
             .eq('user_id', pmUser.id)
             .eq('role', 'pr_manager');
 
-        if (deleteError) throw deleteError;
+        console.log('[DELETE PR] Delete result - Error:', deleteError, 'Count:', count);
 
+        if (deleteError) {
+            console.log('[DELETE PR] Delete failed with error:', deleteError);
+            throw deleteError;
+        }
+
+        console.log('[DELETE PR] Successfully deleted PR manager');
         return c.json({ success: true });
     } catch (e: any) {
+        console.log('[DELETE PR] Exception:', e.message);
         return c.json({ error: e.message }, 500);
     }
 });
