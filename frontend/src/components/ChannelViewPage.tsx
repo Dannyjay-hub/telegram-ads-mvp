@@ -113,9 +113,17 @@ export function ChannelViewPage() {
 
             {/* Channel Header Card */}
             <GlassCard className="p-6 text-center mb-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold">
-                    {channel.title?.charAt(0).toUpperCase() || 'C'}
-                </div>
+                {channel.photoUrl ? (
+                    <img
+                        src={channel.photoUrl}
+                        alt={channel.title}
+                        className="w-20 h-20 rounded-full mx-auto mb-4 object-cover"
+                    />
+                ) : (
+                    <div className="w-20 h-20 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold">
+                        {channel.title?.charAt(0).toUpperCase() || 'C'}
+                    </div>
+                )}
                 <div className="flex items-center justify-center gap-2 mb-1">
                     <h2 className="text-xl font-bold">{channel.title}</h2>
                     {channel.isActive && (

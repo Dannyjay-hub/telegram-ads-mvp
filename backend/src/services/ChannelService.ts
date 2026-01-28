@@ -228,7 +228,8 @@ export class ChannelService {
         await this.channelRepo.update(id, {
             verifiedStats: { subscribers: stats.memberCount },
             statsJson: stats as any,
-            avgViews: stats.avg_views
+            avgViews: stats.avg_views,
+            photoUrl: stats.photoUrl || undefined
         });
 
         return stats;

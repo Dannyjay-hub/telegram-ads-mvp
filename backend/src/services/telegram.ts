@@ -39,7 +39,8 @@ export async function getChannelStats(channelId: string | number) {
             memberCount: 10000 + Math.floor(Math.random() * 5000),
             title: `Mock Channel ${channelId}`,
             username: `mock_${channelId}`,
-            avg_views: 0
+            avg_views: 0,
+            photoUrl: null
         };
     }
 
@@ -55,11 +56,27 @@ export async function getChannelStats(channelId: string | number) {
             throw new Error('The ID provided is not a channel');
         }
 
+        // 3. Get Channel Photo URL
+        let photoUrl: string | null = null;
+        if (chat.photo) {
+            try {
+                // Get the file path for the photo
+                const file = await bot.api.getFile(chat.photo.big_file_id);
+                if (file.file_path) {
+                    // Construct the Telegram file URL
+                    photoUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+                }
+            } catch (photoError) {
+                console.warn('Could not fetch channel photo:', photoError);
+            }
+        }
+
         return {
             memberCount: count,
             title: chat.title || 'Untitled Channel',
             username: chat.username || undefined,
             description: chat.description || undefined,
+            photoUrl: photoUrl,
             // MVP Heuristic: Avg Views is roughly 15-25% of subscribers for active channels
             avg_views: Math.floor(count * (0.15 + Math.random() * 0.1))
         };

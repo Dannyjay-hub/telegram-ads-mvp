@@ -79,9 +79,17 @@ export function BrowseChannels() {
                 <div className="space-y-4">
                     {channels.map(channel => (
                         <GlassCard key={channel.id} className="p-4 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg font-bold shrink-0">
-                                {channel.title.charAt(0)}
-                            </div>
+                            {channel.photoUrl ? (
+                                <img
+                                    src={channel.photoUrl}
+                                    alt={channel.title}
+                                    className="w-12 h-12 rounded-full object-cover shrink-0"
+                                />
+                            ) : (
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg font-bold shrink-0">
+                                    {channel.title.charAt(0)}
+                                </div>
+                            )}
                             <div className="flex-1 min-w-0">
                                 <h3 className="font-bold truncate">{channel.title}</h3>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">

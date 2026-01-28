@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { getMyChannels, type Channel, API_URL, getHeaders } from '@/lib/api'
+import { getMyChannels, type Channel } from '@/lib/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Settings, Loader2, ArrowLeft } from 'lucide-react'

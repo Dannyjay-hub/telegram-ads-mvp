@@ -196,6 +196,7 @@ export class SupabaseChannelRepository implements IChannelRepository {
         if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
         if (updates.language !== undefined) dbUpdates.language = updates.language;
         if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+        if (updates.photoUrl !== undefined) dbUpdates.photo_url = updates.photoUrl;
 
         dbUpdates.updated_at = new Date().toISOString();
 
