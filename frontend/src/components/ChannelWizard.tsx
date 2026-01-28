@@ -79,7 +79,9 @@ export function ChannelWizard() {
                 setVerifiedStats({
                     title: channel.title,
                     username: channel.username?.replace('@', ''),
-                    subscribers: channel.verifiedStats?.subscribers || 0
+                    subscribers: channel.verifiedStats?.subscribers || 0,
+                    avg_views: channel.avgViews || 0,
+                    photoUrl: channel.photoUrl || null
                 })
                 setStep(1)
                 setVerifState('D_READY')
