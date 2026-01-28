@@ -205,14 +205,24 @@ export async function verifyTeamPermissions(
 
         try {
             const pmMember = await bot.api.getChatMember(channelId, Number(pm.telegram_id));
+
+            // PR managers must be admins WITH posting permissions
+            const isAdmin = pmMember.status === 'creator' || pmMember.status === 'administrator';
+            const hasPostingRights = pmMember.status === 'creator' ||
+                ('can_post_messages' in pmMember && pmMember.can_post_messages === true);
+
             const pmStatus: TeamMemberStatus = {
                 userId: pm.telegram_id,
                 username: pm.username,
                 role: 'pr_manager',
-                isValid: pmMember.status === 'creator' || pmMember.status === 'administrator'
+                isValid: isAdmin && hasPostingRights
             };
-            if (!pmStatus.isValid) {
+
+            if (!isAdmin) {
                 pmStatus.reason = `@${pm.username || pm.telegram_id} is no longer a channel admin`;
+                invalidMembers.push(pmStatus);
+            } else if (!hasPostingRights) {
+                pmStatus.reason = `@${pm.username || pm.telegram_id} cannot post messages`;
                 invalidMembers.push(pmStatus);
             }
             allMembers.push(pmStatus);
