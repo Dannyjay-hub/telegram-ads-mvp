@@ -1,2 +1,42 @@
-backend/.env
+# Environment files (NEVER COMMIT THESE)
 .env
+.env.*
+!.env.example
+!.env.sample
+*.env
+backend/.env
+frontend/.env
+
+# Private keys and secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*secret*
+*credentials*
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+.next/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local config
+*.local
