@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Zap } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 
 interface Package {
     id: string;
@@ -139,7 +138,7 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
                 <div className="text-center py-8 text-muted-foreground border border-dashed border-white/10 rounded-xl">
                     No packages defined. Advertisers won't be able to hire you.
                     <br />
-                    <Button variant="link" onClick={() => setIsAdding(true)}>Create your first package</Button>
+                    <Button variant="ghost" onClick={() => setIsAdding(true)}>Create your first package</Button>
                 </div>
             )}
         </div>
