@@ -15,7 +15,7 @@ const app = new hono_1.Hono();
 app.use('/*', async (c, next) => {
     c.header('Access-Control-Allow-Origin', '*');
     c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-ID');
     if (c.req.method === 'OPTIONS') {
         return c.body(null, 204);
     }
@@ -24,11 +24,15 @@ app.use('/*', async (c, next) => {
 const channels_1 = __importDefault(require("./routes/channels"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const briefs_1 = __importDefault(require("./routes/briefs"));
+const campaigns_1 = __importDefault(require("./routes/campaigns"));
+const wallets_1 = __importDefault(require("./routes/wallets"));
 // Routes
 app.route('/deals', deals_1.default);
 app.route('/channels', channels_1.default);
 app.route('/auth', auth_1.default);
 app.route('/briefs', briefs_1.default);
+app.route('/campaigns', campaigns_1.default);
+app.route('/wallets', wallets_1.default);
 app.get('/', (c) => c.text('Telegram Ad Marketplace Backend is Running!'));
 // Dev endpoints to test mock services
 app.get('/dev/chat-member', async (c) => {
@@ -43,7 +47,7 @@ app.get('/dev/channel-stats', async (c) => {
 // Run in background so it doesn't block
 (0, bot_1.startBot)().catch(console.error);
 // Start Server
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 console.log(`Server is running on port ${port}`);
 (0, node_server_1.serve)({
     fetch: app.fetch,

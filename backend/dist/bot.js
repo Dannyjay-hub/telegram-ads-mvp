@@ -3,9 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bot = void 0;
 exports.startBot = startBot;
-const grammy_1 = require("grammy");
 const dotenv_1 = __importDefault(require("dotenv"));
 const SupabaseUserRepository_1 = require("./repositories/supabase/SupabaseUserRepository");
 const SupabaseDealRepository_1 = require("./repositories/supabase/SupabaseDealRepository");
@@ -13,19 +11,17 @@ const SupabaseChannelRepository_1 = require("./repositories/supabase/SupabaseCha
 const BotConversationService_1 = require("./services/BotConversationService");
 const telegram_1 = require("./services/telegram");
 dotenv_1.default.config();
-const token = process.env.BOT_TOKEN;
-if (!token) {
-    console.warn('BOT_TOKEN is not defined in .env');
-}
-exports.bot = token ? new grammy_1.Bot(token) : null;
+const botInstance_1 = require("./botInstance");
+// ... other imports will be below
+// No need to create bot here anymore
 // Services
 const userRepo = new SupabaseUserRepository_1.SupabaseUserRepository();
 const dealRepo = new SupabaseDealRepository_1.SupabaseDealRepository();
 const channelRepo = new SupabaseChannelRepository_1.SupabaseChannelRepository();
 const convoService = new BotConversationService_1.BotConversationService(userRepo);
-if (exports.bot) {
+if (botInstance_1.bot) {
     // 1. Start - Identify User
-    exports.bot.command('start', async (ctx) => {
+    botInstance_1.bot.command('start', async (ctx) => {
         const telegramId = ctx.from?.id;
         if (!telegramId)
             return;
@@ -44,7 +40,7 @@ if (exports.bot) {
         }
     });
     // 2. Negotiate - Enter Chat State
-    exports.bot.command('negotiate', async (ctx) => {
+    botInstance_1.bot.command('negotiate', async (ctx) => {
         const dealId = ctx.match; // Expects "/negotiate <deal_id>"
         const telegramId = ctx.from?.id;
         if (!telegramId || !dealId)
@@ -56,14 +52,14 @@ if (exports.bot) {
         ctx.reply(`Entering negotiation mode for Deal #${dealId.substring(0, 8)}.\n\nAll messages will be forwarded to the other party.\nType /stop to exit.\nType /accept to finalize.`);
     });
     // 3. Stop - Exit Chat State
-    exports.bot.command('stop', async (ctx) => {
+    botInstance_1.bot.command('stop', async (ctx) => {
         if (!ctx.from?.id)
             return;
         await convoService.clearChatState(ctx.from.id);
         ctx.reply("Negotiation ended. Messages will no longer be forwarded.");
     });
     // 4. Accept - Finalize Deal (SECURE)
-    exports.bot.command('accept', async (ctx) => {
+    botInstance_1.bot.command('accept', async (ctx) => {
         const telegramId = ctx.from?.id;
         if (!telegramId)
             return;
@@ -96,8 +92,8 @@ if (exports.bot) {
             ctx.reply("Failed to verify admin status. Is the bot an admin in the channel?");
         }
     });
-    // 5. Text Handler - Relay Logic
-    exports.bot.on('message:text', async (ctx) => {
+    // 6. Text Handler - Relay Logic
+    botInstance_1.bot.on('message:text', async (ctx) => {
         const telegramId = ctx.from.id;
         const text = ctx.message.text;
         // Skip commands
@@ -154,22 +150,44 @@ if (exports.bot) {
         else {
             // Sender is likely Channel Owner. Send to Advertiser.
             // This direction allows us to look up Advertiser User -> Telegram ID.
-            const advertiser = await userRepo.findById(deal.advertiserId); // We assume we have findById in Repo?
-            // Checking Repo...
-            // `IUserRepository` interfaces has `findByTelegramId`. Does it have `findById`?
-            // If not, we can't route the message.
             return ctx.reply("Message sent to Advertiser (Simulated).");
         }
     });
+    // 5. Forward Handler - Channel ID Utility (High Priority)
+    botInstance_1.bot.on('message', async (ctx, next) => {
+        // Safe check for forwarded messages (Grammy / Telegram Bot API 7.0+ uses forward_origin)
+        const msg = ctx.message;
+        // Check legacy forward_from_chat or new forward_origin
+        // We look for channel forwards specifically
+        console.log('DEBUG MSG:', JSON.stringify(msg, null, 2));
+        let channelId;
+        let title;
+        if ('forward_from_chat' in msg && msg.forward_from_chat && msg.forward_from_chat.type === 'channel') {
+            channelId = msg.forward_from_chat.id;
+            title = msg.forward_from_chat.title;
+        }
+        else if ('forward_origin' in msg && msg.forward_origin && msg.forward_origin.type === 'channel') {
+            channelId = msg.forward_origin.chat.id;
+            title = msg.forward_origin.chat.title;
+        }
+        if (channelId && title) {
+            return ctx.reply(`📢 Channel Detected!\nTitle: ${title}\nID: \`${channelId}\`\n\nCopy this ID into the listing wizard.`, {
+                parse_mode: 'Markdown'
+            });
+        }
+        // If not a forward, continue to other handlers (e.g. text relay)
+        await next();
+    });
+    // 6. Text Handler - Relay Logic
     // Error handling
-    exports.bot.catch((err) => {
+    botInstance_1.bot.catch((err) => {
         console.error('Bot error:', err);
     });
 }
 async function startBot() {
-    if (exports.bot) {
+    if (botInstance_1.bot) {
         console.log('Starting Telegram Bot...');
-        exports.bot.start();
+        botInstance_1.bot.start();
     }
     else {
         console.log('Bot token missing, skipping bot start.');

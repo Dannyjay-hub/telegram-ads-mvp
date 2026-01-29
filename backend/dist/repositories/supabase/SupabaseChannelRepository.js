@@ -16,7 +16,15 @@ class SupabaseChannelRepository {
             basePriceAmount: row.base_price_amount,
             basePriceCurrency: row.base_price_currency,
             isActive: row.is_active,
+            isVerified: row.is_verified,
+            status: row.status,
+            permissions: row.permissions,
+            pricing: row.pricing,
             rateCard: row.rate_card, // Map JSONB
+            description: row.description,
+            category: row.category,
+            tags: row.tags,
+            language: row.language,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at)
         };
@@ -33,7 +41,15 @@ class SupabaseChannelRepository {
             base_price_amount: channel.basePriceAmount,
             base_price_currency: channel.basePriceCurrency,
             is_active: channel.isActive,
-            rate_card: channel.rateCard || []
+            is_verified: channel.isVerified,
+            status: channel.status,
+            permissions: channel.permissions,
+            pricing: channel.pricing,
+            rate_card: channel.rateCard || [],
+            description: channel.description,
+            category: channel.category,
+            tags: channel.tags,
+            language: channel.language
         })
             .select()
             .single();
@@ -63,6 +79,8 @@ class SupabaseChannelRepository {
     }
     async findAll(filters) {
         let query = db_1.supabase.from('channels').select('*');
+        // Only show active channels in the marketplace (exclude drafts)
+        query = query.eq('is_active', true);
         if (filters?.maxPrice) {
             query = query.lte('base_price_amount', filters.maxPrice);
         }
@@ -81,27 +99,57 @@ class SupabaseChannelRepository {
         return channels;
     }
     async saveAdmins(channelId, admins) {
-        const rows = admins.map(a => ({
-            channel_id: channelId,
-            telegram_id: a.telegramId,
-            username: a.username,
-            full_name: a.fullName,
-            role: a.role
-        }));
+        // 1. We must ensure these users exist in the 'users' table to get their UUIDs
+        const adminRows = [];
+        for (const admin of admins) {
+            // Upsert user to get UUID
+            const { data: userData, error: userError } = await db_1.supabase
+                .from('users')
+                .upsert({
+                telegram_id: admin.telegramId,
+                username: admin.username,
+                first_name: admin.fullName?.split(' ')[0] || 'Unknown',
+                // last_name ... (omitted for MVP)
+            }, { onConflict: 'telegram_id' })
+                .select('id')
+                .single();
+            if (userError || !userData) {
+                console.error(`Failed to upsert user ${admin.telegramId}:`, userError);
+                continue;
+            }
+            adminRows.push({
+                channel_id: channelId,
+                user_id: userData.id,
+                is_owner: admin.role === 'creator',
+                can_negotiate: true // Default permission
+            });
+        }
+        if (adminRows.length === 0)
+            return;
+        // 2. Insert into channel_admins
         const { error } = await db_1.supabase
             .from('channel_admins')
-            .upsert(rows, { onConflict: 'channel_id, telegram_id' });
+            .upsert(adminRows, { onConflict: 'channel_id, user_id' });
         if (error) {
             console.error('Failed to sync admins:', error);
         }
     }
     async findByAdminTelegramId(telegramId) {
-        // Query channel_admins to get channel_ids, then fetch channels
-        // Supabase join syntax:
+        // 1. Get User UUID from Telegram ID
+        const { data: user, error: userError } = await db_1.supabase
+            .from('users')
+            .select('id')
+            .eq('telegram_id', telegramId)
+            .single();
+        if (userError || !user) {
+            // User not found, so no channels
+            return [];
+        }
+        // 2. Query channel_admins using user_id
         const { data, error } = await db_1.supabase
             .from('channel_admins')
             .select('channel_id, channels (*)')
-            .eq('telegram_id', telegramId);
+            .eq('user_id', user.id);
         if (error) {
             console.error('Failed to fetch admin channels:', error);
             return [];
@@ -111,18 +159,40 @@ class SupabaseChannelRepository {
     }
     async update(id, updates) {
         const dbUpdates = {};
-        if (updates.stats_json)
+        if (updates.stats_json !== undefined)
             dbUpdates.stats_json = updates.stats_json;
-        if (updates.avg_views)
+        if (updates.avg_views !== undefined)
             dbUpdates.avg_views = updates.avg_views;
-        if (updates.verified_stats)
+        if (updates.verified_stats !== undefined)
             dbUpdates.verified_stats = updates.verified_stats;
-        if (updates.rateCard)
+        if (updates.rateCard !== undefined)
             dbUpdates.rate_card = updates.rateCard;
+        if (updates.basePriceAmount !== undefined)
+            dbUpdates.base_price_amount = updates.basePriceAmount;
+        // Phase 1 updates
+        if (updates.pricing !== undefined)
+            dbUpdates.pricing = updates.pricing;
+        if (updates.permissions !== undefined)
+            dbUpdates.permissions = updates.permissions;
+        if (updates.status !== undefined)
+            dbUpdates.status = updates.status;
+        if (updates.isVerified !== undefined)
+            dbUpdates.is_verified = updates.isVerified;
+        if (updates.description !== undefined)
+            dbUpdates.description = updates.description;
+        if (updates.category !== undefined)
+            dbUpdates.category = updates.category;
+        if (updates.tags !== undefined)
+            dbUpdates.tags = updates.tags;
+        if (updates.language !== undefined)
+            dbUpdates.language = updates.language;
+        if (updates.isActive !== undefined)
+            dbUpdates.is_active = updates.isActive;
+        if (updates.photoUrl !== undefined)
+            dbUpdates.photo_url = updates.photoUrl;
         dbUpdates.updated_at = new Date().toISOString();
         const { data, error } = await db_1.supabase
             .from('channels')
-            // @ts-ignore
             .update(dbUpdates)
             .eq('id', id)
             .select()
@@ -130,6 +200,27 @@ class SupabaseChannelRepository {
         if (error)
             throw new Error(error.message);
         return this.mapToDomain(data);
+    }
+    async delete(id) {
+        const { error } = await db_1.supabase
+            .from('channels')
+            .delete()
+            .eq('id', id);
+        if (error)
+            throw new Error(error.message);
+    }
+    // Phase 1: Draft Recovery
+    async saveDraft(draft) {
+        await db_1.supabase.from('unlisted_drafts').upsert({
+            telegram_channel_id: draft.telegramChannelId || 0, // Fallback if not yet known
+            user_id: draft.userId, // Required
+            draft_data: {
+                username: draft.username,
+                first_name: draft.firstName,
+                photo_url: draft.photoUrl,
+                ...draft
+            }
+        });
     }
 }
 exports.SupabaseChannelRepository = SupabaseChannelRepository;

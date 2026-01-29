@@ -35,6 +35,7 @@ app.route('/campaigns', campaigns);
 app.route('/wallets', wallets);
 
 app.get('/', (c) => c.text('Telegram Ad Marketplace Backend is Running!'));
+app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Dev endpoints to test mock services
 app.get('/dev/chat-member', async (c) => {
@@ -52,7 +53,7 @@ app.get('/dev/channel-stats', async (c) => {
 startBot().catch(console.error);
 
 // Start Server
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 console.log(`Server is running on port ${port}`);
 
 serve({
