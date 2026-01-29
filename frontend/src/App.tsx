@@ -58,12 +58,6 @@ function AppContent() {
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/20 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 p-4 max-w-md mx-auto">
-        <header className="mb-6 flex justify-between items-center py-2 px-1">
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
-            AdMarket
-          </h1>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 dark:from-gray-700 dark:to-gray-600" />
-        </header>
 
         <Routes>
           <Route path="/" element={<Dashboard />} />
