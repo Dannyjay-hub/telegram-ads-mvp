@@ -1,4 +1,5 @@
 
+import { useState } from 'react'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Search, Megaphone, Briefcase } from 'lucide-react'
@@ -32,8 +33,11 @@ export function MarketplaceContainer() {
     const location = useLocation()
     const activeTab = searchParams.get('tab') || 'channels' // 'channels' or 'campaigns'
 
-    // Get origin from state (where user came from) or default to home
-    const origin = (location.state as any)?.from || '/'
+    // Store origin ONCE on mount so it persists through tab changes
+    const [origin] = useState<string>(() => {
+        // Read from location.state on initial render, default to '/'
+        return (location.state as any)?.from || '/'
+    });
 
     const setTab = (tab: string) => {
         // Use replace: true so tab changes don't add to browser history
