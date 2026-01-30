@@ -12,11 +12,9 @@ import { PartnershipsList } from '@/components/PartnershipsList'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
-import { usePlatform } from '@/hooks/usePlatform'
 
 function AppContent() {
   const { error } = useTelegram();
-  const { isMobile } = usePlatform();
 
   // WebApp initialization & theme handling
   useEffect(() => {
@@ -34,15 +32,7 @@ function AppContent() {
         WebApp.disableVerticalSwipes();
       }
 
-      // Request true fullscreen on mobile only (hides status bar)
-      if (isMobile && typeof (WebApp as any).requestFullscreen === 'function') {
-        (WebApp as any).requestFullscreen();
-      }
-
-      // Lock orientation on mobile (prevent rotation issues)
-      if (isMobile && typeof (WebApp as any).lockOrientation === 'function') {
-        (WebApp as any).lockOrientation();
-      }
+      // Note: requestFullscreen() and lockOrientation() removed - they push content behind status bar
 
       // Sync colors with theme
       const isDark = WebApp.colorScheme === 'dark';
@@ -68,7 +58,7 @@ function AppContent() {
     } catch (e) {
       console.error('WebApp initialization error:', e);
     }
-  }, [isMobile])
+  }, [])
 
   // Skip loading screen - render app immediately while auth happens in background
 
