@@ -16,7 +16,7 @@ import { ChannelViewPage } from '@/components/ChannelViewPage'
 function AppContent() {
 
 
-  const { isLoading, error } = useTelegram();
+  const { error } = useTelegram();
 
   // Theme handling
   useEffect(() => {
@@ -29,16 +29,7 @@ function AppContent() {
     }
   }, [])
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-primary/20" />
-          <p>Connecting to Telegram...</p>
-        </div>
-      </div>
-    )
-  }
+  // Skip loading screen - render app immediately while auth happens in background
 
   if (error) {
     return (
