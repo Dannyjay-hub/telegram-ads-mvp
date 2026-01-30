@@ -198,21 +198,23 @@ export function ChannelWizard() {
     const handleRegister = async (status: 'active' | 'draft' = 'active') => {
         setLoading(true);
         try {
-            // === VALIDATION: Required fields ===
-            if (!description || description.trim().length < 10) {
-                showAlert('Please add a description (at least 10 characters)');
-                setLoading(false);
-                return;
-            }
-            if (!basePrice || Number(basePrice) < 1) {
-                showAlert('Please set a base price (minimum $1)');
-                setLoading(false);
-                return;
-            }
-            if (!category) {
-                showAlert('Please select a category');
-                setLoading(false);
-                return;
+            // === VALIDATION: Required fields (only for active listings, not drafts) ===
+            if (status === 'active') {
+                if (!description || description.trim().length < 10) {
+                    showAlert('Please add a description (at least 10 characters)');
+                    setLoading(false);
+                    return;
+                }
+                if (!basePrice || Number(basePrice) < 1) {
+                    showAlert('Please set a base price (minimum $1)');
+                    setLoading(false);
+                    return;
+                }
+                if (!category) {
+                    showAlert('Please select a category');
+                    setLoading(false);
+                    return;
+                }
             }
 
             // === OWNER CHECK: For new registrations, verify user is channel owner ===
