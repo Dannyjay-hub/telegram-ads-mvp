@@ -5,6 +5,7 @@ import { ChannelService } from '../services/ChannelService';
 import { getChatMember, getChannelStats, getBotPermissions, resolveChannelId, verifyTeamPermissions } from '../services/telegram';
 import { bot } from '../botInstance';
 import { supabase } from '../db';
+import contentModerationService from '../services/ContentModerationService';
 
 const app = new Hono();
 
@@ -513,6 +514,36 @@ app.post('/', async (c) => {
             return c.json({ error: 'telegram_channel_id is required' }, 400);
         }
 
+        // ========== CONTENT MODERATION CHECK ==========
+        const fieldsToCheck: Record<string, string> = {
+            description: description || '',
+            category: category || '',
+        };
+
+        // Also check rate card titles and descriptions
+        if (rateCard && Array.isArray(rateCard)) {
+            rateCard.forEach((pkg: any, idx: number) => {
+                if (pkg.title) fieldsToCheck[`package_${idx}_title`] = pkg.title;
+                if (pkg.description) fieldsToCheck[`package_${idx}_description`] = pkg.description;
+            });
+        }
+
+        const moderationResult = contentModerationService.checkMultipleFields(fieldsToCheck);
+
+        if (!moderationResult.isClean) {
+            console.log('🚫 Content moderation BLOCKED channel registration:', {
+                channelId: telegram_channel_id,
+                userId: mockUserId,
+                violatedFields: moderationResult.violatedFields
+            });
+
+            return c.json({
+                error: 'Content Policy Violation',
+                message: contentModerationService.getErrorMessage()
+            }, 400);
+        }
+        // ========== END MODERATION CHECK ==========
+
         const channel = await channelService.verifyAndAddChannel(
             telegram_channel_id,
             mockUserId,
@@ -561,6 +592,35 @@ app.put('/:id', async (c) => {
         const body = await c.req.json();
 
         // In real app: Check ownership via X-Telegram-ID vs Channel Admins
+
+        // ========== CONTENT MODERATION CHECK ==========
+        const fieldsToCheck: Record<string, string> = {
+            description: body.description || '',
+            category: body.category || '',
+        };
+
+        // Also check rate card titles and descriptions
+        if (body.rateCard && Array.isArray(body.rateCard)) {
+            body.rateCard.forEach((pkg: any, idx: number) => {
+                if (pkg.title) fieldsToCheck[`package_${idx}_title`] = pkg.title;
+                if (pkg.description) fieldsToCheck[`package_${idx}_description`] = pkg.description;
+            });
+        }
+
+        const moderationResult = contentModerationService.checkMultipleFields(fieldsToCheck);
+
+        if (!moderationResult.isClean) {
+            console.log('🚫 Content moderation BLOCKED channel update:', {
+                channelId: id,
+                violatedFields: moderationResult.violatedFields
+            });
+
+            return c.json({
+                error: 'Content Policy Violation',
+                message: contentModerationService.getErrorMessage()
+            }, 400);
+        }
+        // ========== END MODERATION CHECK ==========
 
         // Convert snake_case from frontend to camelCase expected by service layer
         const updates = {
