@@ -59,14 +59,19 @@ export function MyChannelsPage() {
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="font-bold text-lg">{channel.title}</h3>
-                                    <a
-                                        href={`https://t.me/${channel.username}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-primary hover:underline"
+                                    <button
+                                        onClick={() => {
+                                            const url = `https://t.me/${channel.username}`;
+                                            if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+                                                (window as any).Telegram.WebApp.openTelegramLink(url);
+                                            } else {
+                                                window.open(url, '_blank');
+                                            }
+                                        }}
+                                        className="text-sm text-primary hover:underline text-left"
                                     >
                                         @{channel.username}
-                                    </a>
+                                    </button>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <div className={`px-2 py-1 rounded text-xs font-bold ${channel.isActive ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>

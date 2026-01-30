@@ -7,7 +7,12 @@ export function ChannelOwnerDashboard() {
     const navigate = useNavigate()
 
     const openBot = () => {
-        window.open('https://t.me/DanielAdsMVP_bot', '_blank')
+        const url = 'https://t.me/DanielAdsMVP_bot';
+        if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+            (window as any).Telegram.WebApp.openTelegramLink(url);
+        } else {
+            window.open(url, '_blank');
+        }
     }
 
     const actions = [

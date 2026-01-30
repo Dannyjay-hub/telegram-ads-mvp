@@ -133,15 +133,20 @@ export function ChannelViewPage() {
                         </span>
                     )}
                 </div>
-                <a
-                    href={`https://t.me/${channel.username}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <button
+                    onClick={() => {
+                        const url = `https://t.me/${channel.username}`;
+                        if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+                            (window as any).Telegram.WebApp.openTelegramLink(url);
+                        } else {
+                            window.open(url, '_blank');
+                        }
+                    }}
                     className="text-primary hover:text-primary/80 inline-flex items-center gap-1 transition-colors"
                 >
                     @{channel.username}
                     <ExternalLink className="w-3 h-3" />
-                </a>
+                </button>
 
                 {channel.description && (
                     <p className="text-sm text-muted-foreground mt-4 border-t border-white/10 pt-4">
