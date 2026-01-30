@@ -12,21 +12,36 @@ import { PartnershipsList } from '@/components/PartnershipsList'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
+import { usePlatform } from '@/hooks/usePlatform'
 
 function AppContent() {
-
-
   const { error } = useTelegram();
+  const { isMobile } = usePlatform();
 
   // WebApp initialization & theme handling
   useEffect(() => {
     try {
+      // Signal that app is ready
+      if (typeof WebApp.ready === 'function') {
+        WebApp.ready();
+      }
+
       // Expand to fullscreen (shows the minimize chevron button)
       WebApp.expand();
 
       // Disable vertical swipes (prevents accidental close by swiping down)
       if (typeof WebApp.disableVerticalSwipes === 'function') {
         WebApp.disableVerticalSwipes();
+      }
+
+      // Request true fullscreen on mobile only (hides status bar)
+      if (isMobile && typeof (WebApp as any).requestFullscreen === 'function') {
+        (WebApp as any).requestFullscreen();
+      }
+
+      // Lock orientation on mobile (prevent rotation issues)
+      if (isMobile && typeof (WebApp as any).lockOrientation === 'function') {
+        (WebApp as any).lockOrientation();
       }
 
       // Sync colors with theme
@@ -53,7 +68,7 @@ function AppContent() {
     } catch (e) {
       console.error('WebApp initialization error:', e);
     }
-  }, [])
+  }, [isMobile])
 
   // Skip loading screen - render app immediately while auth happens in background
 
