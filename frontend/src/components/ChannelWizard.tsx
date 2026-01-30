@@ -332,15 +332,20 @@ export function ChannelWizard() {
         <div className="pb-20 max-w-lg mx-auto p-4">
             <div className="flex items-center gap-4 mb-6">
                 <Button variant="ghost" size="icon" onClick={() => {
-                    if (step === 1) {
+                    // If editing existing channel, always go back to My Channels
+                    if (id) {
+                        navigate('/channels/my');
+                    } else if (step === 1) {
+                        // If creating new channel and on step 1, go back to step 0
                         setStep(0);
                     } else {
-                        navigate('/');
+                        // Otherwise go to channels dashboard
+                        navigate('/channels/dashboard');
                     }
                 }}>
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <h1 className="text-xl font-bold">Add Channel</h1>
+                <h1 className="text-xl font-bold">{id ? 'Edit Channel' : 'Add Channel'}</h1>
             </div>
 
             {initialLoading ? (
