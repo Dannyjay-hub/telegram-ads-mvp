@@ -452,15 +452,15 @@ app.post('/verify_permissions', async (c) => {
             });
         }
 
-        // 3. Check User Admin Permissions (Double check)
-        // Ensure the person trying to list is still an admin
+        // 3. Check User is OWNER (Creator) - Only channel owners can list
+        // This is a critical security check: PR managers and other admins cannot list channels
         const userMember = await getChatMember(resolvedId, userId);
-        if (!userMember || (userMember.status !== 'administrator' && userMember.status !== 'creator')) {
+        if (!userMember || userMember.status !== 'creator') {
             return c.json({
-                state: 'B_MISSING_PERMISSIONS',
-                message: 'You are not an admin of this channel.',
-                missing: ['User Admin Rights'],
-                details: null
+                state: 'NOT_OWNER',
+                message: 'Only the channel owner can list this channel. You must be the creator of the channel.',
+                missing: ['Channel Ownership'],
+                details: userMember ? { status: userMember.status } : null
             });
         }
 

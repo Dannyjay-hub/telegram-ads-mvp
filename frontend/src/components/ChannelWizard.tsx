@@ -147,6 +147,14 @@ export function ChannelWizard() {
                 return;
             }
 
+            if (permRes.state === 'NOT_OWNER') {
+                const errorMsg = 'Only the channel owner (creator) can list this channel. Admins and PR managers cannot list channels.';
+                setChannelError(errorMsg);
+                showAlert(errorMsg);
+                setLoading(false);
+                return;
+            }
+
             if (permRes.status === 'error' || permRes.error) {
                 alert(permRes.message || permRes.error || 'Channel not found. Check the username.');
                 return;
