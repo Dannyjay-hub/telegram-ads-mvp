@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
 import { ArrowLeft, Settings, RefreshCw, Check, Users, Eye, TrendingUp, ExternalLink, Globe } from 'lucide-react'
@@ -8,11 +8,15 @@ import { useTelegram } from '@/providers/TelegramProvider'
 
 export function ChannelViewPage() {
     const navigate = useNavigate()
+    const location = useLocation()
     const { id } = useParams()
     const { user } = useTelegram()
     const [channel, setChannel] = useState<Channel | null>(null)
     const [loading, setLoading] = useState(true)
     const [isOwner, setIsOwner] = useState(false)
+
+    // Track where user came from for context-aware back navigation
+    const origin = (location.state as any)?.from || '/channels/my'
 
     useEffect(() => {
         if (id) loadChannel()
@@ -94,7 +98,8 @@ export function ChannelViewPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                    {/* Back goes to origin (where user came from) */}
+                    <Button variant="ghost" size="icon" onClick={() => navigate(origin)}>
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <h1 className="text-xl font-bold">Channel Details</h1>
@@ -103,7 +108,12 @@ export function ChannelViewPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/channels/${id}/settings`)}
+                        onClick={() => navigate(`/channels/${id}/settings`, {
+                            state: {
+                                from: `/channels/${id}/view`,
+                                viewOrigin: origin // Pass through so Settings knows where View came from
+                            }
+                        })}
                     >
                         <Settings className="w-4 h-4 mr-2" />
                         Settings

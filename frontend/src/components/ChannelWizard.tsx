@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus, Pencil } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { showAlert, showConfirm, openTelegramLink, showSuccess, showError } from '@/lib/telegram'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
+    const location = useLocation()
     const { id } = useParams()
     const { user } = useTelegram()
+
+    // Context-aware back navigation - read where user came from
+    const origin = (location.state as any)?.from || '/channels/my'
+
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
     const [initialLoading, setInitialLoading] = useState(false)
@@ -28,6 +33,7 @@ export function ChannelWizard() {
     const [rateCard, setRateCard] = useState<any[]>([]) // Legacy support
     const [newPackage, setNewPackage] = useState({ title: '', price: '', type: 'Post', description: '' })
     const [showPackageForm, setShowPackageForm] = useState(false)
+    const [editingPackageIdx, setEditingPackageIdx] = useState<number | null>(null) // Track which package is being edited
 
     // Listing Details
     const [description, setDescription] = useState('')
@@ -335,15 +341,16 @@ export function ChannelWizard() {
         <div className="pb-20 max-w-lg mx-auto p-4">
             <div className="flex items-center gap-4 mb-6">
                 <Button variant="ghost" size="icon" onClick={() => {
-                    // If editing existing channel, always go back to My Channels
+                    // Context-aware back navigation
                     if (id) {
-                        navigate('/channels/my');
+                        // If editing existing channel, go back to where we came from (View page, My Channels, etc.)
+                        navigate(origin);
                     } else if (step === 1) {
                         // If creating new channel and on step 1, go back to step 0
                         setStep(0);
                     } else {
-                        // Otherwise go to channels dashboard
-                        navigate('/channels/dashboard');
+                        // Otherwise go to Channel Owner dashboard
+                        navigate('/channel-owner');
                     }
                 }}>
                     <ArrowLeft className="w-5 h-5" />
@@ -588,8 +595,28 @@ export function ChannelWizard() {
                                                     </div>
                                                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pkg.description}</p>
                                                 </div>
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2">
                                                     <span className="font-bold text-lg">${pkg.price}</span>
+                                                    {/* Edit Button */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-blue-400 hover:text-blue-500 hover:bg-blue-400/10"
+                                                        onClick={() => {
+                                                            // Load package data into form for editing
+                                                            setNewPackage({
+                                                                title: pkg.title,
+                                                                price: pkg.price.toString(),
+                                                                type: pkg.type || 'Post',
+                                                                description: pkg.description || ''
+                                                            });
+                                                            setEditingPackageIdx(idx);
+                                                            setShowPackageForm(true);
+                                                        }}
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </Button>
+                                                    {/* Delete Button */}
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -608,10 +635,10 @@ export function ChannelWizard() {
                                     </div>
                                 )}
 
-                                {/* Add New Package Form - Collapsible */}
+                                {/* Add/Edit Package Form - Collapsible */}
                                 {showPackageForm && (
                                     <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4 animate-in slide-in-from-top-2 fade-in">
-                                        <h4 className="text-sm font-semibold">New Package</h4>
+                                        <h4 className="text-sm font-semibold">{editingPackageIdx !== null ? 'Edit Package' : 'New Package'}</h4>
 
                                         <div className="space-y-2">
                                             <Label>Package Title</Label>
@@ -664,6 +691,7 @@ export function ChannelWizard() {
                                                 variant="ghost"
                                                 onClick={() => {
                                                     setNewPackage({ title: '', price: '', type: 'Post', description: '' });
+                                                    setEditingPackageIdx(null);
                                                     setShowPackageForm(false);
                                                 }}
                                                 className="hover:bg-white/5"
@@ -676,23 +704,37 @@ export function ChannelWizard() {
                                                         showAlert('Please fill in title and price');
                                                         return;
                                                     }
-                                                    // Check for duplicate titles
-                                                    if (rateCard.some(pkg => pkg.title.toLowerCase() === newPackage.title.toLowerCase())) {
-                                                        showAlert('A package with this title already exists');
-                                                        return;
+
+                                                    if (editingPackageIdx !== null) {
+                                                        // Editing existing package
+                                                        const newCard = [...rateCard];
+                                                        newCard[editingPackageIdx] = {
+                                                            title: newPackage.title,
+                                                            price: Number(newPackage.price),
+                                                            type: newPackage.type,
+                                                            description: newPackage.description
+                                                        };
+                                                        setRateCard(newCard);
+                                                    } else {
+                                                        // Adding new package - check for duplicate titles
+                                                        if (rateCard.some(pkg => pkg.title.toLowerCase() === newPackage.title.toLowerCase())) {
+                                                            showAlert('A package with this title already exists');
+                                                            return;
+                                                        }
+                                                        setRateCard([...rateCard, {
+                                                            title: newPackage.title,
+                                                            price: Number(newPackage.price),
+                                                            type: newPackage.type,
+                                                            description: newPackage.description
+                                                        }]);
                                                     }
-                                                    setRateCard([...rateCard, {
-                                                        title: newPackage.title,
-                                                        price: Number(newPackage.price),
-                                                        type: newPackage.type,
-                                                        description: newPackage.description
-                                                    }]);
                                                     setNewPackage({ title: '', price: '', type: 'Post', description: '' });
+                                                    setEditingPackageIdx(null);
                                                     setShowPackageForm(false);
                                                 }}
                                                 className="bg-blue-600 hover:bg-blue-700 text-white"
                                             >
-                                                Save Package
+                                                {editingPackageIdx !== null ? 'Update Package' : 'Save Package'}
                                             </Button>
                                         </div>
                                     </div>

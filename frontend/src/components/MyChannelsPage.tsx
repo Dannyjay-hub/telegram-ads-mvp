@@ -34,7 +34,7 @@ export function MyChannelsPage() {
     return (
         <div className="pb-20 space-y-6">
             <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-1">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/channel-owner')} className="mr-1">
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div className="flex-1 flex justify-between items-center">
@@ -88,16 +88,16 @@ export function MyChannelsPage() {
                                 {!channel.isActive ? (
                                     <Button
                                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                                        onClick={() => navigate(`/channels/edit/${channel.id}`)}
+                                        onClick={() => navigate(`/channels/edit/${channel.id}`, { state: { from: '/channels/my' } })}
                                     >
                                         Complete Draft
                                     </Button>
                                 ) : (
                                     <>
-                                        <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/${channel.id}/view`)}>
+                                        <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/${channel.id}/view`, { state: { from: '/channels/my' } })}>
                                             View
                                         </Button>
-                                        <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/edit/${channel.id}`)}>
+                                        <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/edit/${channel.id}`, { state: { from: '/channels/my' } })}>
                                             <Settings className="w-3 h-3 mr-1" /> Settings
                                         </Button>
                                     </>

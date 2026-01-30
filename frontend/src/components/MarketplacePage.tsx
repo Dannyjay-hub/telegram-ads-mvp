@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getMarketplaceChannels, type Channel } from '@/lib/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Filter, Star, MessageCircle, BarChart3 } from 'lucide-react'
+import { Filter, MessageCircle, BarChart3 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const CATEGORIES = ['All', 'Crypto', 'Tech', 'Business', 'Lifestyle', 'News', 'Entertainment']
@@ -73,7 +73,7 @@ export function MarketplacePage() {
                         <GlassCard
                             key={channel.id}
                             className="p-0 overflow-hidden group cursor-pointer hover:border-primary/30 transition-colors"
-                            onClick={() => navigate(`/marketplace/channel/${channel.id}`)}
+                            onClick={() => navigate(`/marketplace/channel/${channel.id}`, { state: { from: '/marketplace?tab=channels' } })}
                         >
                             <div className="p-4">
                                 <div className="flex justify-between items-start mb-3">
@@ -93,11 +93,6 @@ export function MarketplacePage() {
                                             <h3 className="font-bold">{channel.title}</h3>
                                             <p className="text-xs text-muted-foreground">@{channel.username}</p>
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded flex items-center gap-1">
-                                            <Star className="w-3 h-3 fill-green-400" /> 4.9
-                                        </span>
                                     </div>
                                 </div>
 
