@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
+import { showAlert, showConfirm } from '@/lib/telegram'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
@@ -43,20 +44,6 @@ export function ChannelWizard() {
     const [showPRManagerForm, setShowPRManagerForm] = useState(false)
     const [prError, setPrError] = useState<string | null>(null)
     const [deletingPRId, setDeletingPRId] = useState<string | null>(null)
-
-    // Helper function for alerts
-    const showAlert = (message: string) => {
-        try {
-            if ((window as any).Telegram?.WebApp?.showAlert) {
-                (window as any).Telegram.WebApp.showAlert(message);
-            } else {
-                alert(message);
-            }
-        } catch (e) {
-            console.error('Alert failed', e);
-            alert(message);
-        }
-    };
 
     useEffect(() => {
         if (id && user) {
@@ -157,7 +144,7 @@ export function ChannelWizard() {
             }
 
             if (permRes.status === 'error' || permRes.error) {
-                alert(permRes.message || permRes.error || 'Channel not found. Check the username.');
+                showAlert(permRes.message || permRes.error || 'Channel not found. Check the username.');
                 return;
             }
 
@@ -184,12 +171,12 @@ export function ChannelWizard() {
                 setStep(1);
             } else if (!permRes.state) {
                 // Fallback if no state and no error (unexpected)
-                alert('Unexpected response from server.');
+                showAlert('Unexpected response from server.');
             }
 
         } catch (e: any) {
             console.error(e);
-            alert('Verification failed. ' + (e.response?.data?.message || e.message));
+            showAlert('Verification failed. ' + (e.response?.data?.message || e.message));
         } finally {
             setLoading(false);
         }
@@ -266,7 +253,7 @@ export function ChannelWizard() {
                     // Offer to auto-remove invalid PR managers
                     const invalidPMs = verifyData.invalidMembers.filter((m: any) => m.role === 'pr_manager');
                     if (invalidPMs.length > 0) {
-                        const shouldRemove = confirm('Would you like to remove the invalid PR managers from your team?');
+                        const shouldRemove = await showConfirm('Would you like to remove the invalid PR managers from your team?');
                         if (shouldRemove) {
                             for (const pm of invalidPMs) {
                                 await fetch(`${API_URL}/channels/${id}/pr-managers/${pm.userId}`, {
@@ -313,11 +300,12 @@ export function ChannelWizard() {
             }
         } catch (e: any) {
             if (e.message.includes('already registered') && !id) {
-                if (confirm('Channel already registered! View your channels?')) {
+                const confirmed = await showConfirm('Channel already registered! View your channels?');
+                if (confirmed) {
                     navigate('/channels/my');
                 }
             } else {
-                alert(e.message || 'Failed to register');
+                showAlert(e.message || 'Failed to register');
             }
         } finally {
             setLoading(false);
@@ -325,7 +313,8 @@ export function ChannelWizard() {
     }
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this channel? This cannot be undone.')) return;
+        const confirmed = await showConfirm('Are you sure you want to delete this channel? This cannot be undone.');
+        if (!confirmed) return;
         setLoading(true);
         try {
             if (id) {
@@ -333,7 +322,7 @@ export function ChannelWizard() {
                 navigate('/channels/dashboard');
             }
         } catch (e: any) {
-            alert('Failed to delete: ' + e.message);
+            showAlert('Failed to delete: ' + e.message);
         } finally {
             setLoading(false);
         }
@@ -778,7 +767,8 @@ export function ChannelWizard() {
                                                                 className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
                                                                 disabled={deletingPRId === pm.telegram_id}
                                                                 onClick={async () => {
-                                                                    if (!confirm(`Remove @${pm.username} as PR manager?`)) return;
+                                                                    const confirmed = await showConfirm(`Remove @${pm.username} as PR manager?`);
+                                                                    if (!confirmed) return;
                                                                     setDeletingPRId(pm.telegram_id);
                                                                     try {
                                                                         const headers = getHeaders() as Record<string, string>;

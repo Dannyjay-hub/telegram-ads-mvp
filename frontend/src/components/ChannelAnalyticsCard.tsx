@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, Users } from 'lucide-react';
 import { useState } from 'react';
 import { API_URL, getHeaders } from '@/lib/api';
+import { showAlert } from '@/lib/telegram';
 
 interface AnalyticsProps {
     channel: any;
@@ -27,13 +28,13 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
             });
             if (res.ok) {
                 onSync(); // Refresh parent
-                alert('Stats synced from Telegram!');
+                showAlert('Stats synced from Telegram!');
             } else {
-                alert('Sync failed. Is the bot admin?');
+                showAlert('Sync failed. Is the bot admin?');
             }
         } catch (e) {
             console.error(e);
-            alert('Error syncing stats');
+            showAlert('Error syncing stats');
         } finally {
             setSyncing(false);
         }

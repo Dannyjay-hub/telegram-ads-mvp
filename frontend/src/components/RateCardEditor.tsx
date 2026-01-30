@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Zap } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { showAlert } from '@/lib/telegram';
 
 interface Package {
     id: string;
@@ -30,7 +31,7 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
 
     const handleAdd = () => {
         if (!newPkg.title || !newPkg.price) {
-            alert('Title and Price are required');
+            showAlert('Title and Price are required');
             return;
         }
 
