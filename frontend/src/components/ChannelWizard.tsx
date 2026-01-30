@@ -409,7 +409,7 @@ export function ChannelWizard() {
                                                         <li key={p} className="text-red-400">✗ {p}</li>
                                                     ))}
                                                     {missingPerms.filter(p => p.includes('User') || p.includes('Admin Rights')).length === 0 && missingPerms.length > 0 && (
-                                                        <li className="text-green-400">✓ Your permissions OK</li>
+                                                        <li className="text-yellow-400">⏳ Must be owner (check after bot setup)</li>
                                                     )}
                                                 </ul>
                                             </div>
