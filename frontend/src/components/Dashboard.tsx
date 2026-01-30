@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { Briefcase, Tv } from 'lucide-react'
+import { haptic } from '@/utils/haptic'
 
 export function Dashboard() {
     const { user } = useTelegram()
@@ -19,7 +20,7 @@ export function Dashboard() {
 
             <div className="space-y-4">
                 <GlassCard
-                    onClick={() => navigate('/advertiser')}
+                    onClick={() => { haptic.light(); navigate('/advertiser'); }}
                     className="p-8 flex items-center gap-6 cursor-pointer hover:bg-white/5 hover:border-purple-500/50 transition-all duration-300 group"
                 >
                     <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -32,7 +33,7 @@ export function Dashboard() {
                 </GlassCard>
 
                 <GlassCard
-                    onClick={() => navigate('/channel-owner')}
+                    onClick={() => { haptic.light(); navigate('/channel-owner'); }}
                     className="p-8 flex items-center gap-6 cursor-pointer hover:bg-white/5 hover:border-yellow-500/50 transition-all duration-300 group"
                 >
                     <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -47,3 +48,4 @@ export function Dashboard() {
         </div>
     )
 }
+

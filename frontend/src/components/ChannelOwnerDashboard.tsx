@@ -2,11 +2,13 @@ import { useNavigate } from 'react-router-dom'
 import { Megaphone, Briefcase, Handshake, MessageCircle, ArrowLeft, Tv } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
+import { haptic } from '@/utils/haptic'
 
 export function ChannelOwnerDashboard() {
     const navigate = useNavigate()
 
     const openBot = () => {
+        haptic.light();
         const url = 'https://t.me/DanielAdsMVP_bot';
         if ((window as any).Telegram?.WebApp?.openTelegramLink) {
             (window as any).Telegram.WebApp.openTelegramLink(url);
@@ -19,25 +21,25 @@ export function ChannelOwnerDashboard() {
         {
             label: "List Channel",
             icon: <Megaphone className="w-8 h-8 text-yellow-400 mb-2" />,
-            onClick: () => navigate('/channels/new'),
+            onClick: () => { haptic.light(); navigate('/channels/new'); },
             desc: "Monetize your Telegram channel"
         },
         {
             label: "Advertiser Campaigns",
             icon: <Briefcase className="w-8 h-8 text-cyan-400 mb-2" />,
-            onClick: () => navigate('/marketplace?tab=campaigns', { state: { from: '/channel-owner' } }),
+            onClick: () => { haptic.light(); navigate('/marketplace?tab=campaigns', { state: { from: '/channel-owner' } }); },
             desc: "Browse open offers"
         },
         {
             label: "Partnerships",
             icon: <Handshake className="w-8 h-8 text-orange-400 mb-2" />,
-            onClick: () => navigate('/channels/partnerships'),
+            onClick: () => { haptic.light(); navigate('/channels/partnerships'); },
             desc: "View direct deals"
         },
         {
             label: "My Channels",
             icon: <Tv className="w-8 h-8 text-pink-400 mb-2" />,
-            onClick: () => navigate('/channels/my'), // New route for the list view
+            onClick: () => { haptic.light(); navigate('/channels/my'); }, // New route for the list view
             desc: "Manage existing channels"
         }
     ]

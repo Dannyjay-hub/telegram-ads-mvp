@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { Rocket, ListChecks, Store, Handshake, MessageCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
+import { haptic } from '@/utils/haptic'
 
 export function AdvertiserDashboard() {
     const navigate = useNavigate()
 
     const openBot = () => {
+        haptic.light();
         const url = 'https://t.me/DanielAdsMVP_bot';
         if ((window as any).Telegram?.WebApp?.openTelegramLink) {
             (window as any).Telegram.WebApp.openTelegramLink(url);
@@ -20,28 +22,29 @@ export function AdvertiserDashboard() {
         {
             label: "Launch Campaign",
             icon: <Rocket className="w-8 h-8 text-purple-400 mb-2" />,
-            onClick: () => navigate('/create'),
+            onClick: () => { haptic.light(); navigate('/create'); },
             desc: "Promote product on multiple channels"
         },
         {
             label: "View Campaigns",
             icon: <ListChecks className="w-8 h-8 text-blue-400 mb-2" />,
-            onClick: () => navigate('/campaigns'),
+            onClick: () => { haptic.light(); navigate('/campaigns'); },
             desc: "Track active and ended campaigns"
         },
         {
             label: "Channel Marketplace",
             icon: <Store className="w-8 h-8 text-green-400 mb-2" />,
-            onClick: () => navigate('/marketplace?tab=channels', { state: { from: '/advertiser' } }),
+            onClick: () => { haptic.light(); navigate('/marketplace?tab=channels', { state: { from: '/advertiser' } }); },
             desc: "Find specific channels for ads"
         },
         {
             label: "Active Partnerships",
             icon: <Handshake className="w-8 h-8 text-orange-400 mb-2" />,
-            onClick: () => navigate('/partnerships'),
+            onClick: () => { haptic.light(); navigate('/partnerships'); },
             desc: "View direct deals with owners"
         }
     ]
+
 
     return (
         <div className="pb-20 space-y-6">
