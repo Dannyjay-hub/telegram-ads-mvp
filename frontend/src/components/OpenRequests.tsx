@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Tag, SlidersHorizontal } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { showAlert } from '@/lib/telegram'
+import { showWarning, showSuccess, showError } from '@/lib/telegram'
 
 export function OpenRequests() {
     const [briefs, setBriefs] = useState<PublicBrief[]>([])
@@ -46,18 +46,18 @@ export function OpenRequests() {
     const handleApply = async (brief: PublicBrief) => {
         const bid = bidAmounts[brief.id];
         if (!bid) {
-            showAlert("Please enter your bid amount");
+            showWarning("Please enter your bid amount");
             return;
         }
 
         setApplyingId(brief.id);
         try {
             await applyToBrief(brief.id, myChannelId, Number(bid));
-            showAlert("Application Sent! Check 'My Channels' to see the negotiation.");
+            showSuccess("Application Sent! Check 'My Channels' to see the negotiation.");
             navigate('/channels/dashboard');
         } catch (e) {
             console.error(e);
-            showAlert("Failed to apply");
+            showError("Failed to apply");
         } finally {
             setApplyingId(null);
         }

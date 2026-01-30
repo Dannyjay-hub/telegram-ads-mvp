@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { showAlert, showConfirm, openTelegramLink } from '@/lib/telegram'
+import { showAlert, showConfirm, openTelegramLink, showSuccess, showError } from '@/lib/telegram'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
@@ -305,7 +305,7 @@ export function ChannelWizard() {
                     navigate('/channels/my');
                 }
             } else {
-                showAlert(e.message || 'Failed to register');
+                showError(e.message || 'Failed to register');
             }
         } finally {
             setLoading(false);
@@ -322,7 +322,7 @@ export function ChannelWizard() {
                 navigate('/channels/dashboard');
             }
         } catch (e: any) {
-            showAlert('Failed to delete: ' + e.message);
+            showError('Failed to delete: ' + e.message);
         } finally {
             setLoading(false);
         }
@@ -876,7 +876,7 @@ export function ChannelWizard() {
                                                                             }];
                                                                         });
                                                                         input.value = '';
-                                                                        showAlert(`@${data.username || username} added as PR Manager!`);
+                                                                        showSuccess(`@${data.username || username} added as PR Manager!`);
                                                                     } else {
                                                                         const err = await res.json();
                                                                         setPrError(err.error || 'Failed to add PR manager');

@@ -1,16 +1,29 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { haptic } from "@/utils/haptic"
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'default' | 'outline' | 'ghost' | 'glass' | 'secondary';
     size?: 'default' | 'sm' | 'lg' | 'icon';
+    /** Haptic feedback style. Set to 'none' to disable. Default: 'light' */
+    hapticStyle?: 'light' | 'soft' | 'medium' | 'heavy' | 'rigid' | 'none';
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant = "default", size = "default", ...props }, ref) => {
+    ({ className, variant = "default", size = "default", hapticStyle = "light", onClick, ...props }, ref) => {
+        const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+            // Trigger haptic feedback
+            if (hapticStyle !== 'none') {
+                haptic[hapticStyle]();
+            }
+            // Call original onClick handler
+            onClick?.(e);
+        };
+
         return (
             <button
                 ref={ref}
+                onClick={handleClick}
                 className={cn(
                     "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-95",
                     {
@@ -34,3 +47,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button"
 
 export { Button }
+

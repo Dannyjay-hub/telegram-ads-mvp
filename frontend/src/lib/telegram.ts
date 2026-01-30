@@ -3,6 +3,8 @@
  * Use these instead of native browser alerts/confirms for better UX in mini apps
  */
 
+import { haptic } from '@/utils/haptic';
+
 // Get WebApp at call time, not module load time
 const getWebApp = () => (window as any).Telegram?.WebApp;
 
@@ -27,12 +29,37 @@ export function showAlert(message: string, callback?: () => void): void {
 }
 
 /**
+ * Show a success alert with haptic feedback
+ */
+export function showSuccess(message: string, callback?: () => void): void {
+    haptic.success();
+    showAlert(message, callback);
+}
+
+/**
+ * Show an error alert with haptic feedback
+ */
+export function showError(message: string, callback?: () => void): void {
+    haptic.error();
+    showAlert(message, callback);
+}
+
+/**
+ * Show a warning alert with haptic feedback
+ */
+export function showWarning(message: string, callback?: () => void): void {
+    haptic.warning();
+    showAlert(message, callback);
+}
+
+/**
  * Show an in-app confirm dialog using Telegram's WebApp.showConfirm
  * Falls back to browser confirm if not in Telegram
  * Returns a Promise that resolves to true/false
  */
 export function showConfirm(message: string): Promise<boolean> {
     const WebApp = getWebApp();
+    haptic.medium(); // Haptic for confirmation dialogs
     return new Promise((resolve) => {
         try {
             if (WebApp?.showConfirm) {
@@ -83,3 +110,4 @@ export function openLink(url: string): void {
         window.open(url, '_blank');
     }
 }
+
