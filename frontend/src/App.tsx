@@ -18,14 +18,40 @@ function AppContent() {
 
   const { error } = useTelegram();
 
-  // Theme handling
+  // WebApp initialization & theme handling
   useEffect(() => {
-    // We can rely on TelegramProvider for init, but theme handling can stay here or move to provider
-    // For now, let's keep theme logic simple
-    if (WebApp.colorScheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    try {
+      // Expand to fullscreen (shows the minimize chevron button)
+      WebApp.expand();
+
+      // Disable vertical swipes (prevents accidental close by swiping down)
+      if (typeof WebApp.disableVerticalSwipes === 'function') {
+        WebApp.disableVerticalSwipes();
+      }
+
+      // Sync colors with theme
+      const isDark = WebApp.colorScheme === 'dark';
+      const bgColor = isDark ? '#0a0a0f' : '#ffffff';
+      const headerColor = isDark ? '#0a0a0f' : '#ffffff';
+
+      if (typeof WebApp.setHeaderColor === 'function') {
+        WebApp.setHeaderColor(headerColor);
+      }
+      if (typeof WebApp.setBackgroundColor === 'function') {
+        WebApp.setBackgroundColor(bgColor);
+      }
+      if (typeof WebApp.setBottomBarColor === 'function') {
+        WebApp.setBottomBarColor(bgColor);
+      }
+
+      // Apply theme class
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {
+      console.error('WebApp initialization error:', e);
     }
   }, [])
 
