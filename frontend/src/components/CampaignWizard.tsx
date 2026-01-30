@@ -60,7 +60,7 @@ export function CampaignWizard() {
         <div className="pb-20">
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" size="icon" onClick={() => step === 0 ? navigate('/') : setStep(s => s - 1)}>
+                <Button variant="ghost" size="icon" onClick={() => step === 0 ? navigate('/advertiser') : setStep(s => s - 1)}>
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <h1 className="text-xl font-bold">New Campaign</h1>

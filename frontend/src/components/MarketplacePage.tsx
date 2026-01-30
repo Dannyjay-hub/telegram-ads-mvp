@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getMarketplaceChannels, type Channel } from '@/lib/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Filter, Star, MessageCircle, BarChart3 } from 'lucide-react'
+import { Filter, Star, MessageCircle, BarChart3 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const CATEGORIES = ['All', 'Crypto', 'Tech', 'Business', 'Lifestyle', 'News', 'Entertainment']
@@ -35,15 +35,6 @@ export function MarketplacePage() {
 
     return (
         <div className="pb-20">
-            <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-                    <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <div>
-                    <h1 className="text-xl font-bold">Marketplace</h1>
-                    <p className="text-xs text-muted-foreground">Find the perfect channel for your ad</p>
-                </div>
-            </div>
 
             {/* Category Filters */}
             <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
