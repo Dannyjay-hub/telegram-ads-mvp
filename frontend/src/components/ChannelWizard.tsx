@@ -19,7 +19,7 @@ export function ChannelWizard() {
     // Removed isDraft
 
     // Strict Verification State
-    const [verifState, setVerifState] = useState<'IDLE' | 'A_BOT_NOT_ADDED' | 'B_MISSING_PERMISSIONS' | 'D_READY'>('IDLE')
+    const [verifState, setVerifState] = useState<'IDLE' | 'A_BOT_NOT_ADDED' | 'B_MISSING_PERMISSIONS' | 'NOT_OWNER' | 'D_READY'>('IDLE')
     const [missingPerms, setMissingPerms] = useState<string[]>([])
 
     const [verifiedStats, setVerifiedStats] = useState<any>(null)
@@ -124,8 +124,8 @@ export function ChannelWizard() {
 
         try {
             // 1. Strict Permission Check (State Machine)
-            // Pass the input as string (it might be an ID or @username)
-            const permRes = await verifyChannelPermissions(channelId);
+            // Pass the input as string (it might be an ID or @username) and user's telegramId for ownership check
+            const permRes = await verifyChannelPermissions(channelId, undefined, user?.telegramId);
             console.log('Verification Response:', permRes);
 
             if (permRes.state === 'A_BOT_NOT_ADDED') {
@@ -148,6 +148,7 @@ export function ChannelWizard() {
             }
 
             if (permRes.state === 'NOT_OWNER') {
+                setVerifState('NOT_OWNER');
                 const errorMsg = 'Only the channel owner (creator) can list this channel. Admins and PR managers cannot list channels.';
                 setChannelError(errorMsg);
                 showAlert(errorMsg);
@@ -216,7 +217,7 @@ export function ChannelWizard() {
 
             // === OWNER CHECK: For new registrations, verify user is channel owner ===
             if (!id && channelId) {
-                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true });
+                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true }, user?.telegramId);
                 if (permCheck.state === 'NOT_OWNER') {
                     showAlert('Only the channel owner (creator) can list this channel. Admins and PR managers cannot list channels.');
                     setLoading(false);
@@ -232,7 +233,7 @@ export function ChannelWizard() {
             // If updating an existing channel, re-verify bot permissions first
             if (id && channelId) {
                 // Re-verify bot has permissions before allowing update
-                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true });
+                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true }, user?.telegramId);
                 if (permCheck.state === 'A_BOT_NOT_ADDED') {
                     showAlert('Bot has been removed from the channel. Please re-add the bot as admin.');
                     setLoading(false);
@@ -415,6 +416,22 @@ export function ChannelWizard() {
                                         </div>
                                         <p className="text-xs text-orange-300/70">
                                             Go to Telegram → Channel Settings → Administrators to fix permissions.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Error State: Not Owner */}
+                                {verifState === 'NOT_OWNER' && (
+                                    <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2">
+                                            <Crown className="w-5 h-5 text-red-400" />
+                                            <p className="text-sm font-bold text-red-200">Owner Required</p>
+                                        </div>
+                                        <p className="text-sm text-red-300/80">
+                                            Only the channel <strong>creator</strong> can list this channel. You are currently an admin, not the owner.
+                                        </p>
+                                        <p className="text-xs text-red-300/60">
+                                            Ask the channel owner to list this channel, or use a channel you created.
                                         </p>
                                     </div>
                                 )}

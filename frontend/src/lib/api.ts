@@ -174,10 +174,15 @@ export async function verifyChannel(id: number) {
     return response.json();
 }
 
-export async function verifyChannelPermissions(id: string | number, options?: { skipExistingCheck?: boolean }) {
+export async function verifyChannelPermissions(id: string | number, options?: { skipExistingCheck?: boolean }, userId?: number) {
+    const headers = getHeaders() as Record<string, string>;
+    if (userId) {
+        headers['X-Telegram-ID'] = userId.toString();
+    }
+
     const response = await fetch(`${API_URL}/channels/verify_permissions`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: headers,
         body: JSON.stringify({
             channel_id: id,
             skip_existing_check: options?.skipExistingCheck || false
