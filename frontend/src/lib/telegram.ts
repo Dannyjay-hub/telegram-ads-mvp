@@ -3,13 +3,15 @@
  * Use these instead of native browser alerts/confirms for better UX in mini apps
  */
 
-const WebApp = (window as any).Telegram?.WebApp;
+// Get WebApp at call time, not module load time
+const getWebApp = () => (window as any).Telegram?.WebApp;
 
 /**
  * Show an in-app alert using Telegram's WebApp.showAlert
  * Falls back to browser alert if not in Telegram
  */
 export function showAlert(message: string, callback?: () => void): void {
+    const WebApp = getWebApp();
     try {
         if (WebApp?.showAlert) {
             WebApp.showAlert(message, callback);
@@ -30,6 +32,7 @@ export function showAlert(message: string, callback?: () => void): void {
  * Returns a Promise that resolves to true/false
  */
 export function showConfirm(message: string): Promise<boolean> {
+    const WebApp = getWebApp();
     return new Promise((resolve) => {
         try {
             if (WebApp?.showConfirm) {
@@ -51,6 +54,7 @@ export function showConfirm(message: string): Promise<boolean> {
  * Falls back to window.open if not in Telegram
  */
 export function openTelegramLink(url: string): void {
+    const WebApp = getWebApp();
     try {
         if (WebApp?.openTelegramLink) {
             WebApp.openTelegramLink(url);
@@ -67,6 +71,7 @@ export function openTelegramLink(url: string): void {
  * Open an external link (browser)
  */
 export function openLink(url: string): void {
+    const WebApp = getWebApp();
     try {
         if (WebApp?.openLink) {
             WebApp.openLink(url);
