@@ -93,13 +93,20 @@ export class ChannelService {
     ): Promise<Channel> {
         console.log('[verifyAndAddChannel] Called with:', { telegramChannelId, userId, channelData, initialStatus });
 
-        // 1. Strict Permission Check (Barrier)
+        // 1. Strict Bot Permission Check (Barrier)
         const permStatus = await this.verifyChannelPermissions(telegramChannelId);
         if (permStatus.state !== 'D_READY' && initialStatus !== 'draft') {
             throw new Error(`Cannot list channel. Status: ${permStatus.state}`);
         }
 
-        // 2. Check if channel already exists
+        // 2. OWNER CHECK: Only channel creators can list new channels
+        const { getChatMember } = await import('./telegram');
+        const userMember = await getChatMember(telegramChannelId, userId);
+        if (!userMember || userMember.status !== 'creator') {
+            throw new Error('Only the channel owner (creator) can list this channel. Admins and PR managers cannot list channels.');
+        }
+
+        // 3. Check if channel already exists
         const existing = await this.channelRepo.findByTelegramId(telegramChannelId);
         console.log('[verifyAndAddChannel] Existing channel:', existing ? existing.id : 'NONE');
 

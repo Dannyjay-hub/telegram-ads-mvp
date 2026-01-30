@@ -197,6 +197,38 @@ export function ChannelWizard() {
     const handleRegister = async (status: 'active' | 'draft' = 'active') => {
         setLoading(true);
         try {
+            // === VALIDATION: Required fields ===
+            if (!description || description.trim().length < 10) {
+                showAlert('Please add a description (at least 10 characters)');
+                setLoading(false);
+                return;
+            }
+            if (!basePrice || Number(basePrice) < 1) {
+                showAlert('Please set a base price (minimum $1)');
+                setLoading(false);
+                return;
+            }
+            if (!category) {
+                showAlert('Please select a category');
+                setLoading(false);
+                return;
+            }
+
+            // === OWNER CHECK: For new registrations, verify user is channel owner ===
+            if (!id && channelId) {
+                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true });
+                if (permCheck.state === 'NOT_OWNER') {
+                    showAlert('Only the channel owner (creator) can list this channel. Admins and PR managers cannot list channels.');
+                    setLoading(false);
+                    return;
+                }
+                if (permCheck.state !== 'D_READY') {
+                    showAlert(permCheck.message || 'Channel verification failed. Please try again.');
+                    setLoading(false);
+                    return;
+                }
+            }
+
             // If updating an existing channel, re-verify bot permissions first
             if (id && channelId) {
                 // Re-verify bot has permissions before allowing update
