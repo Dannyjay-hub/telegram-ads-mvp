@@ -102,6 +102,9 @@ export function ChannelWizard() {
         }
     }
 
+    // Is current user the owner? (used to control delete and PR manager management visibility)
+    const isOwner = owner && user?.telegramId && String(owner.telegram_id) === String(user.telegramId);
+
     const handleVerify = async () => {
         if (!channelId) return;
         setLoading(true);
@@ -766,141 +769,146 @@ export function ChannelWizard() {
                                                                     <span className="text-[10px] text-muted-foreground">ID: {pm.telegram_id}</span>
                                                                 </div>
                                                             </div>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
-                                                                disabled={deletingPRId === pm.telegram_id}
-                                                                onClick={async () => {
-                                                                    const confirmed = await showConfirm(`Remove @${pm.username} as PR manager?`);
-                                                                    if (!confirmed) return;
-                                                                    setDeletingPRId(pm.telegram_id);
-                                                                    try {
-                                                                        const headers = getHeaders() as Record<string, string>;
-                                                                        if (user?.telegramId) {
-                                                                            headers['X-Telegram-ID'] = user.telegramId.toString();
-                                                                        }
-                                                                        const res = await fetch(`${API_URL}/channels/${id}/pr-managers/${pm.telegram_id}`, {
-                                                                            method: 'DELETE',
-                                                                            headers
-                                                                        });
-                                                                        if (!res.ok) {
-                                                                            if (res.status === 404) {
-                                                                                setPrManagers(prev => prev.filter((p: any) => String(p.telegram_id) !== String(pm.telegram_id)));
-                                                                                showAlert('Ghost user removed');
-                                                                                return;
+                                                            {/* Only owners can remove PR managers */}
+                                                            {isOwner && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                                                                    disabled={deletingPRId === pm.telegram_id}
+                                                                    onClick={async () => {
+                                                                        const confirmed = await showConfirm(`Remove @${pm.username} as PR manager?`);
+                                                                        if (!confirmed) return;
+                                                                        setDeletingPRId(pm.telegram_id);
+                                                                        try {
+                                                                            const headers = getHeaders() as Record<string, string>;
+                                                                            if (user?.telegramId) {
+                                                                                headers['X-Telegram-ID'] = user.telegramId.toString();
                                                                             }
-                                                                            const err = await res.json();
-                                                                            throw new Error(err.error || 'Failed to remove');
+                                                                            const res = await fetch(`${API_URL}/channels/${id}/pr-managers/${pm.telegram_id}`, {
+                                                                                method: 'DELETE',
+                                                                                headers
+                                                                            });
+                                                                            if (!res.ok) {
+                                                                                if (res.status === 404) {
+                                                                                    setPrManagers(prev => prev.filter((p: any) => String(p.telegram_id) !== String(pm.telegram_id)));
+                                                                                    showAlert('Ghost user removed');
+                                                                                    return;
+                                                                                }
+                                                                                const err = await res.json();
+                                                                                throw new Error(err.error || 'Failed to remove');
+                                                                            }
+                                                                            setPrManagers(prev => prev.filter((p: any) => String(p.telegram_id) !== String(pm.telegram_id)));
+                                                                            showAlert('PR Manager removed');
+                                                                        } catch (e: any) {
+                                                                            showAlert(e.message || 'Failed to remove PR manager');
+                                                                        } finally {
+                                                                            setDeletingPRId(null);
                                                                         }
-                                                                        setPrManagers(prev => prev.filter((p: any) => String(p.telegram_id) !== String(pm.telegram_id)));
-                                                                        showAlert('PR Manager removed');
-                                                                    } catch (e: any) {
-                                                                        showAlert(e.message || 'Failed to remove PR manager');
-                                                                    } finally {
-                                                                        setDeletingPRId(null);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                {deletingPRId === pm.telegram_id ? (
-                                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                                ) : (
-                                                                    <X className="w-4 h-4" />
-                                                                )}
-                                                            </Button>
+                                                                    }}
+                                                                >
+                                                                    {deletingPRId === pm.telegram_id ? (
+                                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                                    ) : (
+                                                                        <X className="w-4 h-4" />
+                                                                    )}
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Add PR Manager Form */}
-                                        <div className="pt-2">
-                                            {!showPRManagerForm ? (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full border-primary/30 text-primary hover:bg-primary/10"
-                                                    onClick={() => setShowPRManagerForm(true)}
-                                                >
-                                                    <UserPlus className="w-4 h-4 mr-2" />
-                                                    Add PR Manager
-                                                </Button>
-                                            ) : (
-                                                <div className="space-y-4 animate-in slide-in-from-top-2 fade-in">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label className="text-sm">Add PR Manager</Label>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setShowPRManagerForm(false)}
-                                                            className="h-6 text-xs text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            Done
-                                                        </Button>
-                                                    </div>
+                                        {/* Add PR Manager Form - only visible to owners */}
+                                        {isOwner && (
+                                            <div className="pt-2">
+                                                {!showPRManagerForm ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        className="w-full border-primary/30 text-primary hover:bg-primary/10"
+                                                        onClick={() => setShowPRManagerForm(true)}
+                                                    >
+                                                        <UserPlus className="w-4 h-4 mr-2" />
+                                                        Add PR Manager
+                                                    </Button>
+                                                ) : (
+                                                    <div className="space-y-4 animate-in slide-in-from-top-2 fade-in">
+                                                        <div className="flex justify-between items-center">
+                                                            <Label className="text-sm">Add PR Manager</Label>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setShowPRManagerForm(false)}
+                                                                className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                                                            >
+                                                                Done
+                                                            </Button>
+                                                        </div>
 
-                                                    <div className="flex gap-2">
-                                                        <Input
-                                                            placeholder="Enter Telegram username (e.g. @username)"
-                                                            className="flex-1 bg-white/5 border-white/10"
-                                                            id="prManagerInput"
-                                                            onChange={() => setPrError(null)}
-                                                        />
-                                                        <Button
-                                                            onClick={async () => {
-                                                                const input = document.getElementById('prManagerInput') as HTMLInputElement;
-                                                                const username = input?.value?.trim().replace('@', '');
-                                                                if (!username) {
-                                                                    setPrError('Please enter a username');
-                                                                    return;
-                                                                }
-                                                                try {
-                                                                    const headers = getHeaders() as Record<string, string>;
-                                                                    if (user?.telegramId) {
-                                                                        headers['X-Telegram-ID'] = user.telegramId.toString();
+                                                        <div className="flex gap-2">
+                                                            <Input
+                                                                placeholder="Enter Telegram username (e.g. @username)"
+                                                                className="flex-1 bg-white/5 border-white/10"
+                                                                id="prManagerInput"
+                                                                onChange={() => setPrError(null)}
+                                                            />
+                                                            <Button
+                                                                onClick={async () => {
+                                                                    const input = document.getElementById('prManagerInput') as HTMLInputElement;
+                                                                    const username = input?.value?.trim().replace('@', '');
+                                                                    if (!username) {
+                                                                        setPrError('Please enter a username');
+                                                                        return;
                                                                     }
-                                                                    const res = await fetch(`${API_URL}/channels/${id}/pr-managers`, {
-                                                                        method: 'POST',
-                                                                        headers,
-                                                                        body: JSON.stringify({ username })
-                                                                    });
-
-                                                                    if (res.ok) {
-                                                                        const data = await res.json();
-                                                                        setPrManagers(prev => {
-                                                                            if (prev.some(p => String(p.telegram_id) === String(data.telegram_id))) return prev;
-                                                                            return [...prev, {
-                                                                                telegram_id: data.telegram_id,
-                                                                                username: data.username || username,
-                                                                                role: 'pr_manager'
-                                                                            }];
+                                                                    try {
+                                                                        const headers = getHeaders() as Record<string, string>;
+                                                                        if (user?.telegramId) {
+                                                                            headers['X-Telegram-ID'] = user.telegramId.toString();
+                                                                        }
+                                                                        const res = await fetch(`${API_URL}/channels/${id}/pr-managers`, {
+                                                                            method: 'POST',
+                                                                            headers,
+                                                                            body: JSON.stringify({ username })
                                                                         });
-                                                                        input.value = '';
-                                                                        showSuccess(`@${data.username || username} added as PR Manager!`);
-                                                                    } else {
-                                                                        const err = await res.json();
-                                                                        setPrError(err.error || 'Failed to add PR manager');
-                                                                    }
-                                                                } catch (e) {
-                                                                    setPrError('Failed to connect to server');
-                                                                }
-                                                            }}
-                                                            className="bg-primary hover:bg-primary/80"
-                                                        >
-                                                            <UserPlus className="w-4 h-4 mr-2" />
-                                                            Add
-                                                        </Button>
-                                                    </div>
 
-                                                    {prError && (
-                                                        <p className="text-xs text-red-400">{prError}</p>
-                                                    )}
-                                                    <p className="text-xs text-muted-foreground">
-                                                        The user must be an admin of this Telegram channel to be added as a PR manager.
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
+                                                                        if (res.ok) {
+                                                                            const data = await res.json();
+                                                                            setPrManagers(prev => {
+                                                                                if (prev.some(p => String(p.telegram_id) === String(data.telegram_id))) return prev;
+                                                                                return [...prev, {
+                                                                                    telegram_id: data.telegram_id,
+                                                                                    username: data.username || username,
+                                                                                    role: 'pr_manager'
+                                                                                }];
+                                                                            });
+                                                                            input.value = '';
+                                                                            showSuccess(`@${data.username || username} added as PR Manager!`);
+                                                                        } else {
+                                                                            const err = await res.json();
+                                                                            setPrError(err.error || 'Failed to add PR manager');
+                                                                        }
+                                                                    } catch (e) {
+                                                                        setPrError('Failed to connect to server');
+                                                                    }
+                                                                }}
+                                                                className="bg-primary hover:bg-primary/80"
+                                                            >
+                                                                <UserPlus className="w-4 h-4 mr-2" />
+                                                                Add
+                                                            </Button>
+                                                        </div>
+
+                                                        {prError && (
+                                                            <p className="text-xs text-red-400">{prError}</p>
+                                                        )}
+                                                        <p className="text-xs text-muted-foreground">
+                                                            The user must be an admin of this Telegram channel to be added as a PR manager.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </GlassCard>
@@ -923,7 +931,8 @@ export function ChannelWizard() {
                                 </Button>
                             </div>
 
-                            {id && (
+                            {/* Only show delete button if user is the owner (not PR manager) */}
+                            {id && isOwner && (
                                 <Button
                                     className="w-full bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 mt-4"
                                     onClick={handleDelete}

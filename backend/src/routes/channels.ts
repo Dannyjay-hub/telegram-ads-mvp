@@ -649,7 +649,29 @@ app.put('/:id', async (c) => {
 app.delete('/:id', async (c) => {
     try {
         const id = c.req.param('id');
-        // Validation: Check if user owns channel
+        const telegramId = c.req.header('X-Telegram-ID');
+
+        if (!telegramId) {
+            return c.json({ error: 'Authentication required' }, 401);
+        }
+
+        // Verify the user is the OWNER (not just a PR manager)
+        const channel = await supabase
+            .from('channels')
+            .select('owner_id, users!channels_owner_id_fkey(telegram_id)')
+            .eq('id', id)
+            .single();
+
+        if (channel.error || !channel.data) {
+            return c.json({ error: 'Channel not found' }, 404);
+        }
+
+        const ownerTelegramId = (channel.data as any).users?.telegram_id;
+
+        if (String(ownerTelegramId) !== String(telegramId)) {
+            return c.json({ error: 'Only the channel owner can delete the channel' }, 403);
+        }
+
         await channelRepo.delete(id);
         return c.json({ success: true });
     } catch (e: any) {
