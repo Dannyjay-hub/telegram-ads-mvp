@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { Megaphone, Briefcase, Handshake, MessageCircle, ExternalLink } from 'lucide-react'
 import { GlassCard, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { openTelegramLink } from '@/lib/telegram'
 
 export function ChannelOwnerCard() {
     const navigate = useNavigate()
 
     const openBot = () => {
-        window.open('https://t.me/DanielAdsMVP_bot', '_blank')
+        openTelegramLink('https://t.me/DanielAdsMVP_bot')
     }
 
     const actions = [

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { showAlert, showConfirm } from '@/lib/telegram'
+import { showAlert, showConfirm, openTelegramLink } from '@/lib/telegram'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
@@ -280,11 +280,11 @@ export function ChannelWizard() {
                 description: description,
                 category: category,
                 language: language,
-                base_price_amount: Number(basePrice) || 100,
+                base_price_amount: basePrice ? Number(basePrice) : null,
                 // New Phase 1 Pricing Structure
-                pricing: {
-                    base_price: Number(basePrice) || 100
-                },
+                pricing: basePrice ? {
+                    base_price: Number(basePrice)
+                } : null,
                 rateCard: rateCard,
                 status: status
             };
@@ -355,7 +355,7 @@ export function ChannelWizard() {
                                 <div className="bg-blue-500/20 border border-blue-500/30 p-4 rounded-lg space-y-3">
                                     <h3 className="font-bold text-blue-100">1. Setup Instructions</h3>
                                     <p className="text-sm text-blue-50 font-medium leading-relaxed">
-                                        Add our bot <span className="text-blue-300 hover:text-blue-200 cursor-pointer underline font-bold" onClick={() => window.open('https://t.me/DanielAdsMVP_bot', '_blank')}>@DanielAdsMVP_bot</span> as an Administrator to your channel with permission to <b>Post Messages</b> and <b>Stories</b>.
+                                        Add our bot <span className="text-blue-300 hover:text-blue-200 cursor-pointer underline font-bold" onClick={() => openTelegramLink('https://t.me/DanielAdsMVP_bot')}>@DanielAdsMVP_bot</span> as an Administrator to your channel with permission to <b>Post Messages</b> and <b>Stories</b>.
                                     </p>
                                 </div>
 
@@ -448,7 +448,7 @@ export function ChannelWizard() {
                                             )}
                                         </div>
                                         <p className="text-sm text-muted-foreground">
-                                            You can find this using a bot like <span className="text-blue-400 hover:text-blue-300 cursor-pointer underline" onClick={() => window.open('https://t.me/raw_data_bot', '_blank')}>@raw_data_bot</span> or looking at the URL in Telegram Web.
+                                            You can find this using a bot like <span className="text-blue-400 hover:text-blue-300 cursor-pointer underline" onClick={() => openTelegramLink('https://t.me/raw_data_bot')}>@raw_data_bot</span> or looking at the URL in Telegram Web.
                                         </p>
                                     </div>
                                 </div>

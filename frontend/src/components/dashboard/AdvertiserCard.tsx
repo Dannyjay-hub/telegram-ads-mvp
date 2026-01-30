@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { Rocket, ListChecks, Store, Handshake, MessageCircle, ExternalLink } from 'lucide-react'
 import { GlassCard, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { openTelegramLink } from '@/lib/telegram'
 
 export function AdvertiserCard() {
     const navigate = useNavigate()
 
     const openBot = () => {
-        // Placeholder for actual bot link
-        window.open('https://t.me/YourBotName', '_blank')
+        openTelegramLink('https://t.me/DanielAdsMVP_bot')
     }
 
     const actions = [
