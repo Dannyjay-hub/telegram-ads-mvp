@@ -20,7 +20,7 @@ export function ChannelOwnerDashboard() {
         {
             label: "Advertiser Campaigns",
             icon: <Briefcase className="w-8 h-8 text-cyan-400 mb-2" />,
-            onClick: () => navigate('/marketplace?tab=campaigns'),
+            onClick: () => navigate('/marketplace?tab=campaigns', { state: { from: '/channel-owner' } }),
             desc: "Browse open offers"
         },
         {

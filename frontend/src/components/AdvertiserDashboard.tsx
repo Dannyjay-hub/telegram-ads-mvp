@@ -27,7 +27,7 @@ export function AdvertiserDashboard() {
         {
             label: "Channel Marketplace",
             icon: <Store className="w-8 h-8 text-green-400 mb-2" />,
-            onClick: () => navigate('/marketplace?tab=channels'),
+            onClick: () => navigate('/marketplace?tab=channels', { state: { from: '/advertiser' } }),
             desc: "Find specific channels for ads"
         },
         {

@@ -1,5 +1,5 @@
 
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Search, Megaphone, Briefcase } from 'lucide-react'
 import { MarketplacePage } from './MarketplacePage' // Rename imports later if needed
@@ -29,10 +29,19 @@ function CampaignsMarketplaceTab() {
 export function MarketplaceContainer() {
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
+    const location = useLocation()
     const activeTab = searchParams.get('tab') || 'channels' // 'channels' or 'campaigns'
 
+    // Get origin from state (where user came from) or default to home
+    const origin = (location.state as any)?.from || '/'
+
     const setTab = (tab: string) => {
-        setSearchParams({ tab })
+        // Use replace: true so tab changes don't add to browser history
+        setSearchParams({ tab }, { replace: true })
+    }
+
+    const handleBack = () => {
+        navigate(origin)
     }
 
     return (
@@ -40,7 +49,7 @@ export function MarketplaceContainer() {
             {/* Header with Navigation & Toggle */}
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-1">
+                    <Button variant="ghost" size="icon" onClick={handleBack} className="mr-1">
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
