@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { ChannelService } from '../services/ChannelService';
 import { getChatMember, getChannelStats, getBotPermissions, resolveChannelId, verifyTeamPermissions } from '../services/telegram';
+import { notifyPRManagerAdded, notifyChannelPublished } from '../services/NotificationService';
 import { bot } from '../botInstance';
 import { supabase } from '../db';
 import contentModerationService from '../services/ContentModerationService';
@@ -305,6 +306,14 @@ app.post('/:id/pr-managers', async (c) => {
 
         if (insertError) throw insertError;
 
+        // Send notification to the new PR manager (fire and forget)
+        notifyPRManagerAdded(
+            Number(telegram_id),
+            channel.title || 'a channel',
+            id,
+            (ownerCheck as any)?.users?.username
+        );
+
         return c.json({
             success: true,
             telegram_id,
@@ -591,7 +600,68 @@ app.put('/:id', async (c) => {
         const id = c.req.param('id');
         const body = await c.req.json();
 
-        // In real app: Check ownership via X-Telegram-ID vs Channel Admins
+        // ========== TEAM PERMISSION VERIFICATION ==========
+        // Before any update, verify all team members still have valid admin permissions
+        const { data: channelData, error: channelError } = await supabase
+            .from('channels')
+            .select('telegram_channel_id, owner_id, title, status')
+            .eq('id', id)
+            .single();
+
+        if (channelError || !channelData) {
+            return c.json({ error: 'Channel not found' }, 404);
+        }
+
+        // Get owner's telegram_id
+        const { data: ownerUser } = await supabase
+            .from('users')
+            .select('telegram_id')
+            .eq('id', (channelData as any).owner_id)
+            .single();
+
+        const ownerTelegramId = (ownerUser as any)?.telegram_id;
+        if (!ownerTelegramId) {
+            return c.json({ error: 'Channel owner not found' }, 404);
+        }
+
+        // Get PR managers
+        const { data: prManagerRecords } = await supabase
+            .from('channel_admins')
+            .select('user_id, users(telegram_id, username)')
+            .eq('channel_id', id)
+            .eq('role', 'pr_manager');
+
+        const prManagers = (prManagerRecords || []).map((pm: any) => ({
+            telegram_id: pm.users?.telegram_id,
+            username: pm.users?.username
+        })).filter((pm: any) => pm.telegram_id);
+
+        // Verify team permissions
+        const teamVerification = await verifyTeamPermissions(
+            (channelData as any).telegram_channel_id,
+            ownerTelegramId,
+            prManagers
+        );
+
+        if (!teamVerification.valid) {
+            const invalidList = teamVerification.invalidMembers.map((m: any) => {
+                if (m.role === 'bot') return '• Bot: ' + m.reason;
+                if (m.role === 'owner') return '• Owner: ' + m.reason;
+                return `• @${m.username || m.userId}: ${m.reason}`;
+            }).join('\n');
+
+            console.log('🚫 Team verification BLOCKED channel update:', {
+                channelId: id,
+                invalidMembers: teamVerification.invalidMembers
+            });
+
+            return c.json({
+                error: 'Team Permission Check Failed',
+                message: `Cannot update: some team members have lost their Telegram admin permissions.\n\n${invalidList}`,
+                invalidMembers: teamVerification.invalidMembers
+            }, 400);
+        }
+        // ========== END TEAM VERIFICATION ==========
 
         // ========== CONTENT MODERATION CHECK ==========
         const fieldsToCheck: Record<string, string> = {
@@ -622,6 +692,10 @@ app.put('/:id', async (c) => {
         }
         // ========== END MODERATION CHECK ==========
 
+        // Track if this is a status change from draft to active (first publish)
+        const previousStatus = (channelData as any).status;
+        const isFirstPublish = previousStatus === 'draft' && body.status === 'active';
+
         // Convert snake_case from frontend to camelCase expected by service layer
         const updates = {
             basePriceAmount: body.base_price_amount,
@@ -639,6 +713,17 @@ app.put('/:id', async (c) => {
         console.log('[PUT /channels/:id] Converted updates:', updates);
 
         const updated = await channelService.updateChannel(id, updates);
+
+        // Send notification when channel is first published
+        if (isFirstPublish) {
+            console.log('[PUT /channels/:id] Channel first published, sending notification');
+            notifyChannelPublished(
+                Number(ownerTelegramId),
+                (channelData as any).title,
+                id
+            );
+        }
+
         return c.json(updated);
     } catch (e: any) {
         return c.json({ error: e.message }, 400);
