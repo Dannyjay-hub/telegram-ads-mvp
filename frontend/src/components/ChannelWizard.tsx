@@ -490,7 +490,12 @@ export function ChannelWizard() {
                                     </div>
                                 )}
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{verifiedStats?.title || 'Verified'}</h2>
-                                <p className="text-muted-foreground">@{verifiedStats?.username}</p>
+                                <p
+                                    className="text-blue-400 hover:text-blue-300 cursor-pointer"
+                                    onClick={() => openTelegramLink(`https://t.me/${verifiedStats?.username}`)}
+                                >
+                                    @{verifiedStats?.username}
+                                </p>
 
                                 <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200/20">
                                     <div>

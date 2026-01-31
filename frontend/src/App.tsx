@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { TelegramProvider, useTelegram } from '@/providers/TelegramProvider'
 import { Dashboard } from '@/components/Dashboard'
@@ -15,6 +15,23 @@ import { ChannelViewPage } from '@/components/ChannelViewPage'
 
 function AppContent() {
   const { error } = useTelegram();
+  const navigate = useNavigate();
+
+  // Handle deep links from startapp parameter (e.g., from bot notifications)
+  useEffect(() => {
+    const startParam = WebApp.initDataUnsafe?.start_param;
+    if (startParam) {
+      console.log('[App] Deep link startapp:', startParam);
+
+      // Parse the startapp parameter
+      if (startParam.startsWith('channel_')) {
+        const channelId = startParam.replace('channel_', '');
+        navigate(`/channels/${channelId}/view`);
+      } else if (startParam === 'dashboard') {
+        navigate('/channel-owner');
+      }
+    }
+  }, [navigate]);
 
   // WebApp initialization & theme handling
   useEffect(() => {
