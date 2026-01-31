@@ -7,8 +7,28 @@ import { bot } from '../botInstance';
  * so main operations continue even if notifications fail.
  */
 
-// Get the Mini App URL from environment (for deep links)
-const MINI_APP_URL = process.env.MINI_APP_URL || 'https://t.me/telegramadsbot/app';
+// Cache for bot username (fetched once)
+let botUsername: string | null = null;
+const MINI_APP_SHORT_NAME = process.env.MINI_APP_SHORT_NAME || 'app';
+
+async function getMiniAppUrl(): Promise<string> {
+    if (!bot) {
+        return process.env.MINI_APP_URL || 'https://t.me/DanielAdsMVP_bot/app';
+    }
+
+    if (!botUsername) {
+        try {
+            const me = await bot.api.getMe();
+            botUsername = me.username;
+            console.log('[NotificationService] Bot username:', botUsername);
+        } catch (e) {
+            console.warn('[NotificationService] Failed to get bot username, using fallback');
+            botUsername = 'DanielAdsMVP_bot';
+        }
+    }
+
+    return `https://t.me/${botUsername}/${MINI_APP_SHORT_NAME}`;
+}
 
 /**
  * Notify a user that they've been added as a PR manager for a channel
@@ -34,13 +54,14 @@ You can now:
 
 ${addedByUsername ? `Added by: @${addedByUsername}` : ''}`;
 
+        const miniAppUrl = await getMiniAppUrl();
         await bot.api.sendMessage(prManagerTelegramId, message, {
             parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [[
                     {
                         text: '📺 View Channel',
-                        url: `${MINI_APP_URL}?startapp=channel_${channelId}`
+                        url: `${miniAppUrl}?startapp=channel_${channelId}`
                     }
                 ]]
             }
@@ -78,17 +99,18 @@ Advertisers can now discover your channel and send partnership requests.
 • Respond quickly to requests
 • Maintain your channel's quality`;
 
+        const miniAppUrl = await getMiniAppUrl();
         await bot.api.sendMessage(ownerTelegramId, message, {
             parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [[
                     {
                         text: '📊 View My Channel',
-                        url: `${MINI_APP_URL}?startapp=channel_${channelId}`
+                        url: `${miniAppUrl}?startapp=channel_${channelId}`
                     },
                     {
                         text: '🏠 Dashboard',
-                        url: `${MINI_APP_URL}?startapp=dashboard`
+                        url: `${miniAppUrl}?startapp=dashboard`
                     }
                 ]]
             }
