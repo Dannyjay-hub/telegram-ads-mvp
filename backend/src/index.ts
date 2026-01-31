@@ -52,6 +52,34 @@ app.get('/dev/channel-stats', async (c) => {
 // Run in background so it doesn't block
 startBot().catch(console.error);
 
+// Start TON Payment Monitoring
+import { tonPaymentService } from './services/TonPaymentService';
+
+// Start polling for payments (every 30 seconds)
+if (process.env.ENABLE_TON_POLLING !== 'false') {
+    tonPaymentService.startPolling(30000);
+}
+
+// Admin endpoint to check recent transactions
+app.get('/admin/transactions', async (c) => {
+    try {
+        const transactions = await tonPaymentService.getRecentTransactions(20);
+        return c.json({ ok: true, transactions });
+    } catch (e: any) {
+        return c.json({ ok: false, error: e.message }, 500);
+    }
+});
+
+// Admin endpoint to manually trigger payment check
+app.post('/admin/check-payments', async (c) => {
+    try {
+        await tonPaymentService.pollTransactions();
+        return c.json({ ok: true, message: 'Payment check triggered' });
+    } catch (e: any) {
+        return c.json({ ok: false, error: e.message }, 500);
+    }
+});
+
 // Start Server
 const port = Number(process.env.PORT) || 3000;
 console.log(`Server is running on port ${port}`);

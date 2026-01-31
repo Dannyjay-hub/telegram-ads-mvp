@@ -1,14 +1,25 @@
 export type DealStatus =
     | 'draft'
     | 'submitted'
+    | 'pending'       // Awaiting payment
     | 'negotiating'
-    | 'funded'
-    | 'approved'
-    | 'posted'
-    | 'monitoring'
-    | 'released'
+    | 'funded'        // Payment received
+    | 'approved'      // Channel accepted
+    | 'in_progress'   // Drafting/scheduling
+    | 'posted'        // Content published
+    | 'monitoring'    // Safety period
+    | 'released'      // Funds released (completed)
+    | 'refunded'      // Refund issued
     | 'cancelled'
     | 'disputed';
+
+// Content item in a deal order
+export interface ContentItem {
+    type: string;       // 'post' | 'story' | 'reels'
+    title: string;
+    quantity: number;
+    unitPrice: number;
+}
 
 export interface User {
     id: string;
@@ -55,11 +66,28 @@ export interface Deal {
 
     briefText: string;
     creativeContent?: any;
+    contentItems?: ContentItem[];  // Selected packages
 
     priceAmount: number;
     priceCurrency: string;
 
+    // Escrow payment tracking (memo-based)
+    paymentMemo?: string;           // "deal_{uuid}" for matching
+    advertiserWalletAddress?: string;
+    channelOwnerWallet?: string;
+
+    // Transaction hashes
+    paymentTxHash?: string;
+    paymentConfirmedAt?: Date;
+    payoutTxHash?: string;
+    payoutAt?: Date;
+    refundTxHash?: string;
+    refundAt?: Date;
+
+    // Lifecycle
     status: DealStatus;
+    statusUpdatedAt?: Date;
+    expiresAt?: Date;
     rejectionReason?: string;
 
     createdAt: Date;

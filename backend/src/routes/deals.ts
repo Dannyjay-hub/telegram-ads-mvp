@@ -20,6 +20,26 @@ app.get('/', async (c) => {
     }
 });
 
+// GET /deals/my - Get deals for current user (advertiser)
+app.get('/my', async (c) => {
+    try {
+        const telegramIdHeader = c.req.header('X-Telegram-ID');
+        if (!telegramIdHeader) {
+            return c.json({ error: 'Not authenticated' }, 401);
+        }
+
+        const user = await userRepo.findByTelegramId(parseInt(telegramIdHeader));
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        const deals = await dealService.getDealsForAdvertiser(user.id);
+        return c.json(deals);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
 // GET /deals/channel/:channelId
 app.get('/channel/:channelId', async (c) => {
     try {
@@ -31,7 +51,66 @@ app.get('/channel/:channelId', async (c) => {
     }
 });
 
-// POST /deals - Create a campaign
+// GET /deals/:id/payment-instructions
+app.get('/:id/payment-instructions', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const instructions = await dealService.getPaymentInstructions(id);
+        return c.json(instructions);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 404);
+    }
+});
+
+// POST /deals/create-with-items - Create deal with content items (escrow flow)
+app.post('/create-with-items', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { channelId, contentItems, walletAddress } = body;
+
+        // Get advertiser from header
+        const telegramIdHeader = c.req.header('X-Telegram-ID');
+        if (!telegramIdHeader) {
+            return c.json({ error: 'Not authenticated' }, 401);
+        }
+
+        let user = await userRepo.findByTelegramId(parseInt(telegramIdHeader));
+        if (!user) {
+            // Auto-create user
+            user = await userRepo.create({
+                telegramId: parseInt(telegramIdHeader),
+                firstName: `User ${telegramIdHeader}`,
+                username: 'auto_created'
+            });
+        }
+
+        const result = await dealService.createDealWithItems(
+            user.id,
+            channelId,
+            contentItems,
+            walletAddress
+        );
+
+        return c.json(result, 201);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 400);
+    }
+});
+
+// POST /deals/:id/confirm-payment - Confirm payment (called by payment monitor)
+app.post('/:id/confirm-payment', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { paymentMemo, txHash } = body;
+
+        const deal = await dealService.confirmPayment(paymentMemo, txHash);
+        return c.json(deal);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 400);
+    }
+});
+
+// POST /deals - Create a campaign (legacy)
 app.post('/', async (c) => {
     try {
         const body = await c.req.json();

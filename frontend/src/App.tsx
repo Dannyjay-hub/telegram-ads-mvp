@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
+import { TonConnectUIProvider } from '@tonconnect/ui-react'
 import { TelegramProvider, useTelegram } from '@/providers/TelegramProvider'
 import { Dashboard } from '@/components/Dashboard'
 import { CampaignWizard } from '@/components/CampaignWizard'
@@ -12,6 +13,9 @@ import { PartnershipsList } from '@/components/PartnershipsList'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
+
+// TON Connect manifest URL - must be accessible publicly
+const MANIFEST_URL = `${window.location.origin}/tonconnect-manifest.json`;
 
 function AppContent() {
   const { error } = useTelegram();
@@ -110,7 +114,7 @@ function AppContent() {
           <Route path="/channels/:id/settings" element={<ChannelWizard />} />
           <Route path="/marketplace/channel/:id" element={<ChannelViewPage />} />
           <Route path="/channels/my" element={<MyChannelsPage />} />
-          <Route path="/channels/dashboard" element={<ChannelOwnerDashboard />} /> {/* Keep for backward compat if needed, or remove? Keeping for now but redirecting logic is in dashboard.tsx */}
+          <Route path="/channels/dashboard" element={<ChannelOwnerDashboard />} />
           <Route path="/channels/partnerships" element={<PartnershipsList />} />
           <Route path="/marketplace" element={<MarketplaceContainer />} />
           <Route path="/marketplace/requests" element={<MarketplaceContainer />} />
@@ -123,10 +127,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <TelegramProvider>
-        <AppContent />
-      </TelegramProvider>
-    </BrowserRouter>
+    <TonConnectUIProvider manifestUrl={MANIFEST_URL}>
+      <BrowserRouter>
+        <TelegramProvider>
+          <AppContent />
+        </TelegramProvider>
+      </BrowserRouter>
+    </TonConnectUIProvider>
   )
 }

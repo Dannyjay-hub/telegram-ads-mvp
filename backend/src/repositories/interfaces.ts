@@ -1,11 +1,14 @@
 import { Deal, DealStatus, Channel, User, PublicBrief } from '../domain/entities';
 
 export interface IDealRepository {
-    create(deal: Partial<Deal>, briefId?: string): Promise<Deal>; // Updated signature
+    create(deal: Partial<Deal>, briefId?: string): Promise<Deal>;
     findById(id: string): Promise<Deal | null>;
     findByChannelId(channelId: string): Promise<Deal[]>;
+    findByAdvertiserId(advertiserId: string): Promise<Deal[]>;
+    findByPaymentMemo(memo: string): Promise<Deal | null>;
     findAll(): Promise<Deal[]>;
     updateStatus(id: string, status: DealStatus, reason?: string): Promise<Deal>;
+    updatePaymentConfirmed(id: string, txHash: string): Promise<Deal>;
 }
 
 export interface IChannelRepository {

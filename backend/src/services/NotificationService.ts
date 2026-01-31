@@ -131,3 +131,152 @@ export async function sendNotification(
         return false;
     }
 }
+
+/**
+ * Notify channel owner/PR managers about a new deal request
+ */
+export async function notifyNewDealRequest(
+    recipientTelegramId: number,
+    channelTitle: string,
+    dealId: string,
+    totalAmount: number,
+    itemsSummary: string
+): Promise<boolean> {
+    if (!bot) {
+        console.warn('[NotificationService] Bot not configured, skipping new deal notification');
+        return false;
+    }
+
+    try {
+        const message = `💰 **New Partnership Request!**
+
+Channel: **${channelTitle}**
+Amount: **$${totalAmount.toLocaleString()}**
+${itemsSummary}
+
+An advertiser wants to work with you! Review and respond to keep your response rate high.`;
+
+        await bot.api.sendMessage(recipientTelegramId, message, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [[
+                    {
+                        text: '📋 View Deal',
+                        url: `${MINI_APP_URL}?startapp=deal_${dealId}`
+                    }
+                ]]
+            }
+        });
+
+        console.log(`[NotificationService] ✅ Sent new deal notification to ${recipientTelegramId}`);
+        return true;
+    } catch (error: any) {
+        console.warn(`[NotificationService] Failed to notify about new deal:`, error.message);
+        return false;
+    }
+}
+
+/**
+ * Notify advertiser that their payment was confirmed
+ */
+export async function notifyPaymentConfirmed(
+    advertiserTelegramId: number,
+    channelTitle: string,
+    dealId: string,
+    amount: number
+): Promise<boolean> {
+    if (!bot) {
+        console.warn('[NotificationService] Bot not configured, skipping payment confirmed notification');
+        return false;
+    }
+
+    try {
+        const message = `✅ **Payment Confirmed!**
+
+Your payment of **$${amount.toLocaleString()}** for **${channelTitle}** has been received.
+
+The channel owner will review your request shortly. You'll be notified when they respond.`;
+
+        await bot.api.sendMessage(advertiserTelegramId, message, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [[
+                    {
+                        text: '📊 View Deal Status',
+                        url: `${MINI_APP_URL}?startapp=deal_${dealId}`
+                    }
+                ]]
+            }
+        });
+
+        console.log(`[NotificationService] ✅ Sent payment confirmed notification to ${advertiserTelegramId}`);
+        return true;
+    } catch (error: any) {
+        console.warn(`[NotificationService] Failed to notify about payment:`, error.message);
+        return false;
+    }
+}
+
+/**
+ * Notify about deal status change (approved, rejected, completed)
+ */
+export async function notifyDealStatusChange(
+    recipientTelegramId: number,
+    dealId: string,
+    channelTitle: string,
+    newStatus: 'approved' | 'rejected' | 'completed' | 'refunded',
+    reason?: string
+): Promise<boolean> {
+    if (!bot) {
+        console.warn('[NotificationService] Bot not configured, skipping deal status notification');
+        return false;
+    }
+
+    const statusMessages: Record<string, { emoji: string; title: string; body: string }> = {
+        approved: {
+            emoji: '🎉',
+            title: 'Deal Approved!',
+            body: `Your deal with **${channelTitle}** has been approved! The channel will post your content soon.`
+        },
+        rejected: {
+            emoji: '❌',
+            title: 'Deal Declined',
+            body: `Unfortunately, **${channelTitle}** has declined your request.${reason ? `\n\nReason: ${reason}` : ''}\n\nYour payment will be refunded shortly.`
+        },
+        completed: {
+            emoji: '✨',
+            title: 'Deal Completed!',
+            body: `Your campaign with **${channelTitle}** has been successfully completed. Thank you for using our platform!`
+        },
+        refunded: {
+            emoji: '💸',
+            title: 'Refund Processed',
+            body: `Your payment for **${channelTitle}** has been refunded to your wallet.`
+        }
+    };
+
+    const status = statusMessages[newStatus];
+
+    try {
+        const message = `${status.emoji} **${status.title}**\n\n${status.body}`;
+
+        await bot.api.sendMessage(recipientTelegramId, message, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [[
+                    {
+                        text: '📋 View Details',
+                        url: `${MINI_APP_URL}?startapp=deal_${dealId}`
+                    }
+                ]]
+            }
+        });
+
+        console.log(`[NotificationService] ✅ Sent deal status notification (${newStatus}) to ${recipientTelegramId}`);
+        return true;
+    } catch (error: any) {
+        console.warn(`[NotificationService] Failed to notify about deal status:`, error.message);
+        return false;
+    }
+}
+
