@@ -600,6 +600,8 @@ app.put('/:id', async (c) => {
         const id = c.req.param('id');
         const body = await c.req.json();
 
+        console.log('[PUT /channels/:id] Starting update for channel:', id);
+
         // ========== TEAM PERMISSION VERIFICATION ==========
         // Before any update, verify all team members still have valid admin permissions
         const { data: channelData, error: channelError } = await supabase
@@ -608,7 +610,22 @@ app.put('/:id', async (c) => {
             .eq('id', id)
             .single();
 
-        if (channelError || !channelData) {
+        console.log('[PUT /channels/:id] Channel lookup result:', {
+            channelData: channelData ? 'found' : 'null',
+            channelError: channelError?.message || 'none',
+            channelErrorCode: channelError?.code || 'none'
+        });
+
+        if (channelError) {
+            // PGRST116 = Row not found in single() call
+            if (channelError.code === 'PGRST116') {
+                return c.json({ error: 'Channel not found' }, 404);
+            }
+            // For other errors, log and continue (might be type issues)
+            console.warn('[PUT /channels/:id] Supabase warning:', channelError);
+        }
+
+        if (!channelData) {
             return c.json({ error: 'Channel not found' }, 404);
         }
 
