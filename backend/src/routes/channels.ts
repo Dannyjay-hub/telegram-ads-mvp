@@ -604,9 +604,11 @@ app.put('/:id', async (c) => {
 
         // ========== TEAM PERMISSION VERIFICATION ==========
         // Before any update, verify all team members still have valid admin permissions
+
+        // Get channel data
         const { data: channelData, error: channelError } = await supabase
             .from('channels')
-            .select('telegram_channel_id, owner_id, title, status')
+            .select('telegram_channel_id, title, status')
             .eq('id', id)
             .single();
 
@@ -616,28 +618,24 @@ app.put('/:id', async (c) => {
             channelErrorCode: channelError?.code || 'none'
         });
 
-        if (channelError) {
-            // PGRST116 = Row not found in single() call
-            if (channelError.code === 'PGRST116') {
+        if (channelError || !channelData) {
+            if (channelError?.code === 'PGRST116' || !channelData) {
                 return c.json({ error: 'Channel not found' }, 404);
             }
-            // For other errors, log and continue (might be type issues)
             console.warn('[PUT /channels/:id] Supabase warning:', channelError);
         }
 
-        if (!channelData) {
-            return c.json({ error: 'Channel not found' }, 404);
-        }
-
-        // Get owner's telegram_id
-        const { data: ownerUser } = await supabase
-            .from('users')
-            .select('telegram_id')
-            .eq('id', (channelData as any).owner_id)
+        // Get owner from channel_admins table (role='owner')
+        const { data: ownerRecord } = await supabase
+            .from('channel_admins')
+            .select('user_id, users(telegram_id, username)')
+            .eq('channel_id', id)
+            .eq('role', 'owner')
             .single();
 
-        const ownerTelegramId = (ownerUser as any)?.telegram_id;
+        const ownerTelegramId = (ownerRecord as any)?.users?.telegram_id;
         if (!ownerTelegramId) {
+            console.warn('[PUT /channels/:id] Owner not found for channel:', id);
             return c.json({ error: 'Channel owner not found' }, 404);
         }
 
