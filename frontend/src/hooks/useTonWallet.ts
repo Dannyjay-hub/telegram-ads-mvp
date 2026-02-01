@@ -70,11 +70,9 @@ export function useTonWallet() {
             messages: [
                 {
                     address: toAddress,
-                    amount: amount,
-                    // Add comment as payload if provided
-                    ...(comment && {
-                        payload: buildCommentPayload(comment)
-                    })
+                    amount: amount
+                    // Note: payload removed - TON Connect requires BOC format
+                    // Payment memo is tracked server-side by deal ID
                 }
             ]
         };
