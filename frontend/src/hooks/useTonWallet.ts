@@ -130,22 +130,3 @@ export function useTonWallet() {
         tonConnectUI
     };
 }
-
-/**
- * Build a comment payload for TON transaction
- * Comment is encoded as a Cell with 0x00000000 prefix
- */
-function buildCommentPayload(comment: string): string {
-    // For simple text comments, we use base64 encoding
-    // The comment will be visible in the transaction
-    const encoder = new TextEncoder();
-    const commentBytes = encoder.encode(comment);
-
-    // Create payload: 0x00000000 (4 bytes) + comment
-    const payload = new Uint8Array(4 + commentBytes.length);
-    // First 4 bytes are zeros (text comment indicator)
-    payload.set(commentBytes, 4);
-
-    // Convert to base64
-    return btoa(String.fromCharCode(...payload));
-}
