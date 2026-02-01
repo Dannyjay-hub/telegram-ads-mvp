@@ -32,22 +32,10 @@ export const USDT_TOKEN: JettonToken = {
     icon: '💵'
 };
 
-// USDC on TON (Circle USD - pending confirmed address)
-// Note: Using placeholder - verify before production
-export const USDC_TOKEN: JettonToken = {
-    id: 'usdc',
-    name: 'USD Coin',
-    symbol: 'USDC',
-    masterAddress: 'EQB-MPwrd1G6WKNkLz_VnV6WCQfDuTT-QBoXquJhmI_8lHE-', // To verify
-    decimals: 6,
-    icon: '🔵'
-};
-
-// All supported payment tokens
+// All supported payment tokens (TON + USDT only)
 export const SUPPORTED_TOKENS: JettonToken[] = [
     TON_TOKEN,
     USDT_TOKEN,
-    // USDC_TOKEN, // Uncomment when address confirmed
 ];
 
 // Get token by ID
