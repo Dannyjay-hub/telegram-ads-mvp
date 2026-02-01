@@ -211,7 +211,18 @@ if (bot) {
 export async function startBot() {
     if (bot) {
         console.log('Starting Telegram Bot...');
-        bot.start();
+        try {
+            // Drop pending updates to prevent 409 conflict with previous instance
+            await bot.api.deleteWebhook({ drop_pending_updates: true });
+            console.log('Cleared pending updates');
+
+            // Start polling
+            bot.start({
+                onStart: () => console.log('Bot started successfully'),
+            });
+        } catch (error) {
+            console.error('Failed to start bot:', error);
+        }
     } else {
         console.log('Bot token missing, skipping bot start.');
     }
