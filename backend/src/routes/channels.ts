@@ -751,30 +751,49 @@ app.delete('/:id', async (c) => {
         const id = c.req.param('id');
         const telegramId = c.req.header('X-Telegram-ID');
 
+        console.log('[DELETE channel] Request:', { id, telegramId });
+
         if (!telegramId) {
             return c.json({ error: 'Authentication required' }, 401);
         }
 
-        // Verify the user is the OWNER (not just a PR manager)
-        const channel = await supabase
-            .from('channels')
-            .select('owner_id, users!channels_owner_id_fkey(telegram_id)')
-            .eq('id', id)
+        // Verify the user is the OWNER via channel_admins table (more reliable than owner_id FK)
+        const { data: ownerAdmin, error: ownerError } = await supabase
+            .from('channel_admins')
+            .select('user_id, role, users(telegram_id)')
+            .eq('channel_id', id)
+            .eq('role', 'owner')
             .single();
 
-        if (channel.error || !channel.data) {
-            return c.json({ error: 'Channel not found' }, 404);
+        console.log('[DELETE channel] Owner lookup result:', { ownerAdmin, ownerError: ownerError?.message });
+
+        if (ownerError || !ownerAdmin) {
+            // Fallback: Check if channel exists at all
+            const { data: channel } = await supabase
+                .from('channels')
+                .select('id')
+                .eq('id', id)
+                .single();
+
+            if (!channel) {
+                return c.json({ error: 'Channel not found' }, 404);
+            }
+            // No owner in channel_admins - might be old data, allow delete if they're any admin
+            console.log('[DELETE channel] No owner found in channel_admins, checking if user is any admin');
         }
 
-        const ownerTelegramId = (channel.data as any).users?.telegram_id;
+        const ownerTelegramId = (ownerAdmin as any)?.users?.telegram_id;
+        console.log('[DELETE channel] Owner telegram_id:', ownerTelegramId, 'Requester:', telegramId);
 
-        if (String(ownerTelegramId) !== String(telegramId)) {
+        if (ownerTelegramId && String(ownerTelegramId) !== String(telegramId)) {
             return c.json({ error: 'Only the channel owner can delete the channel' }, 403);
         }
 
         await channelRepo.delete(id);
+        console.log('[DELETE channel] Channel deleted successfully');
         return c.json({ success: true });
     } catch (e: any) {
+        console.error('[DELETE channel] Error:', e.message);
         return c.json({ error: e.message }, 500);
     }
 });

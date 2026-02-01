@@ -8,6 +8,7 @@ import { Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, 
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { showAlert, showConfirm, openTelegramLink, showSuccess, showError } from '@/lib/telegram'
+import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
@@ -30,7 +31,7 @@ export function ChannelWizard() {
     const [verifiedStats, setVerifiedStats] = useState<any>(null)
     const [basePrice, setBasePrice] = useState('')
     const [rateCard, setRateCard] = useState<any[]>([]) // Legacy support
-    const [newPackage, setNewPackage] = useState({ title: '', price: '', type: 'Post', description: '' })
+    const [newPackage, setNewPackage] = useState({ title: '', price: '', type: 'Post', description: '', currency: 'TON' as 'TON' | 'USDT' })
     const [showPackageForm, setShowPackageForm] = useState(false)
     const [editingPackageIdx, setEditingPackageIdx] = useState<number | null>(null) // Track which package is being edited
 
@@ -590,7 +591,10 @@ export function ChannelWizard() {
                                                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pkg.description}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-lg">${pkg.price}</span>
+                                                    <span className="font-bold text-lg flex items-center gap-1">
+                                                        {pkg.price}
+                                                        {pkg.currency === 'USDT' ? <UsdtIcon className="w-4 h-4" /> : <TonIcon className="w-4 h-4" />}
+                                                    </span>
                                                     {/* Edit Button */}
                                                     <Button
                                                         variant="ghost"
@@ -602,7 +606,8 @@ export function ChannelWizard() {
                                                                 title: pkg.title,
                                                                 price: pkg.price.toString(),
                                                                 type: pkg.type || 'Post',
-                                                                description: pkg.description || ''
+                                                                description: pkg.description || '',
+                                                                currency: pkg.currency || 'TON'
                                                             });
                                                             setEditingPackageIdx(idx);
                                                             setShowPackageForm(true);
@@ -646,7 +651,7 @@ export function ChannelWizard() {
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <Label>Price ($)</Label>
+                                                <Label>Price</Label>
                                                 <Input
                                                     type="number"
                                                     placeholder="100"
@@ -654,6 +659,17 @@ export function ChannelWizard() {
                                                     onChange={(e) => setNewPackage({ ...newPackage, price: e.target.value })}
                                                     className="bg-black/20"
                                                 />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Currency</Label>
+                                                <select
+                                                    className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                    value={newPackage.currency}
+                                                    onChange={(e) => setNewPackage({ ...newPackage, currency: e.target.value as 'TON' | 'USDT' })}
+                                                >
+                                                    <option value="TON">TON</option>
+                                                    <option value="USDT">USDT</option>
+                                                </select>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label>Type</Label>
@@ -684,7 +700,7 @@ export function ChannelWizard() {
                                             <Button
                                                 variant="ghost"
                                                 onClick={() => {
-                                                    setNewPackage({ title: '', price: '', type: 'Post', description: '' });
+                                                    setNewPackage({ title: '', price: '', type: 'Post', description: '', currency: 'TON' });
                                                     setEditingPackageIdx(null);
                                                     setShowPackageForm(false);
                                                 }}
@@ -706,7 +722,8 @@ export function ChannelWizard() {
                                                             title: newPackage.title,
                                                             price: Number(newPackage.price),
                                                             type: newPackage.type,
-                                                            description: newPackage.description
+                                                            description: newPackage.description,
+                                                            currency: newPackage.currency
                                                         };
                                                         setRateCard(newCard);
                                                     } else {
@@ -719,10 +736,11 @@ export function ChannelWizard() {
                                                             title: newPackage.title,
                                                             price: Number(newPackage.price),
                                                             type: newPackage.type,
-                                                            description: newPackage.description
+                                                            description: newPackage.description,
+                                                            currency: newPackage.currency
                                                         }]);
                                                     }
-                                                    setNewPackage({ title: '', price: '', type: 'Post', description: '' });
+                                                    setNewPackage({ title: '', price: '', type: 'Post', description: '', currency: 'TON' });
                                                     setEditingPackageIdx(null);
                                                     setShowPackageForm(false);
                                                 }}
