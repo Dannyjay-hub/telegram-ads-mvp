@@ -2,8 +2,57 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 /**
+ * Get the logical parent route for a given path
+ * This is used for explicit navigation instead of browser history
+ */
+function getParentRoute(pathname: string): string | null {
+    // Exact matches first
+    const exactParents: Record<string, string> = {
+        '/': null as any, // Root has no parent (hide back button)
+        '/advertiser': '/',
+        '/channel-owner': '/',
+        '/channels/my': '/channel-owner',
+        '/channels/new': '/channels/my',
+        '/channels/dashboard': '/channel-owner',
+        '/channels/partnerships': '/channel-owner',
+        '/create': '/advertiser',
+        '/campaigns': '/advertiser',
+        '/partnerships': '/advertiser',
+        '/marketplace': '/', // Could be reached from either dashboard
+        '/marketplace/requests': '/marketplace',
+    };
+
+    // Check exact match
+    if (pathname in exactParents) {
+        return exactParents[pathname];
+    }
+
+    // Pattern matches for dynamic routes
+    if (pathname.match(/^\/channels\/[^/]+\/view$/)) {
+        // /channels/:id/view -> My Channels
+        return '/channels/my';
+    }
+    if (pathname.match(/^\/channels\/edit\/[^/]+$/)) {
+        // /channels/edit/:id -> My Channels
+        return '/channels/my';
+    }
+    if (pathname.match(/^\/channels\/[^/]+\/settings$/)) {
+        // /channels/:id/settings -> Channel View
+        const id = pathname.split('/')[2];
+        return `/channels/${id}/view`;
+    }
+    if (pathname.match(/^\/marketplace\/channel\/[^/]+$/)) {
+        // /marketplace/channel/:id -> Marketplace
+        return '/marketplace';
+    }
+
+    // Default fallback - go to main dashboard
+    return '/';
+}
+
+/**
  * Hook to control Telegram's native BackButton in the header
- * Shows "< Back" in Telegram's native header instead of "X Close" when navigating deeper
+ * Uses explicit parent navigation instead of browser history for predictable UX
  */
 export function useTelegramBackButton() {
     const location = useLocation();
@@ -14,21 +63,18 @@ export function useTelegramBackButton() {
         if (!WebApp?.BackButton) return;
 
         const BackButton = WebApp.BackButton;
+        const parentRoute = getParentRoute(location.pathname);
 
-        // Root paths where we should NOT show back button
-        const rootPaths = ['/', '/advertiser', '/channel-owner'];
-        const isRootPage = rootPaths.includes(location.pathname);
-
-        if (isRootPage) {
-            // On root pages, hide back button (show X Close)
+        if (parentRoute === null) {
+            // Root page has no parent - hide back button (show X Close)
             BackButton.hide();
         } else {
-            // On sub-pages, show back button
+            // Has a parent - show back button
             BackButton.show();
 
-            // Handle back button click
+            // Handle back button click - go to explicit parent
             const handleBack = () => {
-                navigate(-1);
+                navigate(parentRoute, { replace: true });
             };
 
             BackButton.onClick(handleBack);
