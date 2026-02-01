@@ -13,6 +13,7 @@ import { PartnershipsList } from '@/components/PartnershipsList'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
+import { WalletButton } from '@/components/WalletButton'
 
 // TON Connect manifest URL - must be accessible publicly
 const MANIFEST_URL = `${window.location.origin}/tonconnect-manifest.json`;
@@ -96,9 +97,13 @@ function AppContent() {
 
   return (
     <div className="min-h-screen w-full bg-background transition-colors duration-300 relative overflow-hidden">
-      {/* Ambient Backlights */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/20 blur-[100px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/20 blur-[100px] rounded-full pointer-events-none" />
+
+      {/* Global Header with Wallet Button - Giveaway style */}
+      <header className="w-full py-3">
+        <div className="max-w-md mx-auto px-4 flex items-center justify-center">
+          <WalletButton />
+        </div>
+      </header>
 
       <div className="relative z-10 p-4 max-w-md mx-auto">
 

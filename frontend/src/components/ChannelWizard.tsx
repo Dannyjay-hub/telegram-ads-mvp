@@ -20,6 +20,7 @@ export function ChannelWizard() {
 
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
+    const [savingAction, setSavingAction] = useState<'draft' | 'active' | 'delete' | null>(null) // Track which action is in progress
     const [initialLoading, setInitialLoading] = useState(false)
     const [channelId, setChannelId] = useState('')
     // Removed isDraft
@@ -193,6 +194,7 @@ export function ChannelWizard() {
 
     const handleRegister = async (status: 'active' | 'draft' = 'active') => {
         setLoading(true);
+        setSavingAction(status); // Track which action is loading
         try {
             // === VALIDATION: Required fields (only for active listings, not drafts) ===
             if (status === 'active') {
@@ -318,6 +320,7 @@ export function ChannelWizard() {
             }
         } finally {
             setLoading(false);
+            setSavingAction(null);
         }
     }
 
@@ -325,6 +328,7 @@ export function ChannelWizard() {
         const confirmed = await showConfirm('Are you sure you want to delete this channel? This cannot be undone.');
         if (!confirmed) return;
         setLoading(true);
+        setSavingAction('delete');
         try {
             if (id) {
                 await deleteChannel(id);
@@ -334,6 +338,7 @@ export function ChannelWizard() {
             showError('Failed to delete: ' + e.message);
         } finally {
             setLoading(false);
+            setSavingAction(null);
         }
     }
 
@@ -967,14 +972,14 @@ export function ChannelWizard() {
                                     onClick={() => handleRegister('draft')}
                                     disabled={loading}
                                 >
-                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Draft'}
+                                    {savingAction === 'draft' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Draft'}
                                 </Button>
                                 <Button
                                     className="w-full h-12 text-lg"
                                     onClick={() => handleRegister('active')}
                                     disabled={loading}
                                 >
-                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (id ? 'Update Channel' : 'Confirm Listing')}
+                                    {savingAction === 'active' ? <Loader2 className="w-5 h-5 animate-spin" /> : (id ? 'Update Channel' : 'Confirm Listing')}
                                 </Button>
                             </div>
 
@@ -985,7 +990,7 @@ export function ChannelWizard() {
                                     onClick={handleDelete}
                                     disabled={loading}
                                 >
-                                    Delete Channel
+                                    {savingAction === 'delete' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Delete Channel'}
                                 </Button>
                             )}
                         </div>

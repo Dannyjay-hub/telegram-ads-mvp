@@ -36,7 +36,9 @@ export function ChannelViewPage() {
     const [paymentError, setPaymentError] = useState<string | null>(null)
 
     // Track where user came from for context-aware back navigation
-    const origin = (location.state as any)?.from || '/channels/my'
+    // If user came from a deep link (no location.state), use history or fall back to dashboard
+    const origin = (location.state as any)?.from || null
+    const hasHistory = window.history.length > 2 // More than just initial load
 
     useEffect(() => {
         if (id) loadChannel()
@@ -205,7 +207,22 @@ export function ChannelViewPage() {
 
         } catch (error: any) {
             console.error('Payment error:', error)
-            setPaymentError(error.message || 'Payment failed')
+
+            // Parse TON Connect specific errors
+            let errorMessage = 'Payment failed'
+            const errMsg = error.message?.toLowerCase() || ''
+
+            if (errMsg.includes('not authenticated') || errMsg.includes('auth')) {
+                errorMessage = 'Wallet session expired. Please disconnect and reconnect your wallet.'
+            } else if (errMsg.includes('rejected') || errMsg.includes('cancelled') || errMsg.includes('canceled')) {
+                errorMessage = 'Transaction cancelled'
+            } else if (errMsg.includes('insufficient') || errMsg.includes('balance')) {
+                errorMessage = 'Insufficient balance in your wallet'
+            } else if (error.message) {
+                errorMessage = error.message
+            }
+
+            setPaymentError(errorMessage)
             setPaymentStep('error')
             haptic.error()
         } finally {
@@ -241,8 +258,16 @@ export function ChannelViewPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    {/* Back goes to origin (where user came from) */}
-                    <Button variant="ghost" size="icon" onClick={() => navigate(origin)}>
+                    {/* Smart back navigation: origin > history > dashboard */}
+                    <Button variant="ghost" size="icon" onClick={() => {
+                        if (origin) {
+                            navigate(origin)
+                        } else if (hasHistory) {
+                            navigate(-1)
+                        } else {
+                            navigate('/')
+                        }
+                    }}>
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <h1 className="text-xl font-bold">Channel Details</h1>
