@@ -96,27 +96,17 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-background transition-colors duration-300 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-background transition-colors duration-300">
 
-      {/* Fixed Header with Wallet Button - positioned below Telegram native header */}
-      <header
-        className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/30"
-        style={{
-          paddingTop: 'calc(var(--tg-viewport-safe-area-inset-top, 0px) + var(--tg-viewport-content-safe-area-inset-top, 0px))'
-        }}
-      >
+      {/* Sticky Header with Wallet Button - flows below Telegram native header */}
+      <header className="sticky top-0 z-50 bg-background border-b border-border/30">
         <div className="max-w-md mx-auto px-4 py-2 flex items-center justify-end">
           <WalletButton />
         </div>
       </header>
 
-      {/* Content with padding for fixed header */}
-      <div
-        className="relative z-10 p-4 max-w-md mx-auto"
-        style={{
-          paddingTop: 'calc(var(--tg-viewport-safe-area-inset-top, 0px) + var(--tg-viewport-content-safe-area-inset-top, 0px) + 52px)'
-        }}
-      >
+      {/* Content */}
+      <div className="relative z-10 p-4 max-w-md mx-auto">
 
         <Routes>
           <Route path="/" element={<Dashboard />} />
