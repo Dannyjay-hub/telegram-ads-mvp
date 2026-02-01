@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Zap } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { showAlert } from '@/lib/telegram';
+import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons';
 
 interface Package {
     id: string;
@@ -79,8 +80,13 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
                             <p className="text-sm text-muted-foreground">{pkg.description}</p>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="font-mono font-bold text-lg">
-                                {pkg.price} {pkg.currency === 'USDT' ? '💵 USDT' : '💎 TON'}
+                            <span className="font-mono font-bold text-lg flex items-center gap-1.5">
+                                {pkg.price}
+                                {pkg.currency === 'USDT' ? (
+                                    <><UsdtIcon className="w-4 h-4" /> <span className="text-sm">USDT</span></>
+                                ) : (
+                                    <><TonIcon className="w-4 h-4" /> <span className="text-sm">TON</span></>
+                                )}
                             </span>
                             <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleRemove(pkg.id)}>
                                 <Trash2 className="w-4 h-4" />
@@ -118,8 +124,8 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
                                 value={newPkg.currency}
                                 onChange={e => setNewPkg({ ...newPkg, currency: e.target.value as 'TON' | 'USDT' })}
                             >
-                                <option value="TON">💎 TON</option>
-                                <option value="USDT">💵 USDT</option>
+                                <option value="TON">TON</option>
+                                <option value="USDT">USDT</option>
                             </select>
                         </div>
                         <div>

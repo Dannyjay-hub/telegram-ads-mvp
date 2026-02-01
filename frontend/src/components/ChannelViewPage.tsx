@@ -8,6 +8,7 @@ import { useTelegram } from '@/providers/TelegramProvider'
 import { useTonWallet } from '@/hooks/useTonWallet'
 import { haptic } from '@/utils/haptic'
 import { TON_TOKEN, USDT_TOKEN, type JettonToken } from '@/lib/jettons'
+import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons'
 
 // Type for selected package quantities
 interface SelectedPackage {
@@ -392,8 +393,9 @@ export function ChannelViewPage() {
                                                 <p className="text-xs text-muted-foreground mt-1">{pkg.description}</p>
                                             )}
                                         </div>
-                                        <span className="font-bold text-lg text-primary ml-2">
-                                            {pkg.price} {pkg.currency === 'USDT' ? '💵' : '💎'}
+                                        <span className="font-bold text-lg text-primary ml-2 flex items-center gap-1">
+                                            {pkg.price}
+                                            {pkg.currency === 'USDT' ? <UsdtIcon className="w-4 h-4" /> : <TonIcon className="w-4 h-4" />}
                                         </span>
                                     </div>
 
@@ -501,8 +503,13 @@ export function ChannelViewPage() {
 
                                 <div className="border-t border-white/10 pt-4 flex justify-between items-center">
                                     <span className="font-semibold">Total</span>
-                                    <span className="text-2xl font-bold text-primary">
-                                        {totalAmount.toLocaleString()} {selectedCurrency === 'USDT' ? '💵 USDT' : '💎 TON'}
+                                    <span className="text-2xl font-bold text-primary flex items-center gap-2">
+                                        {totalAmount.toLocaleString()}
+                                        {selectedCurrency === 'USDT' ? (
+                                            <><UsdtIcon className="w-5 h-5" /> USDT</>
+                                        ) : (
+                                            <><TonIcon className="w-5 h-5" /> TON</>
+                                        )}
                                     </span>
                                 </div>
 

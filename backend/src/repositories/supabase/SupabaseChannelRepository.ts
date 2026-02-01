@@ -212,37 +212,57 @@ export class SupabaseChannelRepository implements IChannelRepository {
     }
 
     async delete(id: string): Promise<void> {
+        console.log(`[ChannelRepo] Deleting channel ${id} and all related records`);
+
         // First delete related records to avoid foreign key constraint errors
-        // Delete channel_admins
+
+        // 1. Delete channel_admins
         const { error: adminsError } = await supabase
             .from('channel_admins')
             .delete()
             .eq('channel_id', id);
 
         if (adminsError) {
-            console.error('Failed to delete channel admins:', adminsError);
-            // Continue anyway - the admins might not exist
+            console.error('[ChannelRepo] Failed to delete channel_admins:', adminsError.message);
+        } else {
+            console.log('[ChannelRepo] Deleted channel_admins');
         }
 
-        // Delete any pending deals related to this channel
+        // 2. Delete ALL deals related to this channel (not just pending)
         const { error: dealsError } = await supabase
             .from('deals')
             .delete()
-            .eq('channel_id', id)
-            .in('status', ['draft', 'pending', 'funded']); // Only delete non-completed deals
+            .eq('channel_id', id);
 
         if (dealsError) {
-            console.error('Failed to delete channel deals:', dealsError);
-            // Continue anyway
+            console.error('[ChannelRepo] Failed to delete deals:', dealsError.message);
+        } else {
+            console.log('[ChannelRepo] Deleted deals');
         }
 
-        // Now delete the channel
+        // 3. Delete unlisted_drafts if any
+        const { error: draftsError } = await supabase
+            .from('unlisted_drafts')
+            .delete()
+            .eq('telegram_channel_id', id);
+
+        if (draftsError) {
+            console.error('[ChannelRepo] Failed to delete drafts:', draftsError.message);
+            // This might fail if id is UUID but telegram_channel_id is number - that's ok
+        }
+
+        // 4. Now delete the channel
         const { error } = await supabase
             .from('channels')
             .delete()
             .eq('id', id);
 
-        if (error) throw new Error(error.message);
+        if (error) {
+            console.error('[ChannelRepo] Failed to delete channel:', error.message);
+            throw new Error(`Failed to delete channel: ${error.message}`);
+        }
+
+        console.log('[ChannelRepo] Channel deleted successfully');
     }
 
     // Phase 1: Draft Recovery
