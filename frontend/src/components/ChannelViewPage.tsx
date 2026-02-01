@@ -7,6 +7,7 @@ import { type Channel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { useTonWallet } from '@/hooks/useTonWallet'
 import { haptic } from '@/utils/haptic'
+import { SUPPORTED_TOKENS, TON_TOKEN, type JettonToken } from '@/lib/jettons'
 
 // Type for selected package quantities
 interface SelectedPackage {
@@ -22,7 +23,7 @@ export function ChannelViewPage() {
     const location = useLocation()
     const { id } = useParams()
     const { user } = useTelegram()
-    const { isConnected, walletAddress, connectWallet, formatAddress, sendTransaction } = useTonWallet()
+    const { isConnected, walletAddress, connectWallet, formatAddress, sendPayment } = useTonWallet()
 
     const [channel, setChannel] = useState<Channel | null>(null)
     const [loading, setLoading] = useState(true)
@@ -34,6 +35,7 @@ export function ChannelViewPage() {
     const [isProcessing, setIsProcessing] = useState(false)
     const [paymentStep, setPaymentStep] = useState<'confirm' | 'paying' | 'success' | 'error'>('confirm')
     const [paymentError, setPaymentError] = useState<string | null>(null)
+    const [selectedToken, setSelectedToken] = useState<JettonToken>(TON_TOKEN)
 
     // Track where user came from for context-aware back navigation
     // If user came from a deep link (no location.state), always go to dashboard
@@ -184,14 +186,17 @@ export function ChannelViewPage() {
             const deal = await res.json()
             const { paymentInstructions } = deal
 
-            // Step 2: Send TON transaction with payment memo
-            // Convert USD to TON (simplified - in production use oracle/exchange rate)
-            const tonAmount = (paymentInstructions.amount * 0.5).toString() // Placeholder rate
-            const amountInNanoton = (parseFloat(tonAmount) * 1e9).toString()
+            // Step 2: Send transaction using unified payment function
+            // For TON: convert USD to TON (placeholder rate - use oracle in production)
+            // For USDT/USDC: amount is already in USD (1:1 with stablecoins)
+            const paymentAmount = selectedToken.id === 'ton'
+                ? paymentInstructions.amount * 0.5  // USD to TON placeholder rate
+                : paymentInstructions.amount        // Stablecoins are 1:1 USD
 
-            await sendTransaction(
+            await sendPayment(
+                selectedToken,
                 paymentInstructions.address,
-                amountInNanoton,
+                paymentAmount,
                 paymentInstructions.memo
             )
 
@@ -488,6 +493,26 @@ export function ChannelViewPage() {
                                     <span className="text-2xl font-bold text-primary">${totalAmount.toLocaleString()}</span>
                                 </div>
 
+                                {/* Currency Selector */}
+                                <div className="space-y-2">
+                                    <label className="text-sm text-muted-foreground">Pay with</label>
+                                    <div className="flex gap-2">
+                                        {SUPPORTED_TOKENS.map((token) => (
+                                            <button
+                                                key={token.id}
+                                                onClick={() => setSelectedToken(token)}
+                                                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all ${selectedToken.id === token.id
+                                                        ? 'bg-primary/20 border-2 border-primary'
+                                                        : 'bg-white/5 border-2 border-transparent hover:bg-white/10'
+                                                    }`}
+                                            >
+                                                <span className="text-lg">{token.icon}</span>
+                                                <span className="font-semibold">{token.symbol}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/5 p-3 rounded-lg">
                                     <Wallet className="w-4 h-4" />
                                     <span>Connected: {formatAddress(walletAddress)}</span>
@@ -498,7 +523,10 @@ export function ChannelViewPage() {
                                     onClick={processPayment}
                                     disabled={isProcessing}
                                 >
-                                    Confirm & Pay ${totalAmount.toLocaleString()}
+                                    Pay {selectedToken.id === 'ton'
+                                        ? `~${(totalAmount * 0.5).toFixed(2)} ${selectedToken.symbol}`
+                                        : `${totalAmount.toLocaleString()} ${selectedToken.symbol}`
+                                    }
                                 </Button>
 
                                 <p className="text-xs text-center text-muted-foreground">
