@@ -7,7 +7,7 @@ import { type Channel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { useTonWallet } from '@/hooks/useTonWallet'
 import { haptic } from '@/utils/haptic'
-import { SUPPORTED_TOKENS, TON_TOKEN, type JettonToken } from '@/lib/jettons'
+import { TON_TOKEN, USDT_TOKEN, type JettonToken } from '@/lib/jettons'
 
 // Type for selected package quantities
 interface SelectedPackage {
@@ -16,6 +16,7 @@ interface SelectedPackage {
     type: string;
     price: number;
     quantity: number;
+    currency: 'TON' | 'USDT';
 }
 
 export function ChannelViewPage() {
@@ -35,7 +36,16 @@ export function ChannelViewPage() {
     const [isProcessing, setIsProcessing] = useState(false)
     const [paymentStep, setPaymentStep] = useState<'confirm' | 'paying' | 'success' | 'error'>('confirm')
     const [paymentError, setPaymentError] = useState<string | null>(null)
-    const [selectedToken, setSelectedToken] = useState<JettonToken>(TON_TOKEN)
+
+    // Derive currency from first selected package (all packages must be same currency)
+    const selectedCurrency = useMemo((): 'TON' | 'USDT' => {
+        if (selectedPackages.length === 0) return 'TON'
+        return selectedPackages[0].currency || 'TON'
+    }, [selectedPackages])
+
+    const paymentToken = useMemo((): JettonToken => {
+        return selectedCurrency === 'USDT' ? USDT_TOKEN : TON_TOKEN
+    }, [selectedCurrency])
 
     // Track where user came from for context-aware back navigation
     // If user came from a deep link (no location.state), always go to dashboard
@@ -122,7 +132,8 @@ export function ChannelViewPage() {
                     title: pkg.title,
                     type: pkg.type,
                     price: pkg.price,
-                    quantity: newQty
+                    quantity: newQty,
+                    currency: pkg.currency || 'TON'
                 }])
             }
         }
@@ -186,15 +197,13 @@ export function ChannelViewPage() {
             const deal = await res.json()
             const { paymentInstructions } = deal
 
-            // Step 2: Send transaction using unified payment function
-            // For TON: convert USD to TON (placeholder rate - use oracle in production)
-            // For USDT/USDC: amount is already in USD (1:1 with stablecoins)
-            const paymentAmount = selectedToken.id === 'ton'
-                ? paymentInstructions.amount * 0.5  // USD to TON placeholder rate
-                : paymentInstructions.amount        // Stablecoins are 1:1 USD
+            // Step 2: Send transaction using the package's currency
+            // For TON: use the amount directly (prices are in TON)
+            // For USDT: use the amount directly (prices are in USDT)
+            const paymentAmount = paymentInstructions.amount
 
             await sendPayment(
-                selectedToken,
+                paymentToken,
                 paymentInstructions.address,
                 paymentAmount,
                 paymentInstructions.memo
@@ -383,7 +392,9 @@ export function ChannelViewPage() {
                                                 <p className="text-xs text-muted-foreground mt-1">{pkg.description}</p>
                                             )}
                                         </div>
-                                        <span className="font-bold text-lg text-primary ml-2">${pkg.price}</span>
+                                        <span className="font-bold text-lg text-primary ml-2">
+                                            {pkg.price} {pkg.currency === 'USDT' ? '💵' : '💎'}
+                                        </span>
                                     </div>
 
                                     {/* Quantity controls for advertisers */}
@@ -483,34 +494,16 @@ export function ChannelViewPage() {
                                     {selectedPackages.map((pkg, idx) => (
                                         <div key={idx} className="flex justify-between text-sm">
                                             <span>{pkg.quantity}x {pkg.title}</span>
-                                            <span className="text-primary">${pkg.price * pkg.quantity}</span>
+                                            <span className="text-primary">{pkg.price * pkg.quantity} {pkg.currency}</span>
                                         </div>
                                     ))}
                                 </div>
 
                                 <div className="border-t border-white/10 pt-4 flex justify-between items-center">
                                     <span className="font-semibold">Total</span>
-                                    <span className="text-2xl font-bold text-primary">${totalAmount.toLocaleString()}</span>
-                                </div>
-
-                                {/* Currency Selector */}
-                                <div className="space-y-2">
-                                    <label className="text-sm text-muted-foreground">Pay with</label>
-                                    <div className="flex gap-2">
-                                        {SUPPORTED_TOKENS.map((token) => (
-                                            <button
-                                                key={token.id}
-                                                onClick={() => setSelectedToken(token)}
-                                                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all ${selectedToken.id === token.id
-                                                        ? 'bg-primary/20 border-2 border-primary'
-                                                        : 'bg-white/5 border-2 border-transparent hover:bg-white/10'
-                                                    }`}
-                                            >
-                                                <span className="text-lg">{token.icon}</span>
-                                                <span className="font-semibold">{token.symbol}</span>
-                                            </button>
-                                        ))}
-                                    </div>
+                                    <span className="text-2xl font-bold text-primary">
+                                        {totalAmount.toLocaleString()} {selectedCurrency === 'USDT' ? '💵 USDT' : '💎 TON'}
+                                    </span>
                                 </div>
 
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/5 p-3 rounded-lg">
@@ -523,10 +516,7 @@ export function ChannelViewPage() {
                                     onClick={processPayment}
                                     disabled={isProcessing}
                                 >
-                                    Pay {selectedToken.id === 'ton'
-                                        ? `~${(totalAmount * 0.5).toFixed(2)} ${selectedToken.symbol}`
-                                        : `${totalAmount.toLocaleString()} ${selectedToken.symbol}`
-                                    }
+                                    Pay {totalAmount.toLocaleString()} {selectedCurrency}
                                 </Button>
 
                                 <p className="text-xs text-center text-muted-foreground">

@@ -13,6 +13,7 @@ interface Package {
     description: string;
     price: number;
     type: 'post' | 'story' | 'repost' | 'custom';
+    currency: 'TON' | 'USDT';
 }
 
 interface RateCardEditorProps {
@@ -26,7 +27,8 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
         type: 'post',
         title: '',
         price: undefined,
-        description: ''
+        description: '',
+        currency: 'TON'
     });
 
     const handleAdd = () => {
@@ -40,12 +42,13 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
             title: newPkg.title,
             price: Number(newPkg.price),
             description: newPkg.description || '',
-            type: newPkg.type || 'post'
+            type: newPkg.type || 'post',
+            currency: newPkg.currency || 'TON'
         };
 
         onChange([...value, pkg]);
         setIsAdding(false);
-        setNewPkg({ type: 'post', title: '', price: undefined, description: '' });
+        setNewPkg({ type: 'post', title: '', price: undefined, description: '', currency: 'TON' });
     };
 
     const handleRemove = (id: string) => {
@@ -76,7 +79,9 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
                             <p className="text-sm text-muted-foreground">{pkg.description}</p>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="font-mono font-bold text-lg">${pkg.price}</span>
+                            <span className="font-mono font-bold text-lg">
+                                {pkg.price} {pkg.currency === 'USDT' ? '💵 USDT' : '💎 TON'}
+                            </span>
                             <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleRemove(pkg.id)}>
                                 <Trash2 className="w-4 h-4" />
                             </Button>
@@ -98,13 +103,24 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
                             />
                         </div>
                         <div>
-                            <Label>Price ($)</Label>
+                            <Label>Price</Label>
                             <Input
                                 type="number"
                                 placeholder="100"
                                 value={newPkg.price || ''}
                                 onChange={e => setNewPkg({ ...newPkg, price: Number(e.target.value) })}
                             />
+                        </div>
+                        <div>
+                            <Label>Currency</Label>
+                            <select
+                                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                value={newPkg.currency}
+                                onChange={e => setNewPkg({ ...newPkg, currency: e.target.value as 'TON' | 'USDT' })}
+                            >
+                                <option value="TON">💎 TON</option>
+                                <option value="USDT">💵 USDT</option>
+                            </select>
                         </div>
                         <div>
                             <Label>Type</Label>
