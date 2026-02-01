@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { Megaphone, Briefcase, Handshake, MessageCircle, ArrowLeft, Tv } from 'lucide-react'
+import { Megaphone, Briefcase, Handshake, MessageCircle, Tv } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
+import { WalletButton } from '@/components/WalletButton'
 import { haptic } from '@/utils/haptic'
 
 export function ChannelOwnerDashboard() {
@@ -48,25 +49,23 @@ export function ChannelOwnerDashboard() {
         <div className="pb-20 space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="mr-1">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-red-600">
-                            Channel Owner
-                        </h1>
-                        <p className="text-xs text-muted-foreground">Monetize your audience</p>
-                    </div>
+                <div>
+                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-red-600">
+                        Channel Owner
+                    </h1>
+                    <p className="text-xs text-muted-foreground">Monetize your audience</p>
                 </div>
 
-                <Button
-                    onClick={openBot}
-                    className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 gap-2"
-                >
-                    <MessageCircle className="w-4 h-4" />
-                    <span className="hidden sm:inline">Ad Manager</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                    <WalletButton />
+                    <Button
+                        onClick={openBot}
+                        size="icon"
+                        className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
+                    >
+                        <MessageCircle className="w-4 h-4" />
+                    </Button>
+                </div>
             </div>
 
             {/* Grid */}
