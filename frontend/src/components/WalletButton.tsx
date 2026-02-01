@@ -28,7 +28,7 @@ export function WalletButton() {
         }
     };
 
-    // Get button text based on state
+    // Get button text based on state (matches giveaway-tool)
     const getButtonText = () => {
         if (!connectionRestored) {
             return 'Connecting...';
@@ -43,24 +43,21 @@ export function WalletButton() {
         <button
             onClick={handleClick}
             disabled={!connectionRestored}
-            className={`
-                flex items-center justify-center gap-2
-                px-4 py-2
+            className="
+                flex items-center justify-center gap-1
+                px-2.5 py-[5px]
                 rounded-[30px]
-                backdrop-blur-md
+                bg-[rgba(116,116,128,0.32)]
+                backdrop-blur-sm
+                text-white text-[15px] font-semibold
                 transition-all duration-200
-                text-[15px] font-semibold
                 active:scale-[0.98]
-                ${!connectionRestored
-                    ? 'bg-[rgba(116,116,128,0.3)] text-muted-foreground cursor-wait'
-                    : userFriendlyAddress
-                        ? 'bg-destructive/30 text-destructive hover:bg-destructive/40'
-                        : 'bg-primary/30 text-primary hover:bg-primary/40'
-                }
-            `}
+                disabled:opacity-50 disabled:cursor-not-allowed
+            "
         >
             <Wallet className="w-4 h-4" />
             <span>{getButtonText()}</span>
         </button>
     );
 }
+
