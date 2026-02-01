@@ -1,9 +1,7 @@
 
-import { useState } from 'react'
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, Search, Megaphone, Briefcase } from 'lucide-react'
-import { MarketplacePage } from './MarketplacePage' // Rename imports later if needed
+import { useSearchParams } from 'react-router-dom'
+import { Search, Megaphone, Briefcase } from 'lucide-react'
+import { MarketplacePage } from './MarketplacePage'
 import { Input } from '@/components/ui/input'
 
 // Placeholder for the Campaigns Marketplace (Sell Side)
@@ -29,37 +27,20 @@ function CampaignsMarketplaceTab() {
 
 export function MarketplaceContainer() {
     const [searchParams, setSearchParams] = useSearchParams()
-    const navigate = useNavigate()
-    const location = useLocation()
     const activeTab = searchParams.get('tab') || 'channels' // 'channels' or 'campaigns'
-
-    // Store origin ONCE on mount so it persists through tab changes
-    const [origin] = useState<string>(() => {
-        // Read from location.state on initial render, default to '/'
-        return (location.state as any)?.from || '/'
-    });
 
     const setTab = (tab: string) => {
         // Use replace: true so tab changes don't add to browser history
         setSearchParams({ tab }, { replace: true })
     }
 
-    const handleBack = () => {
-        navigate(origin)
-    }
-
     return (
         <div className="pb-20 space-y-6">
-            {/* Header with Navigation & Toggle */}
+            {/* Header - back navigation handled by Telegram native BackButton */}
             <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={handleBack} className="mr-1">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-                        Marketplace
-                    </h1>
-                </div>
+                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                    Marketplace
+                </h1>
 
                 {/* P2P Style Toggle */}
                 <div className="bg-black/20 p-1 rounded-xl flex relative">

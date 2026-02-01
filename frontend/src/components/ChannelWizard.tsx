@@ -1,22 +1,20 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus, Pencil } from 'lucide-react'
+import { Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus, Pencil } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { showAlert, showConfirm, openTelegramLink, showSuccess, showError } from '@/lib/telegram'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
-    const location = useLocation()
     const { id } = useParams()
     const { user } = useTelegram()
 
-    // Context-aware back navigation - read where user came from
-    const origin = (location.state as any)?.from || '/channels/my'
+    // Note: Back navigation is now handled by Telegram native BackButton
 
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -344,22 +342,8 @@ export function ChannelWizard() {
 
     return (
         <div className="pb-20 max-w-lg mx-auto p-4">
-            <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" size="icon" onClick={() => {
-                    // Context-aware back navigation
-                    if (id) {
-                        // If editing existing channel, go back to where we came from (View page, My Channels, etc.)
-                        navigate(origin);
-                    } else if (step === 1) {
-                        // If creating new channel and on step 1, go back to step 0
-                        setStep(0);
-                    } else {
-                        // Otherwise go to Channel Owner dashboard
-                        navigate('/channel-owner');
-                    }
-                }}>
-                    <ArrowLeft className="w-5 h-5" />
-                </Button>
+            {/* Header - back navigation handled by Telegram native BackButton */}
+            <div className="mb-6">
                 <h1 className="text-xl font-bold">{id ? 'Edit Channel' : 'Add Channel'}</h1>
             </div>
 

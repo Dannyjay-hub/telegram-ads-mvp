@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Rocket, ListChecks, Store, Handshake, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
-import { WalletButton } from '@/components/WalletButton'
 import { haptic } from '@/utils/haptic'
 
 export function AdvertiserDashboard() {
@@ -49,7 +48,7 @@ export function AdvertiserDashboard() {
 
     return (
         <div className="pb-20 space-y-6">
-            {/* Header */}
+            {/* Header - WalletButton is now global in App.tsx */}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
@@ -58,16 +57,13 @@ export function AdvertiserDashboard() {
                     <p className="text-xs text-muted-foreground">Manage your ad campaigns</p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <WalletButton />
-                    <Button
-                        onClick={openBot}
-                        size="icon"
-                        className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
-                    >
-                        <MessageCircle className="w-4 h-4" />
-                    </Button>
-                </div>
+                <Button
+                    onClick={openBot}
+                    size="icon"
+                    className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
+                >
+                    <MessageCircle className="w-4 h-4" />
+                </Button>
             </div>
 
             {/* Grid */}

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
-import { ArrowLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronRight, Check } from 'lucide-react'
 import { createDeal } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 
@@ -58,11 +58,8 @@ export function CampaignWizard() {
 
     return (
         <div className="pb-20">
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" size="icon" onClick={() => step === 0 ? navigate('/advertiser') : setStep(s => s - 1)}>
-                    <ArrowLeft className="w-5 h-5" />
-                </Button>
+            {/* Header - back navigation handled by Telegram native BackButton */}
+            <div className="mb-6">
                 <h1 className="text-xl font-bold">New Campaign</h1>
             </div>
 

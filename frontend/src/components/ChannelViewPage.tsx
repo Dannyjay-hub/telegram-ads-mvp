@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
-import { ArrowLeft, Settings, RefreshCw, Check, Users, Eye, TrendingUp, ExternalLink, Globe, Plus, Minus, ShoppingCart, Wallet } from 'lucide-react'
+import { Settings, RefreshCw, Check, Users, Eye, TrendingUp, ExternalLink, Globe, Plus, Minus, ShoppingCart, Wallet } from 'lucide-react'
 import { type Channel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { useTonWallet } from '@/hooks/useTonWallet'
@@ -254,21 +254,9 @@ export function ChannelViewPage() {
 
     return (
         <div className="pb-20 max-w-lg mx-auto p-4">
-            {/* Header */}
+            {/* Header - back navigation handled by Telegram native BackButton */}
             <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    {/* Back navigation: origin or dashboard */}
-                    <Button variant="ghost" size="icon" onClick={() => {
-                        if (origin) {
-                            navigate(origin)
-                        } else {
-                            navigate('/')
-                        }
-                    }}>
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <h1 className="text-xl font-bold">Channel Details</h1>
-                </div>
+                <h1 className="text-xl font-bold">Channel Details</h1>
                 {isOwner && (
                     <Button
                         variant="outline"

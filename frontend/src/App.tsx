@@ -13,6 +13,8 @@ import { PartnershipsList } from '@/components/PartnershipsList'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
+import { WalletButton } from '@/components/WalletButton'
+import { useTelegramBackButton, initTelegramViewport } from '@/hooks/useTelegramBackButton'
 
 // TON Connect manifest URL - must be accessible publicly
 const MANIFEST_URL = `${window.location.origin}/tonconnect-manifest.json`;
@@ -20,6 +22,9 @@ const MANIFEST_URL = `${window.location.origin}/tonconnect-manifest.json`;
 function AppContent() {
   const { error } = useTelegram();
   const navigate = useNavigate();
+
+  // Enable Telegram native BackButton based on current route
+  useTelegramBackButton();
 
   // Handle deep links from startapp parameter (e.g., from bot notifications)
   useEffect(() => {
@@ -40,6 +45,9 @@ function AppContent() {
   // WebApp initialization & theme handling
   useEffect(() => {
     try {
+      // Initialize Telegram viewport CSS variables
+      initTelegramViewport();
+
       // Signal that app is ready
       if (typeof WebApp.ready === 'function') {
         WebApp.ready();
@@ -52,8 +60,6 @@ function AppContent() {
       if (typeof WebApp.disableVerticalSwipes === 'function') {
         WebApp.disableVerticalSwipes();
       }
-
-      // Note: requestFullscreen() and lockOrientation() removed - they push content behind status bar
 
       // Sync colors with theme
       const isDark = WebApp.colorScheme === 'dark';
@@ -81,8 +87,6 @@ function AppContent() {
     }
   }, [])
 
-  // Skip loading screen - render app immediately while auth happens in background
-
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background text-foreground p-4 text-center">
@@ -97,8 +101,23 @@ function AppContent() {
   return (
     <div className="min-h-screen w-full bg-background transition-colors duration-300">
 
-      {/* Content - pt-14 provides space below Telegram's native Main App header */}
-      <div className="relative z-10 p-4 pt-14 max-w-md mx-auto">
+      {/* Global Fixed WalletButton - positioned below Telegram native header */}
+      <div
+        className="fixed right-4 z-50"
+        style={{
+          top: 'calc(var(--tg-header-height, 56px) + 8px)'
+        }}
+      >
+        <WalletButton />
+      </div>
+
+      {/* Content - uses CSS variable for proper top padding below Telegram header */}
+      <div
+        className="relative z-10 p-4 max-w-md mx-auto"
+        style={{
+          paddingTop: 'calc(var(--tg-header-height, 56px) + 16px)'
+        }}
+      >
 
         <Routes>
           <Route path="/" element={<Dashboard />} />
@@ -134,3 +153,4 @@ export default function App() {
     </TonConnectUIProvider>
   )
 }
+

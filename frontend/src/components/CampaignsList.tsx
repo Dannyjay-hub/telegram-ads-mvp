@@ -1,16 +1,11 @@
 
-import { useNavigate } from 'react-router-dom'
 import { GlassCard, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, Construction } from 'lucide-react'
+import { Construction } from 'lucide-react'
 
 export function CampaignsList() {
-    const navigate = useNavigate()
     return (
         <div className="space-y-6">
-            <Button variant="ghost" className="pl-0 gap-2" onClick={() => navigate((-1 as any))}>
-                <ArrowLeft className="w-4 h-4" /> Back
-            </Button>
+            {/* Back navigation handled by Telegram native BackButton */}
             <GlassCard>
                 <CardHeader>
                     <CardTitle>Your Campaigns</CardTitle>

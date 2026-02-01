@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getMyChannels, type Channel } from '@/lib/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Settings, Loader2, ArrowLeft } from 'lucide-react'
+import { Plus, Settings, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { ChannelAnalyticsCard } from './ChannelAnalyticsCard'
@@ -33,16 +33,12 @@ export function MyChannelsPage() {
 
     return (
         <div className="pb-20 space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/channel-owner')} className="mr-1">
-                    <ArrowLeft className="w-5 h-5" />
+            {/* Header - back navigation handled by Telegram native BackButton */}
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold">My Channels</h1>
+                <Button onClick={() => navigate('/channels/new')} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
+                    <Plus className="w-4 h-4 mr-2" /> Add New
                 </Button>
-                <div className="flex-1 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold">My Channels</h1>
-                    <Button onClick={() => navigate('/channels/new')} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
-                        <Plus className="w-4 h-4 mr-2" /> Add New
-                    </Button>
-                </div>
             </div>
 
             {loading ? (

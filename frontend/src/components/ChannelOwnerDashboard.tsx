@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { Megaphone, Briefcase, Handshake, MessageCircle, Tv } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
-import { WalletButton } from '@/components/WalletButton'
 import { haptic } from '@/utils/haptic'
 
 export function ChannelOwnerDashboard() {
@@ -40,14 +39,14 @@ export function ChannelOwnerDashboard() {
         {
             label: "My Channels",
             icon: <Tv className="w-8 h-8 text-pink-400 mb-2" />,
-            onClick: () => { haptic.light(); navigate('/channels/my'); }, // New route for the list view
+            onClick: () => { haptic.light(); navigate('/channels/my'); },
             desc: "Manage existing channels"
         }
     ]
 
     return (
         <div className="pb-20 space-y-6">
-            {/* Header */}
+            {/* Header - WalletButton is now global in App.tsx */}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-red-600">
@@ -56,16 +55,13 @@ export function ChannelOwnerDashboard() {
                     <p className="text-xs text-muted-foreground">Monetize your audience</p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <WalletButton />
-                    <Button
-                        onClick={openBot}
-                        size="icon"
-                        className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
-                    >
-                        <MessageCircle className="w-4 h-4" />
-                    </Button>
-                </div>
+                <Button
+                    onClick={openBot}
+                    size="icon"
+                    className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
+                >
+                    <MessageCircle className="w-4 h-4" />
+                </Button>
             </div>
 
             {/* Grid */}
