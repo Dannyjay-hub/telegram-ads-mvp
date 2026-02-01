@@ -101,14 +101,17 @@ function AppContent() {
   return (
     <div className="min-h-screen w-full bg-background transition-colors duration-300">
 
-      {/* Global Fixed WalletButton - positioned below Telegram native header */}
+      {/* Global Fixed WalletButton - centered in Telegram header safe area (like giveaway-tool) */}
       <div
-        className="fixed right-4 z-50"
+        className="fixed top-0 left-0 right-0 z-50 flex items-end justify-center pointer-events-none"
         style={{
-          top: 'calc(var(--tg-header-height, 56px) + 8px)'
+          height: 'var(--tg-header-height, 56px)',
+          paddingBottom: '8px',
         }}
       >
-        <WalletButton />
+        <div className="pointer-events-auto">
+          <WalletButton />
+        </div>
       </div>
 
       {/* Content - uses CSS variable for proper top padding below Telegram header */}

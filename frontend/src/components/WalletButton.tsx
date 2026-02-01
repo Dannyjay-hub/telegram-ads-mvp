@@ -47,14 +47,15 @@ export function WalletButton() {
                 flex items-center justify-center gap-2
                 px-4 py-2
                 rounded-[30px]
+                backdrop-blur-md
                 transition-all duration-200
                 text-[15px] font-semibold
                 active:scale-[0.98]
                 ${!connectionRestored
-                    ? 'bg-[rgba(116,116,128,0.16)] text-muted-foreground cursor-wait'
+                    ? 'bg-[rgba(116,116,128,0.3)] text-muted-foreground cursor-wait'
                     : userFriendlyAddress
-                        ? 'bg-destructive/10 text-destructive hover:bg-destructive/20'
-                        : 'bg-primary/10 text-primary hover:bg-primary/20'
+                        ? 'bg-destructive/30 text-destructive hover:bg-destructive/40'
+                        : 'bg-primary/30 text-primary hover:bg-primary/40'
                 }
             `}
         >
