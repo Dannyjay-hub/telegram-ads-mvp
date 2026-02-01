@@ -45,7 +45,7 @@ export class DealService {
             priceCurrency: 'USD',
             paymentMemo,
             advertiserWalletAddress,
-            status: 'pending',
+            status: 'draft',
             expiresAt,
             briefText: contentItems.map(i => `${i.quantity}x ${i.title}`).join(', ')
         });
@@ -69,8 +69,8 @@ export class DealService {
             throw new Error(`No deal found for memo: ${paymentMemo}`);
         }
 
-        if (deal.status !== 'pending') {
-            throw new Error(`Deal ${deal.id} is not in pending status`);
+        if (deal.status !== 'draft') {
+            throw new Error(`Deal ${deal.id} is not in draft status`);
         }
 
         return this.dealRepo.updatePaymentConfirmed(deal.id, txHash);
