@@ -1,6 +1,12 @@
+/**
+ * Dashboard - Telegram Design System
+ * Role selection screen following official Telegram mini app styling:
+ * - Solid colors (no gradients)
+ * - Section card backgrounds
+ * - iOS Human Interface Guidelines
+ */
 
 import { useNavigate } from 'react-router-dom'
-import { GlassCard } from '@/components/ui/card'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { Briefcase, Tv } from 'lucide-react'
 import { haptic } from '@/utils/haptic'
@@ -25,39 +31,43 @@ export function Dashboard() {
 
     return (
         <div className="min-h-[80vh] flex flex-col justify-center space-y-8">
+            {/* Header - Solid Telegram blue, no gradients */}
             <div className="text-center space-y-2">
-                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                <h2 className="text-3xl font-bold text-primary">
                     Welcome, {displayName}!
                 </h2>
                 <p className="text-muted-foreground">Select your role to get started</p>
             </div>
 
-            <div className="space-y-4">
-                <GlassCard
+            {/* Role Cards - Telegram section style */}
+            <div className="space-y-3">
+                {/* Advertiser Card */}
+                <button
                     onClick={() => { haptic.light(); navigate('/advertiser'); }}
-                    className="p-8 flex items-center gap-6 cursor-pointer hover:bg-white/5 hover:border-purple-500/50 transition-all duration-300 group"
+                    className="w-full bg-card rounded-[14px] p-5 flex items-center gap-4 transition-all duration-200 active:scale-[0.98] active:bg-card/80 border border-border/50"
                 >
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Briefcase className="w-8 h-8 text-purple-400" />
+                    <div className="h-14 w-14 rounded-[12px] bg-primary/10 flex items-center justify-center">
+                        <Briefcase className="w-7 h-7 text-primary" />
                     </div>
-                    <div>
-                        <h3 className="text-xl font-bold mb-1">Advertiser</h3>
+                    <div className="text-left">
+                        <h3 className="text-lg font-semibold">Advertiser</h3>
                         <p className="text-sm text-muted-foreground">Promote your products and manage campaigns.</p>
                     </div>
-                </GlassCard>
+                </button>
 
-                <GlassCard
+                {/* Channel Owner Card */}
+                <button
                     onClick={() => { haptic.light(); navigate('/channel-owner'); }}
-                    className="p-8 flex items-center gap-6 cursor-pointer hover:bg-white/5 hover:border-yellow-500/50 transition-all duration-300 group"
+                    className="w-full bg-card rounded-[14px] p-5 flex items-center gap-4 transition-all duration-200 active:scale-[0.98] active:bg-card/80 border border-border/50"
                 >
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Tv className="w-8 h-8 text-yellow-400" />
+                    <div className="h-14 w-14 rounded-[12px] bg-[#FF9500]/10 flex items-center justify-center">
+                        <Tv className="w-7 h-7 text-[#FF9500]" />
                     </div>
-                    <div>
-                        <h3 className="text-xl font-bold mb-1">Channel Owner</h3>
+                    <div className="text-left">
+                        <h3 className="text-lg font-semibold">Channel Owner</h3>
                         <p className="text-sm text-muted-foreground">Monetize your audience and list channels.</p>
                     </div>
-                </GlassCard>
+                </button>
             </div>
         </div>
     )

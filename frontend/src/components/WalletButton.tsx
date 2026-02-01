@@ -1,7 +1,7 @@
 /**
- * ConnectWalletButton - Giveaway-style wallet connect/disconnect button
- * Matches the exact design from the Telegram Giveaway mini app
- * Pill-shaped button with wallet icon, placed in header area
+ * WalletButton - Telegram Design System
+ * Pill-shaped button matching official Telegram mini apps (Giveaway, Access, Contest)
+ * Uses TON Connect UI directly for wallet operations
  */
 
 import { Wallet } from 'lucide-react';
@@ -28,7 +28,6 @@ export function WalletButton() {
         }
     };
 
-
     // Get button text based on state
     const getButtonText = () => {
         if (!connectionRestored) {
@@ -47,15 +46,15 @@ export function WalletButton() {
             className={`
                 flex items-center justify-center gap-2
                 px-4 py-2
-                rounded-full
-                backdrop-blur-sm
+                rounded-[30px]
                 transition-all duration-200
-                text-sm font-semibold
+                text-[15px] font-semibold
+                active:scale-[0.98]
                 ${!connectionRestored
-                    ? 'bg-white/10 text-white/50 cursor-wait'
+                    ? 'bg-[rgba(116,116,128,0.16)] text-muted-foreground cursor-wait'
                     : userFriendlyAddress
-                        ? 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                        ? 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+                        : 'bg-primary/10 text-primary hover:bg-primary/20'
                 }
             `}
         >

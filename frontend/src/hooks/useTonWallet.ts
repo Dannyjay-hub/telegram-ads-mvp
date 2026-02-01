@@ -3,6 +3,7 @@ import { useTonConnectUI, useTonAddress, useIsConnectionRestored } from '@toncon
 
 /**
  * Hook for TON wallet connection and transactions
+ * Enhanced with better error handling and wallet state verification
  */
 export function useTonWallet() {
     const [tonConnectUI] = useTonConnectUI();
@@ -10,7 +11,7 @@ export function useTonWallet() {
     const rawAddress = useTonAddress(false);
     const connectionRestored = useIsConnectionRestored();
 
-    const isConnected = !!userFriendlyAddress;
+    const isConnected = !!userFriendlyAddress && connectionRestored;
     const isLoading = !connectionRestored;
 
     /**
@@ -42,9 +43,27 @@ export function useTonWallet() {
         amount: string,
         comment?: string
     ) => {
+        console.log('[TON Wallet] sendTransaction called', { toAddress, amount, comment });
+
         if (!tonConnectUI) {
+            console.error('[TON Wallet] TON Connect UI not initialized');
             throw new Error('TON Connect not initialized');
         }
+
+        // Check if wallet is connected
+        if (!tonConnectUI.connected) {
+            console.error('[TON Wallet] Wallet not connected, opening modal');
+            await tonConnectUI.openModal();
+            throw new Error('Please connect your wallet first');
+        }
+
+        // Verify we have a wallet address
+        if (!userFriendlyAddress) {
+            console.error('[TON Wallet] No wallet address available');
+            throw new Error('No wallet connected. Please reconnect your wallet.');
+        }
+
+        console.log('[TON Wallet] Wallet connected:', userFriendlyAddress);
 
         const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
@@ -60,9 +79,32 @@ export function useTonWallet() {
             ]
         };
 
-        const result = await tonConnectUI.sendTransaction(transaction);
-        return result;
-    }, [tonConnectUI]);
+        console.log('[TON Wallet] Sending transaction:', transaction);
+
+        try {
+            const result = await tonConnectUI.sendTransaction(transaction);
+            console.log('[TON Wallet] Transaction result:', result);
+            return result;
+        } catch (error: any) {
+            console.error('[TON Wallet] Transaction failed:', error);
+
+            // Parse specific TON Connect errors
+            const errorMessage = error.message?.toLowerCase() || '';
+
+            if (errorMessage.includes('rejected') || errorMessage.includes('cancelled') || errorMessage.includes('canceled')) {
+                throw new Error('Transaction cancelled by user');
+            }
+
+            if (errorMessage.includes('not connected') || errorMessage.includes('not authenticated')) {
+                // Try to reconnect
+                console.log('[TON Wallet] Attempting to reconnect...');
+                throw new Error('Wallet disconnected. Please reconnect and try again.');
+            }
+
+            // Re-throw original error
+            throw error;
+        }
+    }, [tonConnectUI, userFriendlyAddress]);
 
     /**
      * Format wallet address for display (shortened)

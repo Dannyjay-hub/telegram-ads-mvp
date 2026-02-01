@@ -2,8 +2,16 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { haptic } from "@/utils/haptic"
 
+/**
+ * Button Component - Telegram Design System
+ * Based on official Telegram Mini Apps styling:
+ * - Default height: 50px (tg-standard) or 44px (compact)
+ * - Border radius: 14px
+ * - Font: 17px semibold
+ */
+
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: 'default' | 'outline' | 'ghost' | 'glass' | 'secondary';
+    variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive' | 'accent';
     size?: 'default' | 'sm' | 'lg' | 'icon';
     /** Haptic feedback style. Set to 'none' to disable. Default: 'light' */
     hapticStyle?: 'light' | 'soft' | 'medium' | 'heavy' | 'rigid' | 'none';
@@ -25,17 +33,24 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 ref={ref}
                 onClick={handleClick}
                 className={cn(
-                    "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-95",
+                    // Base styles - Telegram design system
+                    "inline-flex items-center justify-center rounded-[14px] font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
                     {
-                        "bg-primary text-primary-foreground shadow hover:bg-primary/90": variant === "default",
-                        "bg-secondary text-secondary-foreground hover:bg-secondary/80": variant === "secondary",
-                        "border border-input bg-background/50 shadow-sm hover:bg-accent hover:text-accent-foreground": variant === "outline",
-                        "hover:bg-accent hover:text-accent-foreground": variant === "ghost",
-                        "glass hover:bg-white/20 dark:hover:bg-white/10 text-foreground": variant === "glass",
-                        "h-9 px-4 py-2": size === "default",
-                        "h-8 rounded-md px-3 text-xs": size === "sm",
-                        "h-10 rounded-md px-8": size === "lg",
-                        "h-9 w-9": size === "icon",
+                        // Primary - Telegram Blue solid button
+                        "bg-primary text-primary-foreground hover:bg-primary/90": variant === "default",
+                        // Secondary/Accent - 10% of primary color fill
+                        "bg-primary/10 text-primary hover:bg-primary/20": variant === "secondary" || variant === "accent",
+                        // Outline - Subtle border
+                        "border border-border bg-transparent hover:bg-card text-foreground": variant === "outline",
+                        // Ghost - No background
+                        "hover:bg-card text-foreground": variant === "ghost",
+                        // Destructive - Red 10% fill with red text
+                        "bg-destructive/10 text-destructive hover:bg-destructive/20": variant === "destructive",
+                        // Sizes - Telegram standard
+                        "h-[50px] px-4 text-[17px]": size === "default", // Telegram standard button
+                        "h-[44px] px-3 text-[15px]": size === "sm", // Compact button
+                        "h-[56px] px-6 text-[17px]": size === "lg", // Large button
+                        "h-[44px] w-[44px] rounded-[12px]": size === "icon", // Icon button
                     },
                     className
                 )}
@@ -47,4 +62,3 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button"
 
 export { Button }
-

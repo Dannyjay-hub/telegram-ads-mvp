@@ -36,9 +36,8 @@ export function ChannelViewPage() {
     const [paymentError, setPaymentError] = useState<string | null>(null)
 
     // Track where user came from for context-aware back navigation
-    // If user came from a deep link (no location.state), use history or fall back to dashboard
+    // If user came from a deep link (no location.state), always go to dashboard
     const origin = (location.state as any)?.from || null
-    const hasHistory = window.history.length > 2 // More than just initial load
 
     useEffect(() => {
         if (id) loadChannel()
@@ -258,12 +257,10 @@ export function ChannelViewPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    {/* Smart back navigation: origin > history > dashboard */}
+                    {/* Back navigation: origin or dashboard */}
                     <Button variant="ghost" size="icon" onClick={() => {
                         if (origin) {
                             navigate(origin)
-                        } else if (hasHistory) {
-                            navigate(-1)
                         } else {
                             navigate('/')
                         }

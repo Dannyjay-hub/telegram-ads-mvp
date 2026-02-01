@@ -2,50 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Telegram Design System
+ * Based on official Telegram Mini Apps: giveaway-tool, access-tool, contest-tool
+ * Uses iOS Human Interface Guidelines colors and Telegram theme variables
+ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Telegram Primary Colors */
+    --tg-primary: 211 100% 50%;
+    /* #007AFF */
+    --tg-destructive: 4 100% 59%;
+    /* #FF3B30 */
+    --tg-success: 142 69% 49%;
+    /* #34C759 */
+    --tg-warning: 35 100% 50%;
+    /* #FF9500 */
+
+    /* Light Mode - iOS Grey Scale */
+    --background: 240 10% 97%;
+    /* #F2F2F7 Grey 6 */
+    --foreground: 0 0% 0%;
+    /* Black */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* White */
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --popover-foreground: 0 0% 0%;
+
+    /* Primary - Telegram Blue */
+    --primary: 211 100% 50%;
+    /* #007AFF */
+    --primary-foreground: 0 0% 100%;
+    /* White */
+
+    /* Secondary - iOS Fill */
+    --secondary: 240 5% 96%;
+    /* Grey 6 light */
+    --secondary-foreground: 0 0% 0%;
+
+    /* Muted - iOS Hint Color */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 3% 56%;
+    /* #8E8E93 Grey 1 */
+
+    /* Accent */
+    --accent: 240 5% 96%;
+    --accent-foreground: 0 0% 0%;
+
+    /* Destructive - iOS Red */
+    --destructive: 4 100% 59%;
+    /* #FF3B30 */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders - iOS Separator */
+    --border: 240 5% 78%;
+    /* C6C6C8 */
+    --input: 240 5% 78%;
+    --ring: 211 100% 50%;
+    /* Primary blue */
+
+    /* Telegram Design Tokens */
+    --radius: 0.875rem;
+    /* 14px - Standard button radius */
+    --radius-sm: 0.375rem;
+    /* 6px */
+    --radius-lg: 1.625rem;
+    /* 26px - Pills */
+
+    /* Typography */
+    --font-base: -apple-system, "SF Pro Text", "SF UI Text", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    /* Section backgrounds */
+    --section-bg: 0 0% 100%;
+    --fill-secondary: rgba(116, 116, 128, 0.16);
+    --fill-tertiary: rgba(116, 116, 128, 0.12);
+    --fill-quaternary: rgba(116, 116, 128, 0.08);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    /* Dark Mode - iOS Dark Grey Scale */
+    --background: 0 0% 0%;
+    /* Black */
+    --foreground: 0 0% 100%;
+    /* White */
+    --card: 240 4% 11%;
+    /* #1C1C1E Grey 6 dark */
+    --card-foreground: 0 0% 100%;
+    --popover: 240 4% 11%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Primary - Telegram Blue Dark */
+    --primary: 214 100% 52%;
+    /* #0A84FF */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 240 4% 11%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted */
+    --muted: 240 4% 11%;
+    --muted-foreground: 240 3% 56%;
+    /* #8E8E93 */
+
+    /* Accent */
+    --accent: 240 4% 16%;
+    /* #2C2C2E Grey 5 dark */
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive - iOS Red Dark */
+    --destructive: 3 100% 61%;
+    /* #FF453A */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders - iOS Dark Separator */
+    --border: 240 3% 23%;
+    /* #3A3A3C */
+    --input: 240 3% 23%;
+    --ring: 214 100% 52%;
+
+    /* Section backgrounds */
+    --section-bg: 240 4% 11%;
+    --fill-secondary: rgba(116, 116, 128, 0.24);
+    --fill-tertiary: rgba(116, 116, 128, 0.18);
+    --fill-quaternary: rgba(116, 116, 128, 0.12);
   }
 }
 
@@ -56,18 +138,67 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-base);
+    font-size: 17px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Glassmorphism Utilities */
+/* Telegram Section Card - Solid background, no glassmorphism */
+.tg-section {
+  @apply bg-card rounded-[14px] p-4;
+}
+
+/* Legacy glass support - now uses solid backgrounds */
 .glass {
-  @apply bg-white/40 backdrop-blur-lg border border-white/20 shadow-xl;
+  @apply bg-card border border-border;
 }
 
 .dark .glass {
-  @apply bg-black/40 backdrop-blur-lg border border-white/10 shadow-xl;
+  @apply bg-card border border-border;
 }
 
 .glass-card {
-  @apply glass rounded-xl p-6 transition-all duration-300;
+  @apply bg-card rounded-[14px] p-4 border border-border/50;
+}
+
+/* Telegram Button Styles */
+.tg-button {
+  @apply h-[50px] rounded-[14px] text-[17px] font-semibold px-4;
+}
+
+.tg-button-primary {
+  @apply tg-button bg-primary text-primary-foreground;
+}
+
+.tg-button-secondary {
+  background-color: var(--fill-secondary);
+  @apply tg-button text-primary;
+}
+
+.tg-button-destructive {
+  background-color: rgba(255, 59, 48, 0.1);
+  @apply tg-button text-destructive;
+}
+
+/* Pill button style (for wallet, tags) */
+.tg-pill {
+  @apply rounded-[30px] px-3 py-1.5 text-sm font-medium;
+  background-color: var(--fill-secondary);
+}
+
+/* Text utilities matching Telegram typography */
+.text-hint {
+  @apply text-muted-foreground;
+}
+
+.text-accent {
+  @apply text-primary;
+}
+
+/* Separator line */
+.tg-separator {
+  @apply h-px bg-border;
 }
