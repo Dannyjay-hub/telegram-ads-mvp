@@ -6,13 +6,25 @@ export const setAuthToken = (token: string) => {
     authToken = token;
 };
 
-export const getHeaders = () => {
-    const headers: HeadersInit = {
+export const getHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
     };
     if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
     }
+
+    // Auto-include Telegram user ID from WebApp if available
+    try {
+        const webApp = (window as any)?.Telegram?.WebApp;
+        const telegramId = webApp?.initDataUnsafe?.user?.id;
+        if (telegramId) {
+            headers['X-Telegram-ID'] = telegramId.toString();
+        }
+    } catch {
+        // Ignore errors reading Telegram context
+    }
+
     return headers;
 };
 
