@@ -1,6 +1,7 @@
 /**
  * TonPaymentService - Monitors TON blockchain for incoming payments
- * Uses TON Center API to poll for transactions and match memos to deals
+ * Supports both native TON and Jetton (USDT/USDC) transfers
+ * Uses TON Center API for native TON and TON API for Jetton events
  */
 
 import { DealService } from './DealService';
@@ -10,6 +11,12 @@ import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRep
 const TON_CENTER_API = process.env.TON_CENTER_API || 'https://toncenter.com/api/v2';
 const TON_API_KEY = process.env.TON_API_KEY || '';
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || '';
+
+// TON API for Jetton events (more reliable for Jetton tracking)
+const TON_API_URL = 'https://tonapi.io/v2';
+
+// Supported Jetton Master Addresses (mainnet)
+const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
 
 interface TonTransaction {
     hash: string;
@@ -22,9 +29,32 @@ interface TonTransaction {
     };
 }
 
+interface JettonEvent {
+    event_id: string;
+    timestamp: number;
+    action: {
+        type: string;
+        jetton_transfer?: {
+            sender: {
+                address: string;
+            };
+            recipient: {
+                address: string;
+            };
+            amount: string;
+            comment?: string; // The forward_payload comment
+            jetton: {
+                address: string;
+                symbol: string;
+            };
+        };
+    };
+}
+
 export class TonPaymentService {
     private dealService: DealService;
     private lastProcessedLt: string = '0';
+    private lastJettonEventId: string = '';
     private isPolling: boolean = false;
 
     constructor() {
@@ -43,17 +73,20 @@ export class TonPaymentService {
 
         console.log(`TonPaymentService: Starting to poll every ${intervalMs / 1000}s`);
         console.log(`TonPaymentService: Watching wallet ${MASTER_WALLET_ADDRESS}`);
+        console.log(`TonPaymentService: Also watching for USDT Jetton transfers`);
 
         this.isPolling = true;
         this.pollTransactions();
+        this.pollJettonTransfers();
 
         setInterval(() => {
             this.pollTransactions();
+            this.pollJettonTransfers();
         }, intervalMs);
     }
 
     /**
-     * Poll TON Center API for new transactions
+     * Poll TON Center API for new native TON transactions
      */
     async pollTransactions() {
         if (!MASTER_WALLET_ADDRESS) {
@@ -87,12 +120,88 @@ export class TonPaymentService {
             }
 
         } catch (error) {
-            console.error('TonPaymentService: Error polling transactions', error);
+            console.error('TonPaymentService: Error polling TON transactions', error);
         }
     }
 
     /**
-     * Process a single transaction - check memo and match to deal
+     * Poll TON API for Jetton (USDT) transfers to our wallet
+     */
+    async pollJettonTransfers() {
+        if (!MASTER_WALLET_ADDRESS) {
+            return;
+        }
+
+        try {
+            // Fetch Jetton events for our wallet
+            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/events?limit=20`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`TON API Jetton error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const events: JettonEvent[] = data.events || [];
+
+            for (const event of events) {
+                await this.processJettonEvent(event);
+            }
+
+        } catch (error) {
+            console.error('TonPaymentService: Error polling Jetton transfers', error);
+        }
+    }
+
+    /**
+     * Process a Jetton event - check if it's a USDT transfer with deal memo
+     */
+    private async processJettonEvent(event: JettonEvent) {
+        // Only process jetton_transfer actions
+        if (event.action?.type !== 'jetton_transfer') {
+            return;
+        }
+
+        const transfer = event.action.jetton_transfer;
+        if (!transfer) {
+            return;
+        }
+
+        // Only process transfers TO our wallet
+        if (transfer.recipient.address !== MASTER_WALLET_ADDRESS) {
+            return;
+        }
+
+        // Only process USDT transfers (or other supported Jettons)
+        if (transfer.jetton.address !== USDT_MASTER_ADDRESS) {
+            return;
+        }
+
+        const memo = transfer.comment;
+        if (!memo || !memo.startsWith('deal_')) {
+            return;
+        }
+
+        console.log(`TonPaymentService: Found USDT Jetton transfer with memo: ${memo}`);
+        console.log(`  Event ID: ${event.event_id}`);
+        console.log(`  Amount: ${parseInt(transfer.amount) / 1e6} USDT`);
+        console.log(`  From: ${transfer.sender.address}`);
+
+        try {
+            // Confirm the payment in our system
+            await this.dealService.confirmPayment(memo, event.event_id);
+            console.log(`TonPaymentService: USDT Deal confirmed for memo ${memo}`);
+        } catch (error: any) {
+            if (error.message.includes('not in pending status')) {
+                // Already processed, ignore
+            } else {
+                console.error(`TonPaymentService: Error confirming USDT payment for ${memo}:`, error.message);
+            }
+        }
+    }
+
+    /**
+     * Process a single native TON transaction - check memo and match to deal
      */
     private async processTransaction(tx: TonTransaction) {
         // Only process incoming messages to our wallet
@@ -110,7 +219,7 @@ export class TonPaymentService {
             return;
         }
 
-        console.log(`TonPaymentService: Found deal transaction with memo: ${memo}`);
+        console.log(`TonPaymentService: Found TON transaction with memo: ${memo}`);
         console.log(`  Hash: ${tx.hash}`);
         console.log(`  Amount: ${parseInt(tx.in_msg.value) / 1e9} TON`);
         console.log(`  From: ${tx.in_msg.source}`);
