@@ -212,6 +212,31 @@ export class SupabaseChannelRepository implements IChannelRepository {
     }
 
     async delete(id: string): Promise<void> {
+        // First delete related records to avoid foreign key constraint errors
+        // Delete channel_admins
+        const { error: adminsError } = await supabase
+            .from('channel_admins')
+            .delete()
+            .eq('channel_id', id);
+
+        if (adminsError) {
+            console.error('Failed to delete channel admins:', adminsError);
+            // Continue anyway - the admins might not exist
+        }
+
+        // Delete any pending deals related to this channel
+        const { error: dealsError } = await supabase
+            .from('deals')
+            .delete()
+            .eq('channel_id', id)
+            .in('status', ['draft', 'pending', 'funded']); // Only delete non-completed deals
+
+        if (dealsError) {
+            console.error('Failed to delete channel deals:', dealsError);
+            // Continue anyway
+        }
+
+        // Now delete the channel
         const { error } = await supabase
             .from('channels')
             .delete()
