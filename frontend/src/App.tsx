@@ -13,7 +13,6 @@ import { PartnershipsList } from '@/components/PartnershipsList'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
-import { WalletButton } from '@/components/WalletButton'
 
 // TON Connect manifest URL - must be accessible publicly
 const MANIFEST_URL = `${window.location.origin}/tonconnect-manifest.json`;
@@ -98,15 +97,8 @@ function AppContent() {
   return (
     <div className="min-h-screen w-full bg-background transition-colors duration-300">
 
-      {/* Sticky Header with Wallet Button - flows below Telegram native header */}
-      <header className="sticky top-0 z-50 bg-background border-b border-border/30">
-        <div className="max-w-md mx-auto px-4 py-2 flex items-center justify-end">
-          <WalletButton />
-        </div>
-      </header>
-
-      {/* Content */}
-      <div className="relative z-10 p-4 max-w-md mx-auto">
+      {/* Content - pt-14 provides space below Telegram's native Main App header */}
+      <div className="relative z-10 p-4 pt-14 max-w-md mx-auto">
 
         <Routes>
           <Route path="/" element={<Dashboard />} />
