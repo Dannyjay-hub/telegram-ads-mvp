@@ -86,6 +86,24 @@ async function fetchTransactionDetails(txHash: string) {
 }
 
 /**
+ * Normalize TON address for comparison
+ * Handles both raw (0:xxx) and user-friendly (UQ.../EQ...) formats
+ */
+function normalizeAddress(addr: string): string {
+    if (!addr) return '';
+    // Extract last 10 chars for comparison (works regardless of format)
+    return addr.slice(-10).toLowerCase();
+}
+
+function addressesMatch(addr1: string, addr2: string): boolean {
+    if (!addr1 || !addr2) return false;
+    // Direct match
+    if (addr1 === addr2) return true;
+    // Normalized match (last 10 chars)
+    return normalizeAddress(addr1) === normalizeAddress(addr2);
+}
+
+/**
  * Process native TON transfer
  */
 async function processTonTransfer(tx: any) {
@@ -96,16 +114,21 @@ async function processTonTransfer(tx: any) {
         return;
     }
 
-    // Only process incoming transfers to platform wallet
-    if (inMsg.destination?.address !== PLATFORM_WALLET) {
+    // Get destination address (TonAPI may return raw or user-friendly format)
+    const destination = inMsg.destination?.address;
+
+    // Compare addresses with normalization
+    if (!addressesMatch(destination, PLATFORM_WALLET)) {
         console.log('[Webhook] Not to platform wallet, ignoring');
+        console.log(`  Received: ${destination}`);
+        console.log(`  Expected: ${PLATFORM_WALLET}`);
         return;
     }
 
     const tonAmount = Number(inMsg.value || 0) / 1e9;
-    const comment = inMsg.decoded_body?.text || '';
+    const comment = (inMsg.decoded_body?.text || '').trim();
 
-    console.log('[Webhook] TON transfer:', { amount: tonAmount, comment });
+    console.log('[Webhook] 💎 TON transfer:', { amount: tonAmount, comment });
 
     if (!comment || !comment.startsWith('deal_')) {
         console.log('[Webhook] No deal memo');
@@ -116,8 +139,10 @@ async function processTonTransfer(tx: any) {
         await dealService.confirmPayment(comment, tx.hash);
         console.log(`[Webhook] ✅ TON payment confirmed: ${tonAmount} TON for ${comment}`);
     } catch (error: any) {
-        if (!error.message.includes('not in pending status')) {
-            console.error('[Webhook] Error confirming:', error.message);
+        if (error.message.includes('not in pending status')) {
+            console.log(`[Webhook] ℹ️ Deal ${comment} already processed`);
+        } else {
+            console.error('[Webhook] ❌ Error confirming:', error.message);
         }
     }
 }
