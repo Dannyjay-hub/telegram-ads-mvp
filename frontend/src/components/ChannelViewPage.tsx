@@ -37,6 +37,7 @@ export function ChannelViewPage() {
     const [isProcessing, setIsProcessing] = useState(false)
     const [paymentStep, setPaymentStep] = useState<'confirm' | 'paying' | 'success' | 'error'>('confirm')
     const [paymentError, setPaymentError] = useState<string | null>(null)
+    const [brief, setBrief] = useState('')  // Advertiser's brief describing what they want to promote
 
     // Derive currency from first selected package (all packages must be same currency)
     const selectedCurrency = useMemo((): 'TON' | 'USDT' => {
@@ -186,7 +187,8 @@ export function ChannelViewPage() {
                 body: JSON.stringify({
                     channelId: id,
                     contentItems,
-                    walletAddress
+                    walletAddress,
+                    brief: brief.trim() || undefined  // Include brief if provided
                 })
             })
 
@@ -516,6 +518,19 @@ export function ChannelViewPage() {
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/5 p-3 rounded-lg">
                                     <Wallet className="w-4 h-4" />
                                     <span>Connected: {formatAddress(walletAddress)}</span>
+                                </div>
+
+                                {/* Brief input */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">What would you like to advertise?</label>
+                                    <textarea
+                                        value={brief}
+                                        onChange={(e) => setBrief(e.target.value)}
+                                        placeholder="Describe your product/service and what you'd like the channel owner to promote..."
+                                        className="w-full h-24 p-3 rounded-lg bg-white/5 border border-white/10 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+                                        maxLength={500}
+                                    />
+                                    <p className="text-xs text-muted-foreground text-right">{brief.length}/500</p>
                                 </div>
 
                                 <Button

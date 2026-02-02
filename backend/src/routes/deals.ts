@@ -82,7 +82,7 @@ app.get('/:id/payment-instructions', async (c) => {
 app.post('/create-with-items', async (c) => {
     try {
         const body = await c.req.json();
-        const { channelId, contentItems, walletAddress } = body;
+        const { channelId, contentItems, walletAddress, brief } = body;
 
         // Get advertiser from header
         const telegramIdHeader = c.req.header('X-Telegram-ID');
@@ -104,7 +104,8 @@ app.post('/create-with-items', async (c) => {
             user.id,
             channelId,
             contentItems,
-            walletAddress
+            walletAddress,
+            brief // Pass the advertiser's brief
         );
 
         return c.json(result, 201);

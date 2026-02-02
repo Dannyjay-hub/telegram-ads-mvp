@@ -19,7 +19,8 @@ export class DealService {
         advertiserId: string,
         channelId: string,
         contentItems: ContentItem[],
-        advertiserWalletAddress: string
+        advertiserWalletAddress: string,
+        brief?: string // Advertiser's brief describing what they want to advertise
     ): Promise<Deal & { paymentInstructions: { address: string; memo: string; amount: number } }> {
         // Calculate total amount
         const totalAmount = contentItems.reduce(
@@ -38,6 +39,9 @@ export class DealService {
         const PAYMENT_WINDOW_MINUTES = 15;
         const expiresAt = new Date(Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000);
 
+        // Use provided brief or fallback to package summary
+        const briefText = brief || contentItems.map(i => `${i.quantity}x ${i.title}`).join(', ');
+
         const deal = await this.dealRepo.create({
             advertiserId,
             channelId,
@@ -48,7 +52,7 @@ export class DealService {
             advertiserWalletAddress,
             status: 'draft',
             expiresAt,
-            briefText: contentItems.map(i => `${i.quantity}x ${i.title}`).join(', ')
+            briefText
         });
 
         return {
