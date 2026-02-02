@@ -6,12 +6,34 @@
 import { Hono } from 'hono';
 import { DealService } from '../services/DealService';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
+import { Address } from '@ton/core';
 
 const app = new Hono();
 const dealService = new DealService(new SupabaseDealRepository());
 
-// Platform wallet address
+// Platform wallet address - parsed once at startup
 const PLATFORM_WALLET = process.env.MASTER_WALLET_ADDRESS || '';
+let PLATFORM_ADDRESS: Address | null = null;
+try {
+    if (PLATFORM_WALLET) {
+        PLATFORM_ADDRESS = Address.parse(PLATFORM_WALLET);
+    }
+} catch (error) {
+    console.error('[Webhook] Invalid MASTER_WALLET_ADDRESS format!');
+}
+
+/**
+ * Check if two TON addresses are equal using @ton/core
+ */
+function addressesEqual(addr1: string, addr2: string | Address): boolean {
+    try {
+        const address1 = Address.parse(addr1);
+        const address2 = typeof addr2 === 'string' ? Address.parse(addr2) : addr2;
+        return address1.equals(address2);
+    } catch (error) {
+        return false;
+    }
+}
 
 interface AccountTxNotification {
     account_id: string;
@@ -86,24 +108,6 @@ async function fetchTransactionDetails(txHash: string) {
 }
 
 /**
- * Normalize TON address for comparison
- * Handles both raw (0:xxx) and user-friendly (UQ.../EQ...) formats
- */
-function normalizeAddress(addr: string): string {
-    if (!addr) return '';
-    // Extract last 10 chars for comparison (works regardless of format)
-    return addr.slice(-10).toLowerCase();
-}
-
-function addressesMatch(addr1: string, addr2: string): boolean {
-    if (!addr1 || !addr2) return false;
-    // Direct match
-    if (addr1 === addr2) return true;
-    // Normalized match (last 10 chars)
-    return normalizeAddress(addr1) === normalizeAddress(addr2);
-}
-
-/**
  * Process native TON transfer
  */
 async function processTonTransfer(tx: any) {
@@ -114,14 +118,10 @@ async function processTonTransfer(tx: any) {
         return;
     }
 
-    // Get destination address (TonAPI may return raw or user-friendly format)
+    // Get destination address and compare with @ton/core
     const destination = inMsg.destination?.address;
-
-    // Compare addresses with normalization
-    if (!addressesMatch(destination, PLATFORM_WALLET)) {
+    if (!destination || !PLATFORM_ADDRESS || !addressesEqual(destination, PLATFORM_ADDRESS)) {
         console.log('[Webhook] Not to platform wallet, ignoring');
-        console.log(`  Received: ${destination}`);
-        console.log(`  Expected: ${PLATFORM_WALLET}`);
         return;
     }
 

@@ -1,22 +1,50 @@
 /**
  * TonPaymentService - Monitors TON blockchain for incoming payments
  * Supports both native TON and Jetton (USDT/USDC) transfers
- * Uses TON Center API for native TON and TON API for Jetton events
+ * Uses TON API for transaction monitoring with proper address handling
  */
 
 import { DealService } from './DealService';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
+import { Address } from '@ton/core';
 
-// TON Center API (mainnet/testnet)
+// TON Center API (legacy, kept for reference)
 const TON_CENTER_API = process.env.TON_CENTER_API || 'https://toncenter.com/api/v2';
 const TON_API_KEY = process.env.TONAPI_KEY || process.env.TON_API_KEY || '';
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || '';
 
-// TON API for Jetton events (more reliable for Jetton tracking)
+// TON API for transaction events
 const TON_API_URL = 'https://tonapi.io/v2';
 
 // Supported Jetton Master Addresses (mainnet)
 const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+
+// Parse master wallet address once at startup
+let MASTER_ADDRESS: Address | null = null;
+try {
+    if (MASTER_WALLET_ADDRESS) {
+        MASTER_ADDRESS = Address.parse(MASTER_WALLET_ADDRESS);
+        console.log('✅ TonPaymentService: Master wallet address validated:', MASTER_WALLET_ADDRESS);
+    }
+} catch (error) {
+    console.error('❌ TonPaymentService: Invalid MASTER_WALLET_ADDRESS format!');
+}
+
+/**
+ * Check if two TON addresses are equal using @ton/core
+ * Properly handles all address formats (raw, bounceable, non-bounceable)
+ */
+function addressesEqual(addr1: string, addr2: string | Address): boolean {
+    try {
+        const address1 = Address.parse(addr1);
+        const address2 = typeof addr2 === 'string' ? Address.parse(addr2) : addr2;
+        return address1.equals(address2);
+    } catch (error) {
+        console.error('Error comparing addresses:', error);
+        return false;
+    }
+}
+
 
 interface TonTransaction {
     hash: string;
@@ -133,16 +161,10 @@ export class TonPaymentService {
     private async processTonTransferEvent(transfer: any, eventId: string) {
         // Only process incoming transfers to our wallet
         const recipient = transfer.recipient?.address;
-        if (!recipient) return;
+        if (!recipient || !MASTER_ADDRESS) return;
 
-        // Normalize addresses for comparison (both should be user-friendly format)
-        const normalizedRecipient = recipient.replace(/^0:/, '');
-        const normalizedMaster = MASTER_WALLET_ADDRESS.replace(/^0:/, '');
-
-        // Compare addresses (TON API returns user-friendly, but be safe)
-        if (recipient !== MASTER_WALLET_ADDRESS &&
-            normalizedRecipient !== normalizedMaster &&
-            !recipient.toLowerCase().includes(MASTER_WALLET_ADDRESS.slice(-10).toLowerCase())) {
+        // Use @ton/core Address.equals for proper comparison across all formats
+        if (!addressesEqual(recipient, MASTER_ADDRESS)) {
             return;
         }
 
