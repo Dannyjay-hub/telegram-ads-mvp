@@ -184,8 +184,9 @@ export class TonPaymentService {
             await this.dealService.confirmPayment(comment, eventId);
             console.log(`✅ TonPaymentService: Payment confirmed for ${comment}`);
         } catch (error: any) {
-            if (error.message.includes('not in pending status')) {
-                console.log(`ℹ️ TonPaymentService: Deal ${comment} already processed`);
+            // Silently ignore deals that are already processed
+            if (error.message.includes('not in') && error.message.includes('status')) {
+                // Already processed - don't spam logs
             } else {
                 console.error(`❌ TonPaymentService: Error confirming ${comment}:`, error.message);
             }
