@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useTonConnectUI, useTonAddress, useIsConnectionRestored } from '@tonconnect/ui-react';
 import { type JettonToken, isNativeToken, toSmallestUnit } from '@/lib/jettons';
-import { beginCell } from '@ton/core';
+import { beginCell, Address } from '@ton/core';
 
 /**
  * Hook for TON wallet connection and transactions
@@ -121,11 +121,105 @@ export function useTonWallet() {
     }, [tonConnectUI, userFriendlyAddress]);
 
     /**
+     * Get user's Jetton wallet address for a specific Jetton
+     * The Jetton wallet is derived from user wallet + Jetton master contract
+     */
+    const getJettonWalletAddress = async (jettonMasterAddress: string, ownerAddress: string): Promise<string> => {
+        // Use TON API to get the Jetton wallet address
+        const response = await fetch(
+            `https://tonapi.io/v2/accounts/${ownerAddress}/jettons/${jettonMasterAddress}`
+        );
+
+        if (!response.ok) {
+            throw new Error('Failed to get Jetton wallet address. You may not have a USDT wallet yet.');
+        }
+
+        const data = await response.json();
+        return data.wallet_address.address;
+    };
+
+    /**
+     * Send a Jetton (token) transfer using TEP-74 standard
+     * @param jettonMasterAddress - The Jetton master contract address
+     * @param recipientAddress - Where to send the tokens (final recipient)
+     * @param amount - Amount in smallest unit (e.g., micro-USDT for USDT)
+     * @param forwardPayload - Optional comment/memo for the transfer
+     */
+    const sendJettonTransaction = useCallback(async (
+        jettonMasterAddress: string,
+        recipientAddress: string,
+        amount: bigint,
+        forwardPayload?: string
+    ) => {
+        console.log('[TON Wallet] sendJettonTransaction called', {
+            jettonMasterAddress,
+            recipientAddress,
+            amount: amount.toString(),
+            forwardPayload
+        });
+
+        if (!tonConnectUI || !userFriendlyAddress) {
+            throw new Error('Wallet not connected');
+        }
+
+        // 1. Get sender's Jetton wallet address
+        const senderJettonWallet = await getJettonWalletAddress(jettonMasterAddress, userFriendlyAddress);
+        console.log('[TON Wallet] Sender Jetton wallet:', senderJettonWallet);
+
+        // 2. Build forward payload (comment/memo) if provided
+        let forwardPayloadCell = beginCell().endCell();
+        if (forwardPayload) {
+            forwardPayloadCell = beginCell()
+                .storeUint(0, 32) // op = 0 for text comment
+                .storeStringTail(forwardPayload)
+                .endCell();
+        }
+
+        // 3. Build TEP-74 Jetton transfer body
+        // See: https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
+        const jettonTransferBody = beginCell()
+            .storeUint(0xf8a7ea5, 32) // op code: jetton transfer
+            .storeUint(0, 64) // query_id
+            .storeCoins(amount) // amount of jettons to send
+            .storeAddress(Address.parse(recipientAddress)) // destination
+            .storeAddress(Address.parse(userFriendlyAddress)) // response_destination (excess goes back here)
+            .storeBit(0) // no custom_payload
+            .storeCoins(1n) // forward_ton_amount (1 nanoton for notification, minimal)
+            .storeBit(1) // forward_payload in reference
+            .storeRef(forwardPayloadCell) // the comment/memo
+            .endCell();
+
+        // 4. Build the transaction
+        // We send TON to our Jetton wallet with the transfer body as payload
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
+            messages: [
+                {
+                    address: senderJettonWallet,
+                    amount: '50000000', // 0.05 TON for gas
+                    payload: jettonTransferBody.toBoc().toString('base64')
+                }
+            ]
+        };
+
+        console.log('[TON Wallet] Sending Jetton transaction:', transaction);
+
+        try {
+            const result = await tonConnectUI.sendTransaction(transaction);
+            console.log('[TON Wallet] Jetton transaction result:', result);
+            return result;
+        } catch (error: any) {
+            console.error('[TON Wallet] Jetton transaction failed:', error);
+            throw error;
+        }
+    }, [tonConnectUI, userFriendlyAddress]);
+
+    /**
      * Unified payment function
-     * Currently only supports native TON - USDT support coming via backend integration
+     * Supports both native TON and Jetton (USDT) payments
      * @param token - The token to pay with
      * @param recipientAddress - Where to send the payment
-     * @param amount - Amount in decimal (e.g., 10.5 for 10.5 TON)
+     * @param amount - Amount in decimal (e.g., 10.5 for 10.5 TON or 10.5 USDT)
      * @param memo - Payment memo for identification
      */
     const sendPayment = useCallback(async (
@@ -136,16 +230,25 @@ export function useTonWallet() {
     ) => {
         console.log('[TON Wallet] sendPayment called', { token: token.symbol, recipientAddress, amount, memo });
 
-        if (!isNativeToken(token)) {
-            // For now, force TON for non-native tokens until backend Jetton payload is ready
-            console.warn('[TON Wallet] Jetton transfers not yet supported, using TON');
-            throw new Error('USDT payments coming soon! Please use TON for now.');
-        }
+        if (isNativeToken(token)) {
+            // Native TON payment
+            const amountInNano = toSmallestUnit(amount, token).toString();
+            return sendTransaction(recipientAddress, amountInNano, memo);
+        } else {
+            // Jetton payment (USDT, etc.)
+            if (!token.masterAddress) {
+                throw new Error(`${token.symbol} master address not configured`);
+            }
 
-        // Native TON payment
-        const amountInNano = toSmallestUnit(amount, token).toString();
-        return sendTransaction(recipientAddress, amountInNano, memo);
-    }, [sendTransaction]);
+            const amountInSmallestUnit = toSmallestUnit(amount, token);
+            return sendJettonTransaction(
+                token.masterAddress,
+                recipientAddress,
+                amountInSmallestUnit,
+                memo
+            );
+        }
+    }, [sendTransaction, sendJettonTransaction]);
 
     /**
      * Format wallet address for display (shortened)
@@ -167,6 +270,7 @@ export function useTonWallet() {
         connectWallet,
         disconnectWallet,
         sendTransaction,
+        sendJettonTransaction, // For Jetton transfers
         sendPayment, // Unified payment function
 
         // Utils
