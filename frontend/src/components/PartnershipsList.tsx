@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react'
-import { GlassCard, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, AlertCircle } from 'lucide-react'
-import { useFetchWithAuth } from '@/hooks/useFetchWithAuth'
+import { API_URL, getHeaders } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
 
 // Deal with channel data
@@ -70,7 +70,6 @@ function CopyMemo({ memo }: { memo: string }) {
 }
 
 export function PartnershipsList() {
-    const fetchWithAuth = useFetchWithAuth()
     const [deals, setDeals] = useState<DealWithChannel[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active')
@@ -81,7 +80,9 @@ export function PartnershipsList() {
 
     const loadDeals = async () => {
         try {
-            const response = await fetchWithAuth('/deals/my')
+            const response = await fetch(`${API_URL}/deals/my`, {
+                headers: getHeaders()
+            })
             if (response.ok) {
                 const data = await response.json()
                 setDeals(data)
