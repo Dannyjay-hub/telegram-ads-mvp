@@ -104,8 +104,8 @@ export function PartnershipsList() {
         }
     }
 
-    // Active: requires attention or in progress
-    const activeStatuses = ['draft', 'pending', 'funded', 'approved', 'in_progress', 'disputed', 'monitoring']
+    // Active: requires attention or in progress (excludes drafts - unpaid deals)
+    const activeStatuses = ['pending', 'funded', 'approved', 'in_progress', 'disputed', 'monitoring']
     const activeDeals = deals.filter(d => activeStatuses.includes(d.status))
     const inactiveDeals = deals.filter(d => !activeStatuses.includes(d.status))
 
