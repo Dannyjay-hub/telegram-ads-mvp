@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useTonConnectUI, useTonAddress, useIsConnectionRestored } from '@tonconnect/ui-react';
 import { type JettonToken, isNativeToken, toSmallestUnit } from '@/lib/jettons';
+import { beginCell } from '@ton/core';
 
 /**
  * Hook for TON wallet connection and transactions
@@ -35,23 +36,18 @@ export function useTonWallet() {
     }, [tonConnectUI]);
 
     /**
-     * Encode a comment as base64 payload (simple text comment)
-     * This is a lightweight implementation without @ton/core
+     * Encode a comment as BOC payload using @ton/core
+     * This is the proper format for TON Connect SDK
      */
     const encodeComment = (comment: string): string => {
-        // Simple text comment format: 4 bytes of 0 (op code) + UTF-8 text
-        const opCode = new Uint8Array([0, 0, 0, 0]); // 32-bit zero for text comment
-        const textBytes = new TextEncoder().encode(comment);
-        const combined = new Uint8Array(opCode.length + textBytes.length);
-        combined.set(opCode, 0);
-        combined.set(textBytes, 4);
+        // Build a Cell with op=0 (text comment) and the comment text
+        const body = beginCell()
+            .storeUint(0, 32) // op = 0 for text comment
+            .storeStringTail(comment)
+            .endCell();
 
-        // Convert to base64
-        let binary = '';
-        for (let i = 0; i < combined.length; i++) {
-            binary += String.fromCharCode(combined[i]);
-        }
-        return btoa(binary);
+        // Convert to base64 BOC
+        return body.toBoc().toString('base64');
     };
 
     /**
