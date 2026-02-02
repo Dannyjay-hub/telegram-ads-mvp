@@ -25,6 +25,7 @@ import auth from './routes/auth';
 import briefs from './routes/briefs';
 import campaigns from './routes/campaigns';
 import wallets from './routes/wallets';
+import webhooks from './routes/webhooks';
 
 // Routes
 app.route('/deals', deals);
@@ -33,6 +34,7 @@ app.route('/auth', auth);
 app.route('/briefs', briefs);
 app.route('/campaigns', campaigns);
 app.route('/wallets', wallets);
+app.route('/webhooks', webhooks);
 
 app.get('/', (c) => c.text('Telegram Ad Marketplace Backend is Running!'));
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -54,8 +56,13 @@ startBot().catch(console.error);
 
 // Start TON Payment Monitoring
 import { tonPaymentService } from './services/TonPaymentService';
+import { tonWebhookService } from './services/TonWebhookService';
 
-// Start polling for payments (every 30 seconds)
+// Register webhooks for instant payment detection (preferred)
+tonWebhookService.registerWebhooks().catch(console.error);
+
+// Start polling for payments as backup (every 30 seconds)
+// Disable with ENABLE_TON_POLLING=false if webhooks are working
 if (process.env.ENABLE_TON_POLLING !== 'false') {
     tonPaymentService.startPolling(30000);
 }
