@@ -195,6 +195,7 @@ export class TonPaymentService {
 
     /**
      * Poll TON API for Jetton (USDT) transfers to our wallet
+     * Uses /jettons/history endpoint which specifically returns Jetton transfers
      */
     async pollJettonTransfers() {
         if (!MASTER_WALLET_ADDRESS) {
@@ -202,23 +203,27 @@ export class TonPaymentService {
         }
 
         try {
-            // Fetch Jetton events for our wallet
-            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/events?limit=20`;
-            const response = await fetch(url);
+            // Use /jettons/history endpoint for Jetton transfers
+            // This is the correct endpoint for tracking USDT/Jetton transfers
+            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/jettons/history?limit=20`;
+            console.log(`[JettonPoll] Fetching from: ${url}`);
+
+            const headers: Record<string, string> = {};
+            if (TON_API_KEY) {
+                headers['Authorization'] = `Bearer ${TON_API_KEY}`;
+            }
+
+            const response = await fetch(url, { headers });
 
             if (!response.ok) {
-                throw new Error(`TON API Jetton error: ${response.status}`);
+                console.error(`[JettonPoll] TON API error: ${response.status}`);
+                return;
             }
 
             const data = await response.json();
-            const events: JettonEvent[] = data.events || [];
+            const events = data.events || [];
 
-            // Debug: Log unique action types we see
-            const actionTypes = events.map(e => e.action?.type).filter(Boolean);
-            const uniqueTypes = [...new Set(actionTypes)];
-            if (uniqueTypes.length > 0) {
-                console.log(`[JettonPoll] Event action types: ${uniqueTypes.join(', ')}`);
-            }
+            console.log(`[JettonPoll] Received ${events.length} Jetton events`);
 
             for (const event of events) {
                 await this.processJettonEvent(event);
