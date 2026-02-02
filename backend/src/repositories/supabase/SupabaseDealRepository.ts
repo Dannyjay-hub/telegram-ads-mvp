@@ -138,17 +138,33 @@ export class SupabaseDealRepository implements IDealRepository {
      * JOINs advertiser info for display
      */
     async findByChannelOwnerWithDetails(ownerTelegramId: number): Promise<any[]> {
-        // First get all channels owned by this user
-        const { data: channels, error: channelError } = await supabase
-            .from('channels')
+        // 1. Get User UUID from Telegram ID
+        const { data: user, error: userError } = await supabase
+            .from('users')
             .select('id')
-            .eq('owner_telegram_id', ownerTelegramId);
+            .eq('telegram_id', ownerTelegramId)
+            .single();
 
-        if (channelError || !channels?.length) return [];
+        if (userError || !user) {
+            console.log(`[findByChannelOwner] No user found for telegram_id: ${ownerTelegramId}`);
+            return [];
+        }
 
-        const channelIds: string[] = channels.map(c => c.id);
+        // 2. Get all channels this user is an admin of
+        const { data: adminChannels, error: adminError } = await supabase
+            .from('channel_admins')
+            .select('channel_id')
+            .eq('user_id', user.id);
 
-        // Get deals for those channels with advertiser info
+        if (adminError || !adminChannels?.length) {
+            console.log(`[findByChannelOwner] No channels found for user: ${user.id}`);
+            return [];
+        }
+
+        const channelIds: string[] = adminChannels.map(c => c.channel_id);
+        console.log(`[findByChannelOwner] Found ${channelIds.length} channels for user`);
+
+        // 3. Get deals for those channels with advertiser info
         const { data, error } = await supabase
             .from('deals')
             .select('*, channels(id, title, username, photo_url), advertiser:users!advertiser_id(id, telegram_id, first_name, username)')
@@ -156,8 +172,12 @@ export class SupabaseDealRepository implements IDealRepository {
             .neq('status', 'draft') // Exclude unpaid drafts
             .order('created_at', { ascending: false });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+            console.error('[findByChannelOwner] Query error:', error);
+            throw new Error(error.message);
+        }
 
+        console.log(`[findByChannelOwner] Found ${data?.length || 0} deals`);
         const now = new Date();
 
         // Map and include advertiser + channel data
