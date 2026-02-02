@@ -1,7 +1,3 @@
-// Buffer polyfill for @ton/core (required for browser compatibility)
-import { Buffer } from 'buffer';
-(window as any).Buffer = Buffer;
-
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
