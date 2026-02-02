@@ -236,13 +236,13 @@ export class TonPaymentService {
             return;
         }
 
-        // Only process transfers TO our wallet
-        if (transfer.recipient.address !== MASTER_WALLET_ADDRESS) {
+        // Only process transfers TO our wallet (use proper address comparison)
+        if (!MASTER_WALLET_ADDRESS || !addressesEqual(transfer.recipient.address, MASTER_WALLET_ADDRESS)) {
             return;
         }
 
-        // Only process USDT transfers (or other supported Jettons)
-        if (transfer.jetton.address !== USDT_MASTER_ADDRESS) {
+        // Only process USDT transfers (use proper address comparison for Jetton master)
+        if (!addressesEqual(transfer.jetton.address, USDT_MASTER_ADDRESS)) {
             return;
         }
 

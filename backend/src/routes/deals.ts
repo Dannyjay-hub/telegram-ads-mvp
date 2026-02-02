@@ -49,9 +49,14 @@ app.get('/channel-owner', async (c) => {
         }
 
         const telegramId = parseInt(telegramIdHeader);
+        console.log(`[channel-owner] Fetching deals for telegram_id: ${telegramId}`);
+
         const deals = await dealService.getDealsForChannelOwner(telegramId);
+        console.log(`[channel-owner] Found ${deals.length} deals`);
+
         return c.json(deals);
     } catch (e: any) {
+        console.error(`[channel-owner] Error:`, e.message);
         return c.json({ error: e.message }, 500);
     }
 });
