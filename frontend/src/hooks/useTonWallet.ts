@@ -135,7 +135,9 @@ export function useTonWallet() {
         }
 
         const data = await response.json();
-        return data.wallet_address.address;
+        // TON API returns raw address, convert to user-friendly format for TON Connect
+        const rawAddress = data.wallet_address.address;
+        return Address.parse(rawAddress).toString({ bounceable: true, urlSafe: true });
     };
 
     /**
