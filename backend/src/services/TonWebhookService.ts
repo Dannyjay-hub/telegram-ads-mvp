@@ -103,8 +103,9 @@ export class TonWebhookService {
                     'Authorization': `Bearer ${this.apiKey}`,
                     'Content-Type': 'application/json'
                 },
+                // TonAPI expects accounts as array of objects with account_id field
                 body: JSON.stringify({
-                    accounts: [accountId]
+                    accounts: [{ account_id: accountId }]
                 })
             }
         );

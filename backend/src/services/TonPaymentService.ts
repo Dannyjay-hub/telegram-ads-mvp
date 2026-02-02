@@ -9,7 +9,7 @@ import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRep
 
 // TON Center API (mainnet/testnet)
 const TON_CENTER_API = process.env.TON_CENTER_API || 'https://toncenter.com/api/v2';
-const TON_API_KEY = process.env.TON_API_KEY || '';
+const TON_API_KEY = process.env.TONAPI_KEY || process.env.TON_API_KEY || '';
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || '';
 
 // TON API for Jetton events (more reliable for Jetton tracking)
@@ -146,7 +146,8 @@ export class TonPaymentService {
             return;
         }
 
-        const comment = transfer.comment || '';
+        // Extract and clean comment (trim whitespace)
+        const comment = (transfer.comment || '').trim();
         if (!comment || !comment.startsWith('deal_')) {
             return;
         }
@@ -159,10 +160,12 @@ export class TonPaymentService {
 
         try {
             await this.dealService.confirmPayment(comment, eventId);
-            console.log(`TonPaymentService: Deal confirmed for memo ${comment}`);
+            console.log(`✅ TonPaymentService: Payment confirmed for ${comment}`);
         } catch (error: any) {
-            if (!error.message.includes('not in pending status')) {
-                console.error(`TonPaymentService: Error confirming payment for ${comment}:`, error.message);
+            if (error.message.includes('not in pending status')) {
+                console.log(`ℹ️ TonPaymentService: Deal ${comment} already processed`);
+            } else {
+                console.error(`❌ TonPaymentService: Error confirming ${comment}:`, error.message);
             }
         }
     }
