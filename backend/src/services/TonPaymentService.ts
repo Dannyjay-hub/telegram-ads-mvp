@@ -213,6 +213,13 @@ export class TonPaymentService {
             const data = await response.json();
             const events: JettonEvent[] = data.events || [];
 
+            // Debug: Log unique action types we see
+            const actionTypes = events.map(e => e.action?.type).filter(Boolean);
+            const uniqueTypes = [...new Set(actionTypes)];
+            if (uniqueTypes.length > 0) {
+                console.log(`[JettonPoll] Event action types: ${uniqueTypes.join(', ')}`);
+            }
+
             for (const event of events) {
                 await this.processJettonEvent(event);
             }
@@ -227,27 +234,36 @@ export class TonPaymentService {
      */
     private async processJettonEvent(event: JettonEvent) {
         // Only process jetton_transfer actions
-        if (event.action?.type !== 'jetton_transfer') {
-            return;
+        if (event.action?.type !== 'JettonTransfer') {
+            // TON API uses capitalized action types - check for lowercase too
+            if (event.action?.type !== 'jetton_transfer') {
+                return;
+            }
         }
 
         const transfer = event.action.jetton_transfer;
         if (!transfer) {
+            console.log(`[JettonEvent] No transfer data in event ${event.event_id}`);
             return;
         }
 
+        console.log(`[JettonEvent] Processing: recipient=${transfer.recipient.address}, jetton=${transfer.jetton.address}`);
+
         // Only process transfers TO our wallet (use proper address comparison)
         if (!MASTER_WALLET_ADDRESS || !addressesEqual(transfer.recipient.address, MASTER_WALLET_ADDRESS)) {
+            console.log(`[JettonEvent] Recipient mismatch - expected: ${MASTER_WALLET_ADDRESS}`);
             return;
         }
 
         // Only process USDT transfers (use proper address comparison for Jetton master)
         if (!addressesEqual(transfer.jetton.address, USDT_MASTER_ADDRESS)) {
+            console.log(`[JettonEvent] Jetton mismatch - expected USDT: ${USDT_MASTER_ADDRESS}`);
             return;
         }
 
         const memo = transfer.comment;
         if (!memo || !memo.startsWith('deal_')) {
+            console.log(`[JettonEvent] No deal memo - comment: "${memo}"`);
             return;
         }
 
