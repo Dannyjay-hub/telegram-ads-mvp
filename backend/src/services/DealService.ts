@@ -34,8 +34,9 @@ export class DealService {
         // Generate unique payment memo
         const paymentMemo = `deal_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
 
-        // Set expiration (24h from now for payment)
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        // Set expiration (15 min payment window)
+        const PAYMENT_WINDOW_MINUTES = 15;
+        const expiresAt = new Date(Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000);
 
         const deal = await this.dealRepo.create({
             advertiserId,
@@ -71,6 +72,11 @@ export class DealService {
 
         if (deal.status !== 'draft') {
             throw new Error(`Deal ${deal.id} is not in draft status`);
+        }
+
+        // Check if payment window expired
+        if (deal.expiresAt && new Date(deal.expiresAt) < new Date()) {
+            throw new Error(`Deal ${deal.id} payment window has expired`);
         }
 
         return this.dealRepo.updatePaymentConfirmed(deal.id, txHash);

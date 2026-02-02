@@ -100,6 +100,7 @@ export class SupabaseDealRepository implements IDealRepository {
 
     /**
      * Get deals for advertiser with channel data (for partnerships display)
+     * Filters out expired draft deals
      */
     async findByAdvertiserIdWithChannel(advertiserId: string): Promise<any[]> {
         const { data, error } = await supabase
@@ -110,16 +111,26 @@ export class SupabaseDealRepository implements IDealRepository {
 
         if (error) throw new Error(error.message);
 
-        // Map and include channel data
-        return data.map((row: any) => ({
-            ...this.mapToDomain(row),
-            channel: row.channels ? {
-                id: row.channels.id,
-                title: row.channels.title,
-                username: row.channels.username,
-                photoUrl: row.channels.photo_url
-            } : null
-        }));
+        const now = new Date();
+
+        // Map and include channel data, filter out expired drafts
+        return data
+            .filter((row: any) => {
+                // Keep all non-draft deals
+                if (row.status !== 'draft') return true;
+                // For drafts, only keep if not expired
+                if (!row.expires_at) return true;
+                return new Date(row.expires_at) > now;
+            })
+            .map((row: any) => ({
+                ...this.mapToDomain(row),
+                channel: row.channels ? {
+                    id: row.channels.id,
+                    title: row.channels.title,
+                    username: row.channels.username,
+                    photoUrl: row.channels.photo_url
+                } : null
+            }));
     }
 
     async findByPaymentMemo(memo: string): Promise<Deal | null> {
