@@ -10,6 +10,7 @@ import { ChannelOwnerDashboard } from '@/components/ChannelOwnerDashboard'
 import { MyChannelsPage } from '@/components/MyChannelsPage'
 import { CampaignsList } from '@/components/CampaignsList'
 import { PartnershipsList } from '@/components/PartnershipsList'
+import { ChannelOwnerPartnerships } from '@/components/ChannelOwnerPartnerships'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
@@ -135,7 +136,7 @@ function AppContent() {
           <Route path="/marketplace/channel/:id" element={<ChannelViewPage />} />
           <Route path="/channels/my" element={<MyChannelsPage />} />
           <Route path="/channels/dashboard" element={<ChannelOwnerDashboard />} />
-          <Route path="/channels/partnerships" element={<PartnershipsList />} />
+          <Route path="/channels/partnerships" element={<ChannelOwnerPartnerships />} />
           <Route path="/marketplace" element={<MarketplaceContainer />} />
           <Route path="/marketplace/requests" element={<MarketplaceContainer />} />
           <Route path="/partnerships" element={<PartnershipsList />} />

@@ -40,6 +40,22 @@ app.get('/my', async (c) => {
     }
 });
 
+// GET /deals/channel-owner - Get deals for channels owned by current user
+app.get('/channel-owner', async (c) => {
+    try {
+        const telegramIdHeader = c.req.header('X-Telegram-ID');
+        if (!telegramIdHeader) {
+            return c.json({ error: 'Not authenticated' }, 401);
+        }
+
+        const telegramId = parseInt(telegramIdHeader);
+        const deals = await dealService.getDealsForChannelOwner(telegramId);
+        return c.json(deals);
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
 // GET /deals/channel/:channelId
 app.get('/channel/:channelId', async (c) => {
     try {

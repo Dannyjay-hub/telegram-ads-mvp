@@ -138,6 +138,13 @@ export class DealService {
         return (this.dealRepo as any).findByAdvertiserIdWithChannel(advertiserId);
     }
 
+    /**
+     * Get deals for channels owned by a user (for channel owner partnerships)
+     */
+    async getDealsForChannelOwner(ownerTelegramId: number): Promise<any[]> {
+        return (this.dealRepo as any).findByChannelOwnerWithDetails(ownerTelegramId);
+    }
+
     async approveCampaign(dealId: string, approverId: string, isAdvertiser: boolean, reject: boolean): Promise<Deal> {
         const deal = await this.dealRepo.findById(dealId);
         if (!deal) {

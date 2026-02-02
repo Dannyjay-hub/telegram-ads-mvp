@@ -133,6 +133,60 @@ export class SupabaseDealRepository implements IDealRepository {
             }));
     }
 
+    /**
+     * Get deals for channels owned by a specific user
+     * JOINs advertiser info for display
+     */
+    async findByChannelOwnerWithDetails(ownerTelegramId: number): Promise<any[]> {
+        // First get all channels owned by this user
+        const { data: channels, error: channelError } = await supabase
+            .from('channels')
+            .select('id')
+            .eq('owner_telegram_id', ownerTelegramId);
+
+        if (channelError || !channels?.length) return [];
+
+        const channelIds: string[] = channels.map(c => c.id);
+
+        // Get deals for those channels with advertiser info
+        const { data, error } = await supabase
+            .from('deals')
+            .select('*, channels(id, title, username, photo_url), advertiser:users!advertiser_id(id, telegram_id, first_name, username)')
+            .in('channel_id', channelIds)
+            .neq('status', 'draft') // Exclude unpaid drafts
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        const now = new Date();
+
+        // Map and include advertiser + channel data
+        return data
+            .filter((row: any) => {
+                // Filter out expired drafts if any slipped through
+                if (row.status === 'draft') {
+                    if (!row.expires_at) return true;
+                    return new Date(row.expires_at) > now;
+                }
+                return true;
+            })
+            .map((row: any) => ({
+                ...this.mapToDomain(row),
+                channel: row.channels ? {
+                    id: row.channels.id,
+                    title: row.channels.title,
+                    username: row.channels.username,
+                    photoUrl: row.channels.photo_url
+                } : null,
+                advertiser: row.advertiser ? {
+                    id: row.advertiser.id,
+                    telegramId: row.advertiser.telegram_id,
+                    firstName: row.advertiser.first_name,
+                    username: row.advertiser.username
+                } : null
+            }));
+    }
+
     async findByPaymentMemo(memo: string): Promise<Deal | null> {
         const { data, error } = await supabase
             .from('deals')
