@@ -98,6 +98,30 @@ export class SupabaseDealRepository implements IDealRepository {
         return data.map(this.mapToDomain);
     }
 
+    /**
+     * Get deals for advertiser with channel data (for partnerships display)
+     */
+    async findByAdvertiserIdWithChannel(advertiserId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('deals')
+            .select('*, channels(id, title, username, photo_url)')
+            .eq('advertiser_id', advertiserId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        // Map and include channel data
+        return data.map((row: any) => ({
+            ...this.mapToDomain(row),
+            channel: row.channels ? {
+                id: row.channels.id,
+                title: row.channels.title,
+                username: row.channels.username,
+                photoUrl: row.channels.photo_url
+            } : null
+        }));
+    }
+
     async findByPaymentMemo(memo: string): Promise<Deal | null> {
         const { data, error } = await supabase
             .from('deals')

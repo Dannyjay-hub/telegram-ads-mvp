@@ -125,6 +125,13 @@ export class DealService {
         return this.dealRepo.findByAdvertiserId(advertiserId);
     }
 
+    /**
+     * Get deals with channel data for partnerships display
+     */
+    async getDealsForAdvertiserWithChannel(advertiserId: string): Promise<any[]> {
+        return (this.dealRepo as any).findByAdvertiserIdWithChannel(advertiserId);
+    }
+
     async approveCampaign(dealId: string, approverId: string, isAdvertiser: boolean, reject: boolean): Promise<Deal> {
         const deal = await this.dealRepo.findById(dealId);
         if (!deal) {

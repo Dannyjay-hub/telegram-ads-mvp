@@ -32,8 +32,8 @@ app.get('/my', async (c) => {
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
-
-        const deals = await dealService.getDealsForAdvertiser(user.id);
+        // Use method with channel data for partnerships display
+        const deals = await dealService.getDealsForAdvertiserWithChannel(user.id);
         return c.json(deals);
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
