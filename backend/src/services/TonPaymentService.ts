@@ -204,9 +204,7 @@ export class TonPaymentService {
 
         try {
             // Use /jettons/history endpoint for Jetton transfers
-            // This is the correct endpoint for tracking USDT/Jetton transfers
             const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/jettons/history?limit=20`;
-            console.log(`[JettonPoll] Fetching from: ${url}`);
 
             const headers: Record<string, string> = {};
             if (TON_API_KEY) {
@@ -221,16 +219,67 @@ export class TonPaymentService {
             }
 
             const data = await response.json();
-            const events = data.events || [];
+            // API returns 'operations' not 'events'
+            const operations = data.operations || [];
 
-            console.log(`[JettonPoll] Received ${events.length} Jetton events`);
+            console.log(`[JettonPoll] Received ${operations.length} Jetton operations`);
 
-            for (const event of events) {
-                await this.processJettonEvent(event);
+            for (const op of operations) {
+                await this.processJettonOperation(op);
             }
 
         } catch (error) {
             console.error('TonPaymentService: Error polling Jetton transfers', error);
+        }
+    }
+
+    /**
+     * Process a Jetton operation from /jettons/history API
+     */
+    private async processJettonOperation(op: any) {
+        // Only process incoming transfers
+        if (op.operation !== 'transfer') {
+            return;
+        }
+
+        // Check if this is a transfer TO our wallet
+        const destAddress = op.destination?.address;
+        if (!destAddress || !MASTER_ADDRESS) {
+            return;
+        }
+
+        // Use proper address comparison
+        if (!addressesEqual(destAddress, MASTER_ADDRESS)) {
+            return;
+        }
+
+        // Check if it's USDT
+        const jettonAddress = op.jetton?.address;
+        if (!jettonAddress || !addressesEqual(jettonAddress, USDT_MASTER_ADDRESS)) {
+            return;
+        }
+
+        // Extract memo from payload - TON API puts it in payload.Value.Text
+        const memo = op.payload?.Value?.Text || '';
+        if (!memo || !memo.startsWith('deal_')) {
+            return;
+        }
+
+        const amount = Number(op.amount || 0) / 1e6; // USDT has 6 decimals
+        console.log(`TonPaymentService: Found USDT transfer with memo: ${memo}`);
+        console.log(`  Transaction: ${op.transaction_hash}`);
+        console.log(`  Amount: ${amount} USDT`);
+        console.log(`  From: ${op.source?.address}`);
+
+        try {
+            await this.dealService.confirmPayment(memo, op.transaction_hash);
+            console.log(`✅ TonPaymentService: USDT payment confirmed for ${memo}`);
+        } catch (error: any) {
+            if (error.message.includes('not in') && error.message.includes('status')) {
+                // Already processed
+            } else {
+                console.error(`TonPaymentService: Error confirming USDT ${memo}:`, error.message);
+            }
         }
     }
 
