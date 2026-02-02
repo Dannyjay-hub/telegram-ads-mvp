@@ -86,7 +86,8 @@ export class TonPaymentService {
     }
 
     /**
-     * Poll TON Center API for new native TON transactions
+     * Poll TON API for new native TON transactions
+     * Using TON API instead of TON Center for better address format handling
      */
     async pollTransactions() {
         if (!MASTER_WALLET_ADDRESS) {
@@ -95,10 +96,11 @@ export class TonPaymentService {
         }
 
         try {
-            const url = `${TON_CENTER_API}/getTransactions?address=${MASTER_WALLET_ADDRESS}&limit=20`;
+            // Use TON API which returns user-friendly addresses
+            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/events?limit=20`;
             const headers: Record<string, string> = {};
             if (TON_API_KEY) {
-                headers['X-API-Key'] = TON_API_KEY;
+                headers['Authorization'] = `Bearer ${TON_API_KEY}`;
             }
 
             const response = await fetch(url, { headers });
@@ -107,20 +109,61 @@ export class TonPaymentService {
             }
 
             const data = await response.json();
+            const events = data.events || [];
 
-            if (!data.ok || !data.result) {
-                console.error('TonPaymentService: Invalid API response', data);
-                return;
-            }
-
-            const transactions: TonTransaction[] = data.result;
-
-            for (const tx of transactions) {
-                await this.processTransaction(tx);
+            for (const event of events) {
+                // Process transaction events
+                if (event.actions) {
+                    for (const action of event.actions) {
+                        if (action.type === 'TonTransfer' && action.TonTransfer) {
+                            await this.processTonTransferEvent(action.TonTransfer, event.event_id);
+                        }
+                    }
+                }
             }
 
         } catch (error) {
             console.error('TonPaymentService: Error polling TON transactions', error);
+        }
+    }
+
+    /**
+     * Process a TON transfer event from TON API
+     */
+    private async processTonTransferEvent(transfer: any, eventId: string) {
+        // Only process incoming transfers to our wallet
+        const recipient = transfer.recipient?.address;
+        if (!recipient) return;
+
+        // Normalize addresses for comparison (both should be user-friendly format)
+        const normalizedRecipient = recipient.replace(/^0:/, '');
+        const normalizedMaster = MASTER_WALLET_ADDRESS.replace(/^0:/, '');
+
+        // Compare addresses (TON API returns user-friendly, but be safe)
+        if (recipient !== MASTER_WALLET_ADDRESS &&
+            normalizedRecipient !== normalizedMaster &&
+            !recipient.toLowerCase().includes(MASTER_WALLET_ADDRESS.slice(-10).toLowerCase())) {
+            return;
+        }
+
+        const comment = transfer.comment || '';
+        if (!comment || !comment.startsWith('deal_')) {
+            return;
+        }
+
+        const tonAmount = Number(transfer.amount || 0) / 1e9;
+        console.log(`TonPaymentService: Found TON transfer with memo: ${comment}`);
+        console.log(`  Event ID: ${eventId}`);
+        console.log(`  Amount: ${tonAmount} TON`);
+        console.log(`  From: ${transfer.sender?.address}`);
+
+        try {
+            await this.dealService.confirmPayment(comment, eventId);
+            console.log(`TonPaymentService: Deal confirmed for memo ${comment}`);
+        } catch (error: any) {
+            if (!error.message.includes('not in pending status')) {
+                console.error(`TonPaymentService: Error confirming payment for ${comment}:`, error.message);
+            }
         }
     }
 
