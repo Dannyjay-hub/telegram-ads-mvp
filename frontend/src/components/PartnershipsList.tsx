@@ -104,10 +104,13 @@ export function PartnershipsList() {
         }
     }
 
-    // Active: requires attention or in progress (excludes drafts - unpaid deals)
+    // Filter out drafts entirely - they're unpaid and shouldn't appear anywhere
+    const visibleDeals = deals.filter(d => d.status !== 'draft')
+
+    // Active: requires attention or in progress
     const activeStatuses = ['pending', 'funded', 'approved', 'in_progress', 'disputed', 'monitoring']
-    const activeDeals = deals.filter(d => activeStatuses.includes(d.status))
-    const inactiveDeals = deals.filter(d => !activeStatuses.includes(d.status))
+    const activeDeals = visibleDeals.filter(d => activeStatuses.includes(d.status))
+    const inactiveDeals = visibleDeals.filter(d => !activeStatuses.includes(d.status))
 
     const displayDeals = activeTab === 'active' ? activeDeals : inactiveDeals
 
