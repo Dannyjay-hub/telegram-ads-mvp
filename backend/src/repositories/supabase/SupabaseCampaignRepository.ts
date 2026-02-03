@@ -73,7 +73,7 @@ export class SupabaseCampaignRepository {
                 required_categories: data.requiredCategories,
                 starts_at: data.startsAt || new Date(),
                 expires_at: data.expiresAt
-            } as any)
+            })
             .select()
             .single();
 
@@ -124,7 +124,7 @@ export class SupabaseCampaignRepository {
 
         const { data, error } = await supabase
             .from('campaigns')
-            .update(dbUpdates as any)
+            .update(dbUpdates)
             .eq('id', id)
             .select()
             .single();
@@ -243,7 +243,7 @@ export class SupabaseCampaignRepository {
             .update({
                 slots_filled: campaign.slotsFilled + 1,
                 escrow_allocated: campaign.escrowAllocated + perChannelBudget
-            } as any)
+            })
             .eq('id', campaignId)
             .eq('slots_filled', campaign.slotsFilled) // Optimistic lock
             .select()
@@ -282,7 +282,7 @@ export class SupabaseCampaignRepository {
                 slots_filled: campaign.slotsFilled - 1,
                 escrow_allocated: campaign.escrowAllocated - amount,
                 status: newStatus
-            } as any)
+            })
             .eq('id', campaignId)
             .select()
             .single();
@@ -302,7 +302,7 @@ export class SupabaseCampaignRepository {
                 campaign_id: campaignId,
                 channel_id: channelId,
                 status: 'pending'
-            } as any)
+            })
             .select()
             .single();
 
@@ -368,7 +368,7 @@ export class SupabaseCampaignRepository {
                 status,
                 deal_id: dealId,
                 reviewed_at: new Date().toISOString()
-            } as any)
+            })
             .eq('id', id)
             .select()
             .single();
@@ -395,7 +395,7 @@ export class SupabaseCampaignRepository {
     }
 
     async markExpired(id: string): Promise<Campaign | null> {
-        return this.update(id, { status: 'expired' } as any);
+        return this.update(id, { status: 'expired' });
     }
 }
 

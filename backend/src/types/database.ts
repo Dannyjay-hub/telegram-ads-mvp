@@ -69,21 +69,32 @@ export type Database = {
       campaigns: {
         Row: {
           advertiser_id: string | null
+          brief: string | null
           brief_text: string | null
+          campaign_type: string | null
           created_at: string | null
           creative_content: Json | null
+          currency: string | null
           eligibility_criteria: Json | null
           escrow_allocated: number | null
+          escrow_available: number | null
           escrow_deposited: number | null
+          escrow_funded: boolean | null
+          escrow_wallet_address: string | null
           expired_at: string | null
+          expires_at: string | null
           id: string
           individual_slot_budget: number
           max_subscribers: number | null
+          media_urls: string[] | null
           min_avg_views: number | null
+          min_subscribers: number | null
+          per_channel_budget: number | null
           required_categories: string[] | null
           required_languages: string[] | null
           slots: number
           slots_filled: number | null
+          starts_at: string | null
           status: string
           title: string
           total_budget: number
@@ -92,21 +103,32 @@ export type Database = {
         }
         Insert: {
           advertiser_id?: string | null
+          brief?: string | null
           brief_text?: string | null
+          campaign_type?: string | null
           created_at?: string | null
           creative_content?: Json | null
+          currency?: string | null
           eligibility_criteria?: Json | null
           escrow_allocated?: number | null
+          escrow_available?: number | null
           escrow_deposited?: number | null
+          escrow_funded?: boolean | null
+          escrow_wallet_address?: string | null
           expired_at?: string | null
+          expires_at?: string | null
           id?: string
           individual_slot_budget: number
           max_subscribers?: number | null
+          media_urls?: string[] | null
           min_avg_views?: number | null
+          min_subscribers?: number | null
+          per_channel_budget?: number | null
           required_categories?: string[] | null
           required_languages?: string[] | null
           slots?: number
           slots_filled?: number | null
+          starts_at?: string | null
           status?: string
           title: string
           total_budget: number
@@ -115,21 +137,32 @@ export type Database = {
         }
         Update: {
           advertiser_id?: string | null
+          brief?: string | null
           brief_text?: string | null
+          campaign_type?: string | null
           created_at?: string | null
           creative_content?: Json | null
+          currency?: string | null
           eligibility_criteria?: Json | null
           escrow_allocated?: number | null
+          escrow_available?: number | null
           escrow_deposited?: number | null
+          escrow_funded?: boolean | null
+          escrow_wallet_address?: string | null
           expired_at?: string | null
+          expires_at?: string | null
           id?: string
           individual_slot_budget?: number
           max_subscribers?: number | null
+          media_urls?: string[] | null
           min_avg_views?: number | null
+          min_subscribers?: number | null
+          per_channel_budget?: number | null
           required_categories?: string[] | null
           required_languages?: string[] | null
           slots?: number
           slots_filled?: number | null
+          starts_at?: string | null
           status?: string
           title?: string
           total_budget?: number
