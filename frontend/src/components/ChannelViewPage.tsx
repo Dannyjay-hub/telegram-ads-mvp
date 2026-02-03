@@ -188,7 +188,8 @@ export function ChannelViewPage() {
                     channelId: id,
                     contentItems,
                     walletAddress,
-                    brief: brief.trim() || undefined  // Include brief if provided
+                    brief: brief.trim() || undefined,
+                    currency: paymentToken  // Pass the selected payment currency (TON or USDT)
                 })
             })
 

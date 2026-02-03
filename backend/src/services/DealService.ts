@@ -23,7 +23,8 @@ export class DealService {
         channelId: string,
         contentItems: ContentItem[],
         advertiserWalletAddress: string,
-        brief?: string // Advertiser's brief describing what they want to advertise
+        brief?: string, // Advertiser's brief describing what they want to advertise
+        currency: 'TON' | 'USDT' = 'TON' // Payment currency
     ): Promise<Deal & { paymentInstructions: { address: string; memo: string; amount: number } }> {
         // Calculate total amount
         const totalAmount = contentItems.reduce(
@@ -50,7 +51,7 @@ export class DealService {
             channelId,
             contentItems,
             priceAmount: totalAmount,
-            priceCurrency: 'USD',
+            priceCurrency: currency, // Use actual payment currency
             paymentMemo,
             advertiserWalletAddress,
             status: 'draft',

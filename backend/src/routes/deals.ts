@@ -87,7 +87,7 @@ app.get('/:id/payment-instructions', async (c) => {
 app.post('/create-with-items', async (c) => {
     try {
         const body = await c.req.json();
-        const { channelId, contentItems, walletAddress, brief } = body;
+        const { channelId, contentItems, walletAddress, brief, currency } = body;
 
         // Get advertiser from header
         const telegramIdHeader = c.req.header('X-Telegram-ID');
@@ -110,7 +110,8 @@ app.post('/create-with-items', async (c) => {
             channelId,
             contentItems,
             walletAddress,
-            brief // Pass the advertiser's brief
+            brief,
+            currency || 'TON' // Pass the payment currency, default to TON
         );
 
         return c.json(result, 201);
