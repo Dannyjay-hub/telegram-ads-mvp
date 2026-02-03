@@ -230,8 +230,9 @@ export class SupabaseChannelRepository implements IChannelRepository {
         }
 
         if (activeDeals && activeDeals.length > 0) {
+            const statuses = activeDeals.map(d => d.status).join(', ');
             console.log('[ChannelRepo] Cannot delete - has active deals:', activeDeals);
-            throw new Error(`Cannot delete channel: ${activeDeals.length} active deal(s) in progress. Complete or cancel all deals first.`);
+            throw new Error(`This channel has ${activeDeals.length} active deal(s) (${statuses}). Please complete or cancel all deals before deleting the channel.`);
         }
 
         // No active deals - proceed with deletion
