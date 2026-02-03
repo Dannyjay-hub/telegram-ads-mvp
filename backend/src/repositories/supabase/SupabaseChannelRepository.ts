@@ -215,7 +215,8 @@ export class SupabaseChannelRepository implements IChannelRepository {
         console.log(`[ChannelRepo] Attempting to delete channel ${id}`);
 
         // FIRST: Check if there are any active deals that would block deletion
-        const activeStatuses = ['funded', 'approved', 'in_progress', 'posted', 'monitoring', 'disputed'];
+        // Only check statuses that definitely exist in the database enum
+        const activeStatuses = ['funded', 'approved', 'posted', 'monitoring', 'disputed'];
 
         const { data: activeDeals, error: checkError } = await supabase
             .from('deals')
