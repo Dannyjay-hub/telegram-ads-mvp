@@ -5,11 +5,13 @@ export type DealStatus =
     | 'negotiating'
     | 'funded'        // Payment received
     | 'approved'      // Channel accepted
+    | 'rejected'      // Channel rejected (refund queued)
     | 'in_progress'   // Drafting/scheduling
     | 'posted'        // Content published
     | 'monitoring'    // Safety period
     | 'released'      // Funds released (completed)
-    | 'refunded'      // Refund issued
+    | 'refunded'      // Refund completed
+    | 'pending_refund' // Refund failed to queue, needs manual intervention
     | 'cancelled'
     | 'disputed';
 

@@ -185,19 +185,23 @@ export class DealService {
             if (deal.status === 'submitted' || deal.status === 'negotiating' || deal.status === 'funded') {
                 // If rejecting a funded deal, trigger refund to advertiser
                 if (deal.status === 'funded') {
-                    // Queue refund to advertiser's wallet (non-blocking)
+                    let refundQueued = false;
+
+                    // Queue refund to advertiser's wallet
                     if (deal.advertiserWalletAddress) {
                         console.log(`DealService: Triggering refund for rejected deal ${dealId}`);
                         try {
-                            await tonPayoutService.queueRefund(
+                            const refundResult = await tonPayoutService.queueRefund(
                                 dealId,
                                 deal.advertiserWalletAddress,
                                 deal.priceAmount,
                                 'TON',
                                 'Rejected by channel owner'
                             );
+                            refundQueued = refundResult !== null;
                         } catch (refundErr) {
-                            console.error(`DealService: Refund queue failed but continuing:`, refundErr);
+                            console.error(`DealService: Refund queue failed:`, refundErr);
+                            refundQueued = false;
                         }
                     } else {
                         console.warn(`DealService: Cannot refund deal ${dealId} - no advertiser wallet address`);
@@ -208,12 +212,18 @@ export class DealService {
                         try {
                             await notifyDealStatusChange(advertiserTelegramId, dealId, channelTitle, 'rejected');
                         } catch (notifErr) {
-                            console.error(`DealService: Notification failed but continuing:`, notifErr);
+                            console.error(`DealService: Notification failed:`, notifErr);
                         }
                     }
 
-                    // Always update the deal status
-                    return this.dealRepo.updateStatus(dealId, 'refunded', 'Rejected by channel owner');
+                    // Set status based on whether refund was successfully queued
+                    if (refundQueued) {
+                        // Refund is queued/processing - mark as rejected
+                        return this.dealRepo.updateStatus(dealId, 'rejected', 'Rejected by channel owner');
+                    } else {
+                        // Refund failed to queue - mark as pending_refund for manual intervention
+                        return this.dealRepo.updateStatus(dealId, 'pending_refund', 'Refund failed - needs manual processing');
+                    }
                 }
                 return this.dealRepo.updateStatus(dealId, 'cancelled', 'Rejected by user');
             }

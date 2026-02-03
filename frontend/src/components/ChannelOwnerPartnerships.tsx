@@ -32,12 +32,14 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
     pending: { label: 'Awaiting Payment', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
     funded: { label: 'Pending Approval', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
     approved: { label: 'Approved', color: 'text-green-400', bgColor: 'bg-green-500/20' },
+    rejected: { label: 'Rejected', color: 'text-red-400', bgColor: 'bg-red-500/20' },
     in_progress: { label: 'In Progress', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
     posted: { label: 'Posted', color: 'text-teal-400', bgColor: 'bg-teal-500/20' },
     monitoring: { label: 'Monitoring', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
     released: { label: 'Completed', color: 'text-green-400', bgColor: 'bg-green-500/20' },
     cancelled: { label: 'Cancelled', color: 'text-red-400', bgColor: 'bg-red-500/20' },
     refunded: { label: 'Refunded', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+    pending_refund: { label: 'Refund Pending', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
     disputed: { label: 'Disputed', color: 'text-red-400', bgColor: 'bg-red-500/20' }
 }
 
