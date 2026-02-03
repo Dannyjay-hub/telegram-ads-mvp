@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,7 @@ import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
 const STEPS = ['Basics', 'Budget', 'Targeting', 'Type', 'Review']
+const DRAFT_KEY = 'campaign_draft'
 
 // Common categories for channels
 const CATEGORIES = [
@@ -31,8 +32,8 @@ interface CampaignFormData {
     // Basics
     title: string
     brief: string
-    // Budget
-    totalBudget: string
+    // Budget - now per-channel based
+    perChannelBudget: string
     currency: 'TON' | 'USDT'
     slots: number
     // Targeting
@@ -46,6 +47,21 @@ interface CampaignFormData {
     expiresInDays: string
 }
 
+const DEFAULT_FORM_DATA: CampaignFormData = {
+    title: '',
+    brief: '',
+    perChannelBudget: '',
+    currency: 'TON',
+    slots: 3,
+    minSubscribers: '',
+    maxSubscribers: '',
+    requiredLanguages: [],
+    requiredCategories: [],
+    minAvgViews: '',
+    campaignType: 'open',
+    expiresInDays: '7'
+}
+
 export function CampaignWizard() {
     const navigate = useNavigate()
     const { user } = useTelegram()
@@ -53,31 +69,52 @@ export function CampaignWizard() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const [formData, setFormData] = useState<CampaignFormData>({
-        title: '',
-        brief: '',
-        totalBudget: '',
-        currency: 'TON',
-        slots: 3,
-        minSubscribers: '',
-        maxSubscribers: '',
-        requiredLanguages: [],
-        requiredCategories: [],
-        minAvgViews: '',
-        campaignType: 'open',
-        expiresInDays: '7'
-    })
+    const [formData, setFormData] = useState<CampaignFormData>(DEFAULT_FORM_DATA)
 
-    const perChannelBudget = formData.slots > 0 && formData.totalBudget
-        ? (parseFloat(formData.totalBudget) / formData.slots).toFixed(2)
+    // Load draft from localStorage on mount
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(DRAFT_KEY)
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                setFormData({ ...DEFAULT_FORM_DATA, ...parsed })
+            }
+        } catch (e) {
+            console.warn('Failed to load draft:', e)
+        }
+    }, [])
+
+    // Save draft to localStorage on change
+    useEffect(() => {
+        try {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(formData))
+        } catch (e) {
+            console.warn('Failed to save draft:', e)
+        }
+    }, [formData])
+
+    // Calculate total budget from per-channel × slots
+    const totalBudget = formData.slots > 0 && formData.perChannelBudget
+        ? (parseFloat(formData.perChannelBudget) * formData.slots).toFixed(2)
         : '0'
+
+    // Validation for min/max subscribers
+    const subscriberRangeValid = () => {
+        if (!formData.minSubscribers || !formData.maxSubscribers) return true
+        const min = parseInt(formData.minSubscribers)
+        const max = parseInt(formData.maxSubscribers)
+        return !isNaN(min) && !isNaN(max) && min <= max
+    }
 
     const canProceed = () => {
         switch (step) {
             case 0: return formData.title.length >= 3 && formData.brief.length >= 10
-            case 1: return parseFloat(formData.totalBudget) > 0 && formData.slots > 0
-            case 2: return true // Targeting is optional
-            case 3: return true // Type defaults are okay
+            case 1: {
+                const budget = parseFloat(formData.perChannelBudget)
+                return !isNaN(budget) && budget >= 0.1 && formData.slots > 0
+            }
+            case 2: return subscriberRangeValid()
+            case 3: return true
             default: return true
         }
     }
@@ -93,9 +130,26 @@ export function CampaignWizard() {
         setError(null)
 
         try {
+            const finalTotalBudget = parseFloat(formData.perChannelBudget) * formData.slots
             const expiresAt = formData.expiresInDays
                 ? new Date(Date.now() + parseInt(formData.expiresInDays) * 24 * 60 * 60 * 1000).toISOString()
                 : undefined
+
+            // Safe payload with proper null handling
+            const payload = {
+                title: formData.title.trim(),
+                brief: formData.brief.trim(),
+                totalBudget: Math.round(finalTotalBudget * 100) / 100, // Round to 2 decimals
+                currency: formData.currency,
+                slots: formData.slots,
+                campaignType: formData.campaignType,
+                minSubscribers: formData.minSubscribers ? Math.max(0, parseInt(formData.minSubscribers)) : 0,
+                maxSubscribers: formData.maxSubscribers ? Math.max(0, parseInt(formData.maxSubscribers)) : null,
+                requiredLanguages: formData.requiredLanguages.length > 0 ? formData.requiredLanguages : null,
+                requiredCategories: formData.requiredCategories.length > 0 ? formData.requiredCategories : null,
+                minAvgViews: formData.minAvgViews ? Math.max(0, parseInt(formData.minAvgViews)) : 0,
+                expiresAt
+            }
 
             const response = await fetch(`${API_URL}/campaigns`, {
                 method: 'POST',
@@ -103,20 +157,7 @@ export function CampaignWizard() {
                     'Content-Type': 'application/json',
                     'X-Telegram-Id': String(user?.telegramId || '')
                 },
-                body: JSON.stringify({
-                    title: formData.title,
-                    brief: formData.brief,
-                    totalBudget: parseFloat(formData.totalBudget),
-                    currency: formData.currency,
-                    slots: formData.slots,
-                    campaignType: formData.campaignType,
-                    minSubscribers: formData.minSubscribers ? parseInt(formData.minSubscribers) : 0,
-                    maxSubscribers: formData.maxSubscribers ? parseInt(formData.maxSubscribers) : undefined,
-                    requiredLanguages: formData.requiredLanguages.length > 0 ? formData.requiredLanguages : undefined,
-                    requiredCategories: formData.requiredCategories.length > 0 ? formData.requiredCategories : undefined,
-                    minAvgViews: formData.minAvgViews ? parseInt(formData.minAvgViews) : 0,
-                    expiresAt
-                })
+                body: JSON.stringify(payload)
             })
 
             if (!response.ok) {
@@ -125,6 +166,9 @@ export function CampaignWizard() {
             }
 
             const { campaign } = await response.json()
+
+            // Clear draft on success
+            localStorage.removeItem(DRAFT_KEY)
 
             // For open campaigns, go to escrow payment
             // For closed campaigns, go to campaign list
@@ -150,6 +194,13 @@ export function CampaignWizard() {
         return arr.includes(item)
             ? arr.filter(x => x !== item)
             : [...arr, item]
+    }
+
+    // Prevent negative numbers in numeric inputs
+    const handleNumericInput = (value: string, field: keyof CampaignFormData) => {
+        const num = parseFloat(value)
+        if (value !== '' && num < 0) return
+        setFormData({ ...formData, [field]: value })
     }
 
     return (
@@ -210,7 +261,7 @@ export function CampaignWizard() {
                     </GlassCard>
                 )}
 
-                {/* Step 1: Budget */}
+                {/* Step 1: Budget - Now per-channel based */}
                 {step === 1 && (
                     <GlassCard className="space-y-5">
                         <div className="flex items-center gap-2 text-primary mb-2">
@@ -219,14 +270,19 @@ export function CampaignWizard() {
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium mb-1.5 block">Total Budget</label>
+                            <label className="text-sm font-medium mb-1.5 block">Budget Per Channel</label>
                             <Input
                                 type="number"
+                                min="0"
+                                step="0.1"
                                 placeholder="0.00"
-                                value={formData.totalBudget}
-                                onChange={e => setFormData({ ...formData, totalBudget: e.target.value })}
+                                value={formData.perChannelBudget}
+                                onChange={e => handleNumericInput(e.target.value, 'perChannelBudget')}
                                 autoFocus
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                How much each channel will receive
+                            </p>
                         </div>
 
                         <div>
@@ -247,7 +303,7 @@ export function CampaignWizard() {
 
                         <div>
                             <label className="text-sm font-medium mb-1.5 block">
-                                Number of Slots (Channels)
+                                Number of Channels
                             </label>
                             <div className="flex items-center gap-3">
                                 <Button
@@ -262,7 +318,8 @@ export function CampaignWizard() {
                                 <Button
                                     variant="outline"
                                     size="icon"
-                                    onClick={() => setFormData({ ...formData, slots: formData.slots + 1 })}
+                                    onClick={() => setFormData({ ...formData, slots: Math.min(50, formData.slots + 1) })}
+                                    disabled={formData.slots >= 50}
                                 >
                                     +
                                 </Button>
@@ -271,11 +328,14 @@ export function CampaignWizard() {
 
                         <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                             <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Per Channel:</span>
+                                <span className="text-muted-foreground">Total Campaign Budget:</span>
                                 <span className="text-xl font-bold text-primary">
-                                    {perChannelBudget} {formData.currency}
+                                    {totalBudget} {formData.currency}
                                 </span>
                             </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {formData.perChannelBudget || '0'} × {formData.slots} channels
+                            </p>
                         </div>
                     </GlassCard>
                 )}
@@ -293,29 +353,39 @@ export function CampaignWizard() {
                                 <label className="text-sm font-medium mb-1.5 block">Min Subscribers</label>
                                 <Input
                                     type="number"
+                                    min="0"
                                     placeholder="e.g., 1000"
                                     value={formData.minSubscribers}
-                                    onChange={e => setFormData({ ...formData, minSubscribers: e.target.value })}
+                                    onChange={e => handleNumericInput(e.target.value, 'minSubscribers')}
                                 />
                             </div>
                             <div>
                                 <label className="text-sm font-medium mb-1.5 block">Max Subscribers</label>
                                 <Input
                                     type="number"
+                                    min="0"
                                     placeholder="No limit"
                                     value={formData.maxSubscribers}
-                                    onChange={e => setFormData({ ...formData, maxSubscribers: e.target.value })}
+                                    onChange={e => handleNumericInput(e.target.value, 'maxSubscribers')}
                                 />
                             </div>
                         </div>
+
+                        {/* Validation warning */}
+                        {formData.minSubscribers && formData.maxSubscribers && !subscriberRangeValid() && (
+                            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                                Min subscribers must be less than or equal to max subscribers
+                            </div>
+                        )}
 
                         <div>
                             <label className="text-sm font-medium mb-1.5 block">Min Avg Views</label>
                             <Input
                                 type="number"
+                                min="0"
                                 placeholder="e.g., 5000"
                                 value={formData.minAvgViews}
-                                onChange={e => setFormData({ ...formData, minAvgViews: e.target.value })}
+                                onChange={e => handleNumericInput(e.target.value, 'minAvgViews')}
                             />
                         </div>
 
@@ -459,14 +529,20 @@ export function CampaignWizard() {
                                 <span className="font-medium">{formData.title}</span>
                             </div>
                             <div className="flex justify-between py-2 border-b border-muted">
-                                <span className="text-muted-foreground">Total Budget</span>
-                                <span className="font-bold text-primary">
-                                    {formData.totalBudget} {formData.currency}
+                                <span className="text-muted-foreground">Per Channel</span>
+                                <span className="font-medium">
+                                    {formData.perChannelBudget} {formData.currency}
                                 </span>
                             </div>
                             <div className="flex justify-between py-2 border-b border-muted">
-                                <span className="text-muted-foreground">Slots</span>
-                                <span>{formData.slots} channels @ {perChannelBudget} {formData.currency} each</span>
+                                <span className="text-muted-foreground">Channels</span>
+                                <span>{formData.slots}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-muted">
+                                <span className="text-muted-foreground">Total Budget</span>
+                                <span className="font-bold text-primary">
+                                    {totalBudget} {formData.currency}
+                                </span>
                             </div>
                             <div className="flex justify-between py-2 border-b border-muted">
                                 <span className="text-muted-foreground">Type</span>
@@ -506,7 +582,7 @@ export function CampaignWizard() {
                         {formData.campaignType === 'open' && (
                             <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
                                 <p className="text-xs text-amber-200">
-                                    ⚡ You'll need to escrow {formData.totalBudget} {formData.currency} to publish this campaign.
+                                    ⚡ You'll need to escrow {totalBudget} {formData.currency} to publish this campaign.
                                 </p>
                             </div>
                         )}
