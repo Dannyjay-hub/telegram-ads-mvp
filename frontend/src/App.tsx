@@ -9,6 +9,8 @@ import { AdvertiserDashboard } from '@/components/AdvertiserDashboard'
 import { ChannelOwnerDashboard } from '@/components/ChannelOwnerDashboard'
 import { MyChannelsPage } from '@/components/MyChannelsPage'
 import { CampaignsList } from '@/components/CampaignsList'
+import { CampaignDetail } from '@/components/CampaignDetail'
+import { CampaignMarketplace } from '@/components/CampaignMarketplace'
 import { PartnershipsList } from '@/components/PartnershipsList'
 import { ChannelOwnerPartnerships } from '@/components/ChannelOwnerPartnerships'
 import { MarketplaceContainer } from '@/components/MarketplaceContainer'
@@ -128,7 +130,10 @@ function AppContent() {
           <Route path="/advertiser" element={<AdvertiserDashboard />} />
           <Route path="/channel-owner" element={<ChannelOwnerDashboard />} />
           <Route path="/create" element={<CampaignWizard />} />
+          <Route path="/campaign/create" element={<CampaignWizard />} />
           <Route path="/campaigns" element={<CampaignsList />} />
+          <Route path="/campaigns/:id" element={<CampaignDetail />} />
+          <Route path="/campaigns/marketplace" element={<CampaignMarketplace />} />
           <Route path="/channels/new" element={<ChannelWizard />} />
           <Route path="/channels/edit/:id" element={<ChannelWizard />} />
           <Route path="/channels/:id/view" element={<ChannelViewPage />} />

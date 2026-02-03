@@ -1,137 +1,238 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
-import { ChevronRight, Check } from 'lucide-react'
-import { createDeal } from '@/lib/api'
+import { ChevronRight, ChevronLeft, Check, Users, Globe, Folder, Clock, Sparkles, Target } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
+import { API_URL } from '@/lib/api'
 
-const STEPS = ['Budget', 'Creative', 'Summary']
+const STEPS = ['Basics', 'Budget', 'Targeting', 'Type', 'Review']
+
+// Common categories for channels
+const CATEGORIES = [
+    'Crypto', 'Tech', 'Finance', 'Gaming', 'Entertainment',
+    'News', 'Education', 'Lifestyle', 'Sports', 'Business'
+]
+
+// Common languages
+const LANGUAGES = [
+    { code: 'en', name: 'English' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'de', name: 'German' }
+]
+
+interface CampaignFormData {
+    // Basics
+    title: string
+    brief: string
+    // Budget
+    totalBudget: string
+    currency: 'TON' | 'USDT'
+    slots: number
+    // Targeting
+    minSubscribers: string
+    maxSubscribers: string
+    requiredLanguages: string[]
+    requiredCategories: string[]
+    minAvgViews: string
+    // Type
+    campaignType: 'open' | 'closed'
+    expiresInDays: string
+}
 
 export function CampaignWizard() {
     const navigate = useNavigate()
-    const location = useLocation()
     const { user } = useTelegram()
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-    // Pre-fill from "Hire" button
-    const initialState = location.state || {}
-
-    const [formData, setFormData] = useState({
-        budget: initialState.price ? String(initialState.price) : '',
-        currency: 'USD',
+    const [formData, setFormData] = useState<CampaignFormData>({
+        title: '',
         brief: '',
-        channelId: initialState.channelId || '93057d7b-fc8a-485b-805a-dafc7c632fc5', // Fallback (Test Channel)
-        packageTitle: undefined as string | undefined, // Snapshot
-        packageDescription: undefined as string | undefined
+        totalBudget: '',
+        currency: 'TON',
+        slots: 3,
+        minSubscribers: '',
+        maxSubscribers: '',
+        requiredLanguages: [],
+        requiredCategories: [],
+        minAvgViews: '',
+        campaignType: 'open',
+        expiresInDays: '7'
     })
 
-    // Mock post creation
-    const handleNext = async () => {
-        if (step === STEPS.length - 1) {
-            // Submit
-            setLoading(true)
-            try {
-                await createDeal({
-                    priceAmount: Number(formData.budget),
-                    priceCurrency: formData.currency,
-                    briefText: formData.brief,
-                    channelId: formData.channelId,
-                    packageTitle: formData.packageTitle,
-                    packageDescription: formData.packageDescription,
-                    // Backend now defaults to 'submitted' status
-                }, user?.telegramId)
-                navigate('/')
-            } catch (e) {
-                console.error(e)
-                // Fallback demo
-                setTimeout(() => navigate('/'), 1000)
-            } finally {
-                setLoading(false)
-            }
-        } else {
-            setStep(s => s + 1)
+    const perChannelBudget = formData.slots > 0 && formData.totalBudget
+        ? (parseFloat(formData.totalBudget) / formData.slots).toFixed(2)
+        : '0'
+
+    const canProceed = () => {
+        switch (step) {
+            case 0: return formData.title.length >= 3 && formData.brief.length >= 10
+            case 1: return parseFloat(formData.totalBudget) > 0 && formData.slots > 0
+            case 2: return true // Targeting is optional
+            case 3: return true // Type defaults are okay
+            default: return true
         }
     }
 
+    const handleNext = async () => {
+        if (step < STEPS.length - 1) {
+            setStep(s => s + 1)
+            return
+        }
+
+        // Submit campaign
+        setLoading(true)
+        setError(null)
+
+        try {
+            const expiresAt = formData.expiresInDays
+                ? new Date(Date.now() + parseInt(formData.expiresInDays) * 24 * 60 * 60 * 1000).toISOString()
+                : undefined
+
+            const response = await fetch(`${API_URL}/campaigns`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Id': String(user?.telegramId || '')
+                },
+                body: JSON.stringify({
+                    title: formData.title,
+                    brief: formData.brief,
+                    totalBudget: parseFloat(formData.totalBudget),
+                    currency: formData.currency,
+                    slots: formData.slots,
+                    campaignType: formData.campaignType,
+                    minSubscribers: formData.minSubscribers ? parseInt(formData.minSubscribers) : 0,
+                    maxSubscribers: formData.maxSubscribers ? parseInt(formData.maxSubscribers) : undefined,
+                    requiredLanguages: formData.requiredLanguages.length > 0 ? formData.requiredLanguages : undefined,
+                    requiredCategories: formData.requiredCategories.length > 0 ? formData.requiredCategories : undefined,
+                    minAvgViews: formData.minAvgViews ? parseInt(formData.minAvgViews) : 0,
+                    expiresAt
+                })
+            })
+
+            if (!response.ok) {
+                const errData = await response.json()
+                throw new Error(errData.error || 'Failed to create campaign')
+            }
+
+            const { campaign } = await response.json()
+
+            // For open campaigns, go to escrow payment
+            // For closed campaigns, go to campaign list
+            if (formData.campaignType === 'open') {
+                navigate('/campaigns/escrow', { state: { campaign } })
+            } else {
+                navigate('/campaigns')
+            }
+        } catch (e: any) {
+            console.error('Campaign creation error:', e)
+            setError(e.message || 'Failed to create campaign')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleBack = () => {
+        if (step > 0) setStep(s => s - 1)
+        else navigate(-1)
+    }
+
+    const toggleArrayItem = (arr: string[], item: string) => {
+        return arr.includes(item)
+            ? arr.filter(x => x !== item)
+            : [...arr, item]
+    }
+
     return (
-        <div className="pb-20">
-            {/* Header - back navigation handled by Telegram native BackButton */}
-            <div className="mb-6">
-                <h1 className="text-xl font-bold">New Campaign</h1>
+        <div className="pb-24">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+                <button onClick={handleBack} className="p-2 -ml-2 hover:bg-white/5 rounded-lg">
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div>
+                    <h1 className="text-xl font-bold">Create Campaign</h1>
+                    <p className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</p>
+                </div>
             </div>
 
             {/* Progress */}
-            <div className="flex justify-between mb-8 px-2">
-                {STEPS.map((s, i) => (
-                    <div key={s} className="flex flex-col items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i <= step ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' : 'bg-muted text-muted-foreground'
-                            }`}>
-                            {i < step ? <Check className="w-4 h-4" /> : i + 1}
-                        </div>
-                        <span className={`text-xs ${i <= step ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{s}</span>
-                    </div>
+            <div className="flex gap-1 mb-6">
+                {STEPS.map((_, i) => (
+                    <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-all ${i <= step ? 'bg-primary' : 'bg-muted'
+                            }`}
+                    />
                 ))}
             </div>
 
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* Step 0: Basics */}
                 {step === 0 && (
-                    <GlassCard className="space-y-4">
-                        {initialState.channel?.rateCard && initialState.channel.rateCard.length > 0 ? (
-                            <div className="space-y-3">
-                                <label className="text-sm font-medium mb-1.5 block">Select a Package</label>
-                                <div className="grid gap-3">
-                                    {initialState.channel.rateCard.map((pkg: any) => (
-                                        <div
-                                            key={pkg.id}
-                                            className={`p-3 rounded-lg border cursor-pointer hover:bg-white/5 transition-all ${formData.packageTitle === pkg.title ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-white/10'
-                                                }`}
-                                            onClick={() => setFormData({
-                                                ...formData,
-                                                budget: String(pkg.price),
-                                                brief: pkg.description ? `(Package: ${pkg.title}) ${pkg.description}` : formData.brief,
-                                                packageTitle: pkg.title,
-                                                packageDescription: pkg.description
-                                            })}
-                                        >
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="font-bold">{pkg.title}</span>
-                                                <span className="font-mono font-bold">${pkg.price}</span>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground line-clamp-2">{pkg.description}</p>
-                                        </div>
-                                    ))}
-                                    <div
-                                        className={`p-3 rounded-lg border cursor-pointer border-dashed border-white/20 hover:border-white/40 text-center text-sm text-muted-foreground ${!formData.packageTitle ? 'bg-white/5' : ''
-                                            }`}
-                                        onClick={() => setFormData({ ...formData, budget: '', packageTitle: undefined, packageDescription: undefined })}
-                                    >
-                                        Or enter custom budget...
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null}
+                    <GlassCard className="space-y-5">
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                            <Sparkles className="w-5 h-5" />
+                            <span className="font-semibold">Campaign Details</span>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium mb-1.5 block">Campaign Title</label>
+                            <Input
+                                placeholder="e.g., Product Launch Q1"
+                                value={formData.title}
+                                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                autoFocus
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium mb-1.5 block">Brief / Instructions</label>
+                            <textarea
+                                className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                placeholder="Describe your ad requirements, tone of voice, mandatory elements..."
+                                value={formData.brief}
+                                onChange={e => setFormData({ ...formData, brief: e.target.value })}
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {formData.brief.length} / 500 characters
+                            </p>
+                        </div>
+                    </GlassCard>
+                )}
+
+                {/* Step 1: Budget */}
+                {step === 1 && (
+                    <GlassCard className="space-y-5">
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                            <Target className="w-5 h-5" />
+                            <span className="font-semibold">Budget & Slots</span>
+                        </div>
 
                         <div>
                             <label className="text-sm font-medium mb-1.5 block">Total Budget</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                                <Input
-                                    type="number"
-                                    placeholder="0.00"
-                                    className="pl-7 text-lg"
-                                    value={formData.budget}
-                                    onChange={e => setFormData({ ...formData, budget: e.target.value })}
-                                    autoFocus={!initialState.channel?.rateCard?.length}
-                                />
-                            </div>
+                            <Input
+                                type="number"
+                                placeholder="0.00"
+                                value={formData.totalBudget}
+                                onChange={e => setFormData({ ...formData, totalBudget: e.target.value })}
+                                autoFocus
+                            />
                         </div>
+
                         <div>
                             <label className="text-sm font-medium mb-1.5 block">Currency</label>
                             <div className="flex gap-2">
-                                {['USD', 'TON', 'USDT'].map(c => (
+                                {(['TON', 'USDT'] as const).map(c => (
                                     <Button
                                         key={c}
                                         variant={formData.currency === c ? 'default' : 'outline'}
@@ -143,47 +244,292 @@ export function CampaignWizard() {
                                 ))}
                             </div>
                         </div>
+
+                        <div>
+                            <label className="text-sm font-medium mb-1.5 block">
+                                Number of Slots (Channels)
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setFormData({ ...formData, slots: Math.max(1, formData.slots - 1) })}
+                                    disabled={formData.slots <= 1}
+                                >
+                                    -
+                                </Button>
+                                <span className="text-2xl font-bold w-12 text-center">{formData.slots}</span>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setFormData({ ...formData, slots: formData.slots + 1 })}
+                                >
+                                    +
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Per Channel:</span>
+                                <span className="text-xl font-bold text-primary">
+                                    {perChannelBudget} {formData.currency}
+                                </span>
+                            </div>
+                        </div>
                     </GlassCard>
                 )}
 
-                {step === 1 && (
-                    <GlassCard className="space-y-4">
+                {/* Step 2: Targeting */}
+                {step === 2 && (
+                    <GlassCard className="space-y-5">
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                            <Users className="w-5 h-5" />
+                            <span className="font-semibold">Channel Requirements</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-sm font-medium mb-1.5 block">Min Subscribers</label>
+                                <Input
+                                    type="number"
+                                    placeholder="e.g., 1000"
+                                    value={formData.minSubscribers}
+                                    onChange={e => setFormData({ ...formData, minSubscribers: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium mb-1.5 block">Max Subscribers</label>
+                                <Input
+                                    type="number"
+                                    placeholder="No limit"
+                                    value={formData.maxSubscribers}
+                                    onChange={e => setFormData({ ...formData, maxSubscribers: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
                         <div>
-                            <label className="text-sm font-medium mb-1.5 block">Campaign Brief</label>
-                            <textarea
-                                className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="Describe your ad requirements..."
-                                value={formData.brief}
-                                onChange={e => setFormData({ ...formData, brief: e.target.value })}
+                            <label className="text-sm font-medium mb-1.5 block">Min Avg Views</label>
+                            <Input
+                                type="number"
+                                placeholder="e.g., 5000"
+                                value={formData.minAvgViews}
+                                onChange={e => setFormData({ ...formData, minAvgViews: e.target.value })}
                             />
                         </div>
-                        <div className="p-4 rounded-lg bg-accent/50 text-xs text-muted-foreground">
-                            Tip: Be specific about the tone of voice and any mandatory hashtags.
+
+                        <div>
+                            <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                                <Globe className="w-4 h-4" />
+                                Languages
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {LANGUAGES.map(lang => (
+                                    <button
+                                        key={lang.code}
+                                        onClick={() => setFormData({
+                                            ...formData,
+                                            requiredLanguages: toggleArrayItem(formData.requiredLanguages, lang.code)
+                                        })}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${formData.requiredLanguages.includes(lang.code)
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted hover:bg-muted/80'
+                                            }`}
+                                    >
+                                        {lang.name}
+                                    </button>
+                                ))}
+                            </div>
+                            {formData.requiredLanguages.length === 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">All languages accepted</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                                <Folder className="w-4 h-4" />
+                                Categories
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {CATEGORIES.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setFormData({
+                                            ...formData,
+                                            requiredCategories: toggleArrayItem(formData.requiredCategories, cat)
+                                        })}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${formData.requiredCategories.includes(cat)
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted hover:bg-muted/80'
+                                            }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                            {formData.requiredCategories.length === 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">All categories accepted</p>
+                            )}
                         </div>
                     </GlassCard>
                 )}
 
-                {step === 2 && (
-                    <GlassCard className="space-y-4">
-                        <h3 className="font-semibold text-lg">Review</h3>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between py-2 border-b">
-                                <span className="text-muted-foreground">Budget</span>
-                                <span className="font-bold">{formData.currency} {formData.budget}</span>
+                {/* Step 3: Type & Duration */}
+                {step === 3 && (
+                    <GlassCard className="space-y-5">
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                            <Clock className="w-5 h-5" />
+                            <span className="font-semibold">Campaign Type</span>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div
+                                onClick={() => setFormData({ ...formData, campaignType: 'open' })}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.campaignType === 'open'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-muted hover:border-muted-foreground/30'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.campaignType === 'open' ? 'border-primary' : 'border-muted-foreground'
+                                        }`}>
+                                        {formData.campaignType === 'open' && (
+                                            <div className="w-2 h-2 rounded-full bg-primary" />
+                                        )}
+                                    </div>
+                                    <span className="font-semibold">Open Campaign</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground ml-6">
+                                    Channels that meet criteria are auto-accepted. Full budget escrowed upfront. Best for speed.
+                                </p>
                             </div>
-                            <div className="py-2">
-                                <span className="text-muted-foreground block mb-1">Brief</span>
-                                <p className="bg-muted/50 p-3 rounded-md">{formData.brief || 'No brief provided'}</p>
+
+                            <div
+                                onClick={() => setFormData({ ...formData, campaignType: 'closed' })}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.campaignType === 'closed'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-muted hover:border-muted-foreground/30'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.campaignType === 'closed' ? 'border-primary' : 'border-muted-foreground'
+                                        }`}>
+                                        {formData.campaignType === 'closed' && (
+                                            <div className="w-2 h-2 rounded-full bg-primary" />
+                                        )}
+                                    </div>
+                                    <span className="font-semibold">Closed Campaign</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground ml-6">
+                                    You manually review and approve each channel. Pay per approval. Best for quality control.
+                                </p>
                             </div>
                         </div>
+
+                        <div>
+                            <label className="text-sm font-medium mb-1.5 block">Campaign Duration</label>
+                            <div className="flex gap-2">
+                                {['3', '7', '14', '30'].map(days => (
+                                    <Button
+                                        key={days}
+                                        variant={formData.expiresInDays === days ? 'default' : 'outline'}
+                                        onClick={() => setFormData({ ...formData, expiresInDays: days })}
+                                        className="flex-1"
+                                    >
+                                        {days}d
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </GlassCard>
+                )}
+
+                {/* Step 4: Review */}
+                {step === 4 && (
+                    <GlassCard className="space-y-4">
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                            <Check className="w-5 h-5 text-primary" />
+                            Review Campaign
+                        </h3>
+
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between py-2 border-b border-muted">
+                                <span className="text-muted-foreground">Title</span>
+                                <span className="font-medium">{formData.title}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-muted">
+                                <span className="text-muted-foreground">Total Budget</span>
+                                <span className="font-bold text-primary">
+                                    {formData.totalBudget} {formData.currency}
+                                </span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-muted">
+                                <span className="text-muted-foreground">Slots</span>
+                                <span>{formData.slots} channels @ {perChannelBudget} {formData.currency} each</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-muted">
+                                <span className="text-muted-foreground">Type</span>
+                                <span className="capitalize">{formData.campaignType}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-muted">
+                                <span className="text-muted-foreground">Duration</span>
+                                <span>{formData.expiresInDays} days</span>
+                            </div>
+                            {formData.minSubscribers && (
+                                <div className="flex justify-between py-2 border-b border-muted">
+                                    <span className="text-muted-foreground">Min Subscribers</span>
+                                    <span>{parseInt(formData.minSubscribers).toLocaleString()}</span>
+                                </div>
+                            )}
+                            {formData.requiredLanguages.length > 0 && (
+                                <div className="flex justify-between py-2 border-b border-muted">
+                                    <span className="text-muted-foreground">Languages</span>
+                                    <span>{formData.requiredLanguages.map(l =>
+                                        LANGUAGES.find(x => x.code === l)?.name
+                                    ).join(', ')}</span>
+                                </div>
+                            )}
+                            {formData.requiredCategories.length > 0 && (
+                                <div className="flex justify-between py-2 border-b border-muted">
+                                    <span className="text-muted-foreground">Categories</span>
+                                    <span>{formData.requiredCategories.join(', ')}</span>
+                                </div>
+                            )}
+
+                            <div className="py-2">
+                                <span className="text-muted-foreground block mb-1">Brief</span>
+                                <p className="bg-muted/50 p-3 rounded-md text-xs">{formData.brief}</p>
+                            </div>
+                        </div>
+
+                        {formData.campaignType === 'open' && (
+                            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                <p className="text-xs text-amber-200">
+                                    ⚡ You'll need to escrow {formData.totalBudget} {formData.currency} to publish this campaign.
+                                </p>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                                {error}
+                            </div>
+                        )}
                     </GlassCard>
                 )}
             </div>
 
             {/* Footer Actions */}
             <div className="fixed bottom-0 left-0 w-full p-4 glass border-t-0 rounded-none rounded-t-2xl z-20">
-                <Button className="w-full text-lg h-12 shadow-xl shadow-primary/20" onClick={handleNext} disabled={loading}>
-                    {loading ? 'Creating...' : step === STEPS.length - 1 ? 'Launch Campaign' : 'Continue'}
+                <Button
+                    className="w-full text-lg h-12 shadow-xl shadow-primary/20"
+                    onClick={handleNext}
+                    disabled={loading || !canProceed()}
+                >
+                    {loading ? 'Creating...' : step === STEPS.length - 1
+                        ? (formData.campaignType === 'open' ? 'Continue to Payment' : 'Create Campaign')
+                        : 'Continue'}
                     {!loading && step !== STEPS.length - 1 && <ChevronRight className="w-5 h-5 ml-1" />}
                 </Button>
             </div>

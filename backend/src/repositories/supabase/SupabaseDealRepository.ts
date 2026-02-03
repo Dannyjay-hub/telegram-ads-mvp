@@ -15,6 +15,7 @@ export class SupabaseDealRepository implements IDealRepository {
             priceAmount: row.price_amount,
             priceCurrency: row.price_currency,
             status: row.status as DealStatus,
+            campaignId: row.campaign_id,
             // Escrow payment fields
             paymentMemo: row.payment_memo,
             advertiserWalletAddress: row.advertiser_wallet_address,
@@ -46,6 +47,7 @@ export class SupabaseDealRepository implements IDealRepository {
             payment_memo: deal.paymentMemo,
             advertiser_wallet_address: deal.advertiserWalletAddress,
             expires_at: deal.expiresAt?.toISOString(),
+            campaign_id: deal.campaignId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             status_updated_at: new Date().toISOString()

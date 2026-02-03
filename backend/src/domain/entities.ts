@@ -65,6 +65,7 @@ export interface Deal {
     advertiserId: string;
     channelId: string;
     briefId?: string;
+    campaignId?: string; // Link to campaign if created via campaign application
 
     briefText: string;
     creativeContent?: any;
@@ -107,4 +108,106 @@ export interface PublicBrief {
     tags: string[];
     isActive: boolean;
     createdAt: Date;
+}
+
+// ============================================
+// CAMPAIGN SYSTEM
+// ============================================
+
+export type CampaignType = 'open' | 'closed';
+
+export type CampaignStatus = 'draft' | 'active' | 'filled' | 'expired' | 'expired_pending' | 'ended';
+
+export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Campaign {
+    id: string;
+    advertiserId: string;
+
+    // Content
+    title: string;
+    brief: string;
+    mediaUrls?: string[];
+
+    // Budget
+    totalBudget: number;
+    currency: string;
+    slots: number;
+    perChannelBudget: number; // Generated column
+
+    // Type
+    campaignType: CampaignType;
+
+    // Eligibility Criteria
+    minSubscribers: number;
+    maxSubscribers?: number;
+    requiredLanguages?: string[];
+    minAvgViews: number;
+    requiredCategories?: string[];
+
+    // Duration
+    startsAt: Date;
+    expiresAt?: Date;
+
+    // Status & Slots
+    status: CampaignStatus;
+    slotsFilled: number;
+
+    // Escrow Tracking
+    escrowWalletAddress?: string;
+    escrowDeposited: number;
+    escrowAllocated: number;
+    escrowAvailable: number; // Generated column
+    escrowFunded: boolean;   // Generated column
+
+    // Timestamps
+    createdAt: Date;
+    updatedAt: Date;
+    expiredAt?: Date;
+}
+
+export interface CampaignApplication {
+    id: string;
+    campaignId: string;
+    channelId: string;
+    status: ApplicationStatus;
+    dealId?: string;
+    appliedAt: Date;
+    reviewedAt?: Date;
+}
+
+export interface CampaignInsert {
+    advertiserId: string;
+    title: string;
+    brief: string;
+    mediaUrls?: string[];
+    totalBudget: number;
+    currency?: string;
+    slots: number;
+    campaignType?: CampaignType;
+    minSubscribers?: number;
+    maxSubscribers?: number;
+    requiredLanguages?: string[];
+    minAvgViews?: number;
+    requiredCategories?: string[];
+    startsAt?: Date;
+    expiresAt?: Date;
+}
+
+export interface CampaignUpdate {
+    title?: string;
+    brief?: string;
+    mediaUrls?: string[];
+    totalBudget?: number;
+    slots?: number;
+    status?: CampaignStatus;
+    minSubscribers?: number;
+    maxSubscribers?: number;
+    requiredLanguages?: string[];
+    minAvgViews?: number;
+    requiredCategories?: string[];
+    expiresAt?: Date;
+    escrowDeposited?: number;
+    escrowAllocated?: number;
+    slotsFilled?: number;
 }
