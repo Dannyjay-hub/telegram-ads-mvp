@@ -212,9 +212,28 @@ export class SupabaseChannelRepository implements IChannelRepository {
     }
 
     async delete(id: string): Promise<void> {
-        console.log(`[ChannelRepo] Deleting channel ${id} and all related records`);
+        console.log(`[ChannelRepo] Attempting to delete channel ${id}`);
 
-        // First delete related records to avoid foreign key constraint errors
+        // FIRST: Check if there are any active deals that would block deletion
+        const activeStatuses = ['funded', 'approved', 'in_progress', 'posted', 'monitoring', 'disputed'];
+
+        const { data: activeDeals, error: checkError } = await supabase
+            .from('deals')
+            .select('id, status')
+            .eq('channel_id', id)
+            .in('status', activeStatuses);
+
+        if (checkError) {
+            console.error('[ChannelRepo] Failed to check active deals:', checkError.message);
+            throw new Error('Failed to check for active deals');
+        }
+
+        if (activeDeals && activeDeals.length > 0) {
+            console.log('[ChannelRepo] Cannot delete - has active deals:', activeDeals);
+            throw new Error(`Cannot delete channel: ${activeDeals.length} active deal(s) in progress. Complete or cancel all deals first.`);
+        }
+
+        // No active deals - proceed with deletion
 
         // 1. Delete channel_admins
         const { error: adminsError } = await supabase
@@ -224,11 +243,11 @@ export class SupabaseChannelRepository implements IChannelRepository {
 
         if (adminsError) {
             console.error('[ChannelRepo] Failed to delete channel_admins:', adminsError.message);
-        } else {
-            console.log('[ChannelRepo] Deleted channel_admins');
+            throw new Error(`Failed to remove channel admins: ${adminsError.message}`);
         }
+        console.log('[ChannelRepo] Deleted channel_admins');
 
-        // 2. Delete ALL deals related to this channel (not just pending)
+        // 2. Delete only inactive/completed deals (no active deals at this point)
         const { error: dealsError } = await supabase
             .from('deals')
             .delete()
@@ -236,9 +255,9 @@ export class SupabaseChannelRepository implements IChannelRepository {
 
         if (dealsError) {
             console.error('[ChannelRepo] Failed to delete deals:', dealsError.message);
-        } else {
-            console.log('[ChannelRepo] Deleted deals');
+            throw new Error(`Failed to delete deal history: ${dealsError.message}`);
         }
+        console.log('[ChannelRepo] Deleted deals');
 
         // 3. Delete unlisted_drafts if any
         const { error: draftsError } = await supabase
