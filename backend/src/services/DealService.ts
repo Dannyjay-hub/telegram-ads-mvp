@@ -2,6 +2,8 @@ import { IDealRepository } from '../repositories/interfaces';
 import { Deal, ContentItem } from '../domain/entities';
 import { v4 as uuidv4 } from 'uuid';
 import { tonPayoutService } from './TonPayoutService';
+import { notifyDealStatusChange } from './NotificationService';
+import { supabase } from '../db';
 
 // Master hot wallet address for escrow payments
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || 'EQA...your-wallet...';
@@ -156,6 +158,28 @@ export class DealService {
             throw new Error('Deal not found');
         }
 
+        // Fetch advertiser telegram_id and channel title for notifications
+        let advertiserTelegramId: number | null = null;
+        let channelTitle = 'Channel';
+
+        try {
+            const { data: advertiser } = await (supabase as any)
+                .from('users')
+                .select('telegram_id')
+                .eq('id', deal.advertiserId)
+                .single();
+            advertiserTelegramId = advertiser?.telegram_id;
+
+            const { data: channel } = await (supabase as any)
+                .from('channels')
+                .select('title')
+                .eq('id', deal.channelId)
+                .single();
+            channelTitle = channel?.title || 'Channel';
+        } catch (e) {
+            console.warn('DealService: Could not fetch user/channel for notification:', e);
+        }
+
         if (reject) {
             if (deal.status === 'submitted' || deal.status === 'negotiating' || deal.status === 'funded') {
                 // If rejecting a funded deal, trigger refund to advertiser
@@ -166,13 +190,19 @@ export class DealService {
                         await tonPayoutService.queueRefund(
                             dealId,
                             deal.advertiserWalletAddress,
-                            deal.priceAmount, // Amount in TON (or USDT if that's what was paid)
-                            'TON', // TODO: Track which currency was used for payment
+                            deal.priceAmount,
+                            'TON',
                             'Rejected by channel owner'
                         );
                     } else {
                         console.warn(`DealService: Cannot refund deal ${dealId} - no advertiser wallet address`);
                     }
+
+                    // Notify advertiser about rejection
+                    if (advertiserTelegramId) {
+                        await notifyDealStatusChange(advertiserTelegramId, dealId, channelTitle, 'rejected');
+                    }
+
                     return this.dealRepo.updateStatus(dealId, 'refunded', 'Rejected by channel owner');
                 }
                 return this.dealRepo.updateStatus(dealId, 'cancelled', 'Rejected by user');
@@ -182,6 +212,10 @@ export class DealService {
 
         // Channel owner approves a funded deal
         if (deal.status === 'funded') {
+            // Notify advertiser about approval
+            if (advertiserTelegramId) {
+                await notifyDealStatusChange(advertiserTelegramId, dealId, channelTitle, 'approved');
+            }
             return this.dealRepo.updateStatus(dealId, 'approved');
         }
 
