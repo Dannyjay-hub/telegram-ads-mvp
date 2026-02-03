@@ -155,7 +155,7 @@ export function CampaignWizard() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Telegram-Id': String(user?.telegramId || '')
+                    'X-Telegram-ID': String(user?.telegramId || '')
                 },
                 body: JSON.stringify(payload)
             })

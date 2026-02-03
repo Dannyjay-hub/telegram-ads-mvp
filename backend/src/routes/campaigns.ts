@@ -20,7 +20,7 @@ const campaigns = new Hono();
 campaigns.post('/', async (c) => {
     try {
         const body = await c.req.json();
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
@@ -65,7 +65,7 @@ campaigns.post('/', async (c) => {
  */
 campaigns.get('/', async (c) => {
     try {
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
@@ -148,7 +148,7 @@ campaigns.put('/:id', async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
@@ -198,7 +198,7 @@ campaigns.put('/:id', async (c) => {
 campaigns.delete('/:id', async (c) => {
     try {
         const id = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
@@ -234,7 +234,7 @@ campaigns.delete('/:id', async (c) => {
 campaigns.post('/:id/publish', async (c) => {
     try {
         const id = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
@@ -278,7 +278,7 @@ campaigns.post('/:id/apply', async (c) => {
         }
 
         // Verify channel ownership
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
         }
@@ -319,7 +319,7 @@ campaigns.post('/:id/apply', async (c) => {
 campaigns.get('/:id/applications', async (c) => {
     try {
         const campaignId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
@@ -372,7 +372,7 @@ campaigns.get('/:id/applications', async (c) => {
 campaigns.post('/applications/:id/approve', async (c) => {
     try {
         const applicationId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
@@ -403,7 +403,7 @@ campaigns.post('/applications/:id/approve', async (c) => {
 campaigns.post('/applications/:id/reject', async (c) => {
     try {
         const applicationId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-Id');
+        const telegramId = c.req.header('X-Telegram-ID');
 
         if (!telegramId) {
             return c.json({ error: 'Telegram ID required' }, 401);
