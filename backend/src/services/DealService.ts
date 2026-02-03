@@ -185,25 +185,34 @@ export class DealService {
             if (deal.status === 'submitted' || deal.status === 'negotiating' || deal.status === 'funded') {
                 // If rejecting a funded deal, trigger refund to advertiser
                 if (deal.status === 'funded') {
-                    // Queue refund to advertiser's wallet
+                    // Queue refund to advertiser's wallet (non-blocking)
                     if (deal.advertiserWalletAddress) {
                         console.log(`DealService: Triggering refund for rejected deal ${dealId}`);
-                        await tonPayoutService.queueRefund(
-                            dealId,
-                            deal.advertiserWalletAddress,
-                            deal.priceAmount,
-                            'TON',
-                            'Rejected by channel owner'
-                        );
+                        try {
+                            await tonPayoutService.queueRefund(
+                                dealId,
+                                deal.advertiserWalletAddress,
+                                deal.priceAmount,
+                                'TON',
+                                'Rejected by channel owner'
+                            );
+                        } catch (refundErr) {
+                            console.error(`DealService: Refund queue failed but continuing:`, refundErr);
+                        }
                     } else {
                         console.warn(`DealService: Cannot refund deal ${dealId} - no advertiser wallet address`);
                     }
 
-                    // Notify advertiser about rejection
+                    // Notify advertiser about rejection (non-blocking)
                     if (advertiserTelegramId) {
-                        await notifyDealStatusChange(advertiserTelegramId, dealId, channelTitle, 'rejected');
+                        try {
+                            await notifyDealStatusChange(advertiserTelegramId, dealId, channelTitle, 'rejected');
+                        } catch (notifErr) {
+                            console.error(`DealService: Notification failed but continuing:`, notifErr);
+                        }
                     }
 
+                    // Always update the deal status
                     return this.dealRepo.updateStatus(dealId, 'refunded', 'Rejected by channel owner');
                 }
                 return this.dealRepo.updateStatus(dealId, 'cancelled', 'Rejected by user');
