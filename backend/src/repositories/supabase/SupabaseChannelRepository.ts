@@ -247,7 +247,30 @@ export class SupabaseChannelRepository implements IChannelRepository {
         }
         console.log('[ChannelRepo] Deleted channel_admins');
 
-        // 2. Delete only inactive/completed deals (no active deals at this point)
+        // 2. Get deal IDs for this channel to delete pending_payouts
+        const { data: channelDeals } = await supabase
+            .from('deals')
+            .select('id')
+            .eq('channel_id', id);
+
+        const dealIds = channelDeals?.map(d => d.id) || [];
+
+        // 3. Delete pending_payouts for these deals (must be done before deleting deals)
+        if (dealIds.length > 0) {
+            const { error: payoutsError } = await supabase
+                .from('pending_payouts')
+                .delete()
+                .in('deal_id', dealIds);
+
+            if (payoutsError) {
+                console.error('[ChannelRepo] Failed to delete pending_payouts:', payoutsError.message);
+                // Don't throw - this table might not exist or have no records
+            } else {
+                console.log('[ChannelRepo] Deleted pending_payouts');
+            }
+        }
+
+        // 4. Delete deals (no active deals at this point)
         const { error: dealsError } = await supabase
             .from('deals')
             .delete()
