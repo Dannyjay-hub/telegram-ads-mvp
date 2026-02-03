@@ -1,6 +1,7 @@
 import { IDealRepository } from '../repositories/interfaces';
 import { Deal, ContentItem } from '../domain/entities';
 import { v4 as uuidv4 } from 'uuid';
+import { tonPayoutService } from './TonPayoutService';
 
 // Master hot wallet address for escrow payments
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || 'EQA...your-wallet...';
@@ -157,8 +158,21 @@ export class DealService {
 
         if (reject) {
             if (deal.status === 'submitted' || deal.status === 'negotiating' || deal.status === 'funded') {
-                // If rejecting a funded deal, trigger refund
+                // If rejecting a funded deal, trigger refund to advertiser
                 if (deal.status === 'funded') {
+                    // Queue refund to advertiser's wallet
+                    if (deal.advertiserWalletAddress) {
+                        console.log(`DealService: Triggering refund for rejected deal ${dealId}`);
+                        await tonPayoutService.queueRefund(
+                            dealId,
+                            deal.advertiserWalletAddress,
+                            deal.priceAmount, // Amount in TON (or USDT if that's what was paid)
+                            'TON', // TODO: Track which currency was used for payment
+                            'Rejected by channel owner'
+                        );
+                    } else {
+                        console.warn(`DealService: Cannot refund deal ${dealId} - no advertiser wallet address`);
+                    }
                     return this.dealRepo.updateStatus(dealId, 'refunded', 'Rejected by channel owner');
                 }
                 return this.dealRepo.updateStatus(dealId, 'cancelled', 'Rejected by user');
@@ -178,4 +192,30 @@ export class DealService {
 
         return deal;
     }
+
+    /**
+     * Release funds to channel owner after successful deal completion
+     */
+    async releaseFunds(dealId: string, channelOwnerWalletAddress: string): Promise<Deal> {
+        const deal = await this.dealRepo.findById(dealId);
+        if (!deal) {
+            throw new Error('Deal not found');
+        }
+
+        if (deal.status !== 'monitoring' && deal.status !== 'posted') {
+            throw new Error(`Cannot release funds for deal in ${deal.status} status`);
+        }
+
+        // Queue payout to channel owner
+        console.log(`DealService: Releasing funds for deal ${dealId} to ${channelOwnerWalletAddress}`);
+        await tonPayoutService.queuePayout(
+            dealId,
+            channelOwnerWalletAddress,
+            deal.priceAmount,
+            'TON'
+        );
+
+        return this.dealRepo.updateStatus(dealId, 'released', 'Funds released to channel owner');
+    }
 }
+

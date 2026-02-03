@@ -8,15 +8,20 @@ CREATE TABLE IF NOT EXISTS pending_payouts (
     -- Recipient details
     recipient_address TEXT NOT NULL,
     amount_ton DECIMAL(15, 9) NOT NULL,
+    currency TEXT DEFAULT 'TON', -- 'TON' or 'USDT'
     memo TEXT,
     
     -- Type and status
     type TEXT DEFAULT 'payout', -- 'payout' or 'refund'
-    status TEXT DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
+    status TEXT DEFAULT 'pending', -- 'pending', 'pending_approval', 'processing', 'completed', 'failed'
     reason TEXT, -- For refunds, the reason
     
     -- Transaction tracking
     tx_hash TEXT,
+    
+    -- Approval (for amounts over threshold)
+    approved_by UUID REFERENCES users(id),
+    executed_at TIMESTAMPTZ,
     
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -32,3 +37,4 @@ CREATE INDEX IF NOT EXISTS idx_pending_payouts_status ON pending_payouts(status)
 CREATE INDEX IF NOT EXISTS idx_pending_payouts_deal ON pending_payouts(deal_id);
 
 COMMENT ON TABLE pending_payouts IS 'Queue of pending TON payouts and refunds for manual or automated execution';
+
