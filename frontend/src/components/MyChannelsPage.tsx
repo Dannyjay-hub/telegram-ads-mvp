@@ -74,8 +74,8 @@ export function MyChannelsPage() {
                                         {channel.isActive ? 'Active' : 'Pending'}
                                     </div>
                                     <div className="text-sm font-semibold text-muted-foreground flex flex-col items-end">
-                                        <span className="text-[10px] uppercase tracking-wider opacity-70">Base Price</span>
-                                        <span>${channel.basePriceAmount}</span>
+                                        <span className="text-[10px] uppercase tracking-wider opacity-70">Packages</span>
+                                        <span>{channel.rateCard?.length || 0}</span>
                                     </div>
                                 </div>
                             </div>

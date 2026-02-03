@@ -112,14 +112,14 @@ export function MarketplacePage() {
                                     <span className="text-sm text-muted-foreground">
                                         {channel.rateCard && channel.rateCard.length > 0
                                             ? `${channel.rateCard.length} Package${channel.rateCard.length > 1 ? 's' : ''} Available`
-                                            : 'Standard Post'
+                                            : 'No packages yet'
                                         }
                                     </span>
                                     <span className="font-bold text-primary">
-                                        ${channel.rateCard && channel.rateCard.length > 0
-                                            ? Math.min(...channel.rateCard.map((p: any) => p.price || 0))
-                                            : channel.basePriceAmount || 100
-                                        }+
+                                        {channel.rateCard && channel.rateCard.length > 0
+                                            ? `${Math.min(...channel.rateCard.map((p: any) => p.price || 0))} ${channel.rateCard[0]?.currency || 'TON'}+`
+                                            : ''
+                                        }
                                     </span>
                                 </div>
                             </div>

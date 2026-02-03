@@ -433,10 +433,9 @@ export function ChannelViewPage() {
                     ) : (
                         <div className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-white/5">
                             <div>
-                                <span className="font-bold">Standard Post</span>
-                                <p className="text-xs text-muted-foreground">Starting price</p>
+                                <span className="font-bold text-muted-foreground">No packages available</span>
+                                <p className="text-xs text-muted-foreground">This channel hasn't set up any service packages yet.</p>
                             </div>
-                            <span className="font-bold text-lg text-primary">${channel.basePriceAmount || 100}</span>
                         </div>
                     )}
                 </div>

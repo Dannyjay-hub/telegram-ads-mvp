@@ -29,7 +29,6 @@ export function ChannelWizard() {
     const [missingPerms, setMissingPerms] = useState<string[]>([])
 
     const [verifiedStats, setVerifiedStats] = useState<any>(null)
-    const [basePrice, setBasePrice] = useState('')
     const [rateCard, setRateCard] = useState<any[]>([]) // Legacy support
     const [newPackage, setNewPackage] = useState({ title: '', price: '', type: 'Post', description: '', currency: 'TON' as 'TON' | 'USDT' })
     const [showPackageForm, setShowPackageForm] = useState(false)
@@ -70,7 +69,6 @@ export function ChannelWizard() {
 
             if (channel) {
                 setChannelId(channel.telegramChannelId?.toString() || '')
-                setBasePrice(channel.basePriceAmount?.toString() || '')
                 setRateCard(channel.rateCard || [])
                 setDescription(channel.description || '')
                 setCategory(channel.category || '')
@@ -202,8 +200,8 @@ export function ChannelWizard() {
                     setLoading(false);
                     return;
                 }
-                if (!basePrice || Number(basePrice) < 1) {
-                    showAlert('Please set a base price (minimum $1)');
+                if (rateCard.length === 0) {
+                    showAlert('Please add at least one service package to your rate card');
                     setLoading(false);
                     return;
                 }
@@ -290,11 +288,8 @@ export function ChannelWizard() {
                 description: description,
                 category: category,
                 language: language,
-                base_price_amount: basePrice ? Number(basePrice) : null,
-                // New Phase 1 Pricing Structure
-                pricing: basePrice ? {
-                    base_price: Number(basePrice)
-                } : null,
+                // base_price_amount removed - using rate card packages only
+                pricing: null,
                 rateCard: rateCard,
                 status: status
             };
@@ -541,23 +536,6 @@ export function ChannelWizard() {
 
                             <GlassCard className="p-6 space-y-6">
                                 <h3 className="font-semibold">Pricing Configuration</h3>
-
-                                {/* Base Price First */}
-                                <div className="space-y-2">
-                                    <Label>Base Price (Fallback)</Label>
-                                    <p className="text-xs text-muted-foreground -mt-1 mb-2">
-                                        Starting price for general inquiries.
-                                    </p>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                                        <Input
-                                            type="number"
-                                            className="pl-7 bg-black/20"
-                                            value={basePrice}
-                                            onChange={e => setBasePrice(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
 
                                 {/* Service Packages Header with Add Button */}
                                 <div className="flex items-center justify-between pt-4 border-t border-white/5">

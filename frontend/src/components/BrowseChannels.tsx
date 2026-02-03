@@ -31,11 +31,9 @@ export function BrowseChannels() {
         }
     }
 
-    const handleHire = async (channel: Channel) => {
-        // In real app, open modal to input brief logic
-        // For MVP, redirect to Create Campaign with pre-selected channel
-        // We will pass channelId via state or URL
-        navigate('/create', { state: { channelId: channel.id, price: channel.basePriceAmount } });
+    const handleHire = (channel: Channel) => {
+        // Navigate to channel view page
+        navigate(`/channels/${channel.id}`);
     }
 
     return (
@@ -98,7 +96,13 @@ export function BrowseChannels() {
                                 </div>
                             </div>
                             <div className="text-right shrink-0">
-                                <div className="font-bold text-lg">${channel.basePriceAmount}</div>
+                                <div className="font-bold text-lg">
+                                    {channel.rateCard?.length ? (
+                                        <>From {Math.min(...channel.rateCard.map((p: any) => p.price))} {channel.rateCard[0]?.currency || 'TON'}</>
+                                    ) : (
+                                        <span className="text-muted-foreground text-sm">No packages</span>
+                                    )}
+                                </div>
                                 <Button size="sm" onClick={() => handleHire(channel)} className="mt-1 h-8">
                                     Hire
                                 </Button>
