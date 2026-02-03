@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User } from 'lucide-react'
+import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2 } from 'lucide-react'
 import { API_URL, getHeaders } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
 
@@ -85,7 +85,10 @@ export function ChannelOwnerPartnerships() {
         try {
             const response = await fetch(`${API_URL}/deals/${dealId}/approve`, {
                 method: 'POST',
-                headers: getHeaders(),
+                headers: {
+                    ...getHeaders(),
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     is_advertiser: false,
                     reject
@@ -94,9 +97,11 @@ export function ChannelOwnerPartnerships() {
 
             if (response.ok) {
                 haptic.success()
-                // Refresh deals
+                // Refresh deals after action
                 await loadDeals()
             } else {
+                const err = await response.json().catch(() => ({}))
+                console.error('Approve/Reject failed:', err)
                 haptic.error()
             }
         } catch (error) {
@@ -237,8 +242,12 @@ export function ChannelOwnerPartnerships() {
                                             onClick={() => handleApprove(deal.id, false)}
                                             disabled={processingId === deal.id}
                                         >
-                                            <CheckCircle className="w-4 h-4 mr-1" />
-                                            Accept
+                                            {processingId === deal.id ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <CheckCircle className="w-4 h-4 mr-1" />
+                                            )}
+                                            {processingId === deal.id ? 'Processing...' : 'Accept'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -247,8 +256,12 @@ export function ChannelOwnerPartnerships() {
                                             onClick={() => handleApprove(deal.id, true)}
                                             disabled={processingId === deal.id}
                                         >
-                                            <XCircle className="w-4 h-4 mr-1" />
-                                            Reject
+                                            {processingId === deal.id ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <XCircle className="w-4 h-4 mr-1" />
+                                            )}
+                                            {processingId === deal.id ? 'Processing...' : 'Reject'}
                                         </Button>
                                     </div>
                                 )}
