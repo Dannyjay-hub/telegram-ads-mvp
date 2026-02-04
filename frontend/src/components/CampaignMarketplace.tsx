@@ -254,7 +254,7 @@ export function CampaignMarketplace() {
                             <GlassCard
                                 key={campaign.id}
                                 className="p-4 space-y-3 cursor-pointer hover:border-primary/50 transition-colors"
-                                onClick={() => navigate(`/campaigns/marketplace/${campaign.id}`)}
+                                onClick={() => navigate(`/campaigns/marketplace/${campaign.id}${selectedChannel ? `?channel=${selectedChannel}` : ''}`)}
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">

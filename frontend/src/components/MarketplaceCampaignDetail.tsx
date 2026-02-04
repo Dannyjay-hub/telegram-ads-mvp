@@ -79,7 +79,14 @@ export function MarketplaceCampaignDetail() {
                 const channels = await channelsRes.json()
                 setUserChannels(channels)
                 if (channels.length > 0) {
-                    setSelectedChannel(channels[0].id)
+                    // Check if channel was passed in URL, otherwise use first channel
+                    const urlParams = new URLSearchParams(window.location.search)
+                    const preselectedChannel = urlParams.get('channel')
+                    if (preselectedChannel && channels.some((ch: UserChannel) => ch.id === preselectedChannel)) {
+                        setSelectedChannel(preselectedChannel)
+                    } else {
+                        setSelectedChannel(channels[0].id)
+                    }
                 }
             }
         } catch (error) {
