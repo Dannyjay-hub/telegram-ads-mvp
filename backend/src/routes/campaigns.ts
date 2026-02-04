@@ -153,6 +153,54 @@ campaigns.get('/', async (c) => {
 });
 
 /**
+ * Delete a draft campaign
+ * DELETE /campaigns/:id
+ */
+campaigns.delete('/:id', async (c) => {
+    try {
+        const campaignId = c.req.param('id');
+        const telegramId = c.req.header('X-Telegram-ID');
+
+        if (!telegramId) {
+            return c.json({ error: 'Telegram ID required' }, 401);
+        }
+
+        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        // Get campaign and verify ownership
+        const campaign = await campaignService.getCampaign(campaignId);
+        if (!campaign) {
+            return c.json({ error: 'Campaign not found' }, 404);
+        }
+
+        if (campaign.advertiserId !== user.id) {
+            return c.json({ error: 'Not authorized' }, 403);
+        }
+
+        // Only allow deleting draft campaigns
+        if (campaign.status !== 'draft') {
+            return c.json({ error: 'Can only delete draft campaigns' }, 400);
+        }
+
+        // Delete directly from supabase
+        const { error: deleteError } = await supabase
+            .from('campaigns')
+            .delete()
+            .eq('id', campaignId);
+
+        if (deleteError) throw deleteError;
+
+        return c.json({ success: true });
+    } catch (error: any) {
+        console.error('[Campaigns] Delete error:', error);
+        return c.json({ error: error.message || 'Failed to delete campaign' }, 500);
+    }
+});
+
+/**
  * Get active campaigns in marketplace (Channel Owner View)
  * GET /campaigns/marketplace
  */

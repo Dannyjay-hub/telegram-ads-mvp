@@ -110,7 +110,7 @@ export function EscrowPaymentPage() {
 
         // Poll for campaign activation (webhook will update status to 'active')
         let pollCount = 0
-        const maxPolls = 40 // 2 minutes max (every 3 seconds)
+        const maxPolls = 30 // 60 seconds max (every 2 seconds)
 
         const interval = setInterval(async () => {
             pollCount++
@@ -124,10 +124,16 @@ export function EscrowPaymentPage() {
                 const data = await res.json()
 
                 // Check if campaign was funded and activated
-                if (data.status === 'active' || data.escrowDeposited > 0) {
+                // Check multiple conditions for success:
+                // - status changed to 'active' 
+                // - escrow was deposited
+                // - status is no longer 'draft'
+                if (data.status === 'active' ||
+                    data.escrowDeposited > 0 ||
+                    (data.status && data.status !== 'draft')) {
                     clearInterval(interval)
                     setVerifying(false)
-                    navigate('/campaigns', {
+                    navigate('/advertiser', {
                         replace: true,
                         state: { paymentSuccess: true, campaignId: campaign.id }
                     })
@@ -137,17 +143,17 @@ export function EscrowPaymentPage() {
                 console.error('Poll error:', e)
             }
 
-            // Timeout after max polls
+            // Timeout after max polls - still redirect
             if (pollCount >= maxPolls) {
                 clearInterval(interval)
                 setVerifying(false)
-                // Still redirect, payment may be processing
-                navigate('/campaigns', {
+                // Still redirect to campaigns list - payment may still be processing
+                navigate('/advertiser', {
                     replace: true,
                     state: { paymentPending: true, campaignId: campaign?.id }
                 })
             }
-        }, 3000)
+        }, 2000) // Poll every 2 seconds instead of 3
     }
 
     if (loading && !campaign) {

@@ -101,17 +101,34 @@ export function CampaignWizard() {
             return
         }
 
-        // Otherwise load from localStorage
-        try {
-            const saved = localStorage.getItem(DRAFT_KEY)
-            if (saved) {
-                const parsed = JSON.parse(saved)
-                setFormData({ ...DEFAULT_FORM_DATA, ...parsed })
-            }
-        } catch (e) {
-            console.warn('Failed to load draft:', e)
-        }
+        // Fresh create - clear any old localStorage draft
+        // User must explicitly use "Resume" button to restore a draft
+        localStorage.removeItem(DRAFT_KEY)
     }, [location.state])
+
+    // Handle Telegram back button - go to previous step or exit
+    useEffect(() => {
+        const WebApp = (window as any).Telegram?.WebApp
+        if (!WebApp) return
+
+        // Show back button
+        WebApp.BackButton.show()
+
+        const handleBack = () => {
+            if (step > 0) {
+                setStep(step - 1)
+            } else {
+                // Step 0 - go to advertiser dashboard
+                navigate('/advertiser')
+            }
+        }
+
+        WebApp.BackButton.onClick(handleBack)
+
+        return () => {
+            WebApp.BackButton.offClick(handleBack)
+        }
+    }, [step, navigate])
 
     // Save draft to localStorage on change
     useEffect(() => {
@@ -573,25 +590,49 @@ export function CampaignWizard() {
                                     <span className="font-semibold">Closed Campaign</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground ml-6">
-                                    You manually review and approve each channel. Pay per approval. Best for quality control.
+                                    You manually review and approve each channel. Full budget escrowed upfront. Best for quality control.
                                 </p>
                             </div>
                         </div>
 
                         <div>
                             <label className="text-sm font-medium mb-1.5 block">Campaign Duration</label>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                                 {['3', '7', '14', '30'].map(days => (
                                     <Button
                                         key={days}
                                         variant={formData.expiresInDays === days ? 'default' : 'outline'}
                                         onClick={() => setFormData({ ...formData, expiresInDays: days })}
-                                        className="flex-1"
+                                        className="flex-1 min-w-[60px]"
                                     >
                                         {days}d
                                     </Button>
                                 ))}
+                                <Button
+                                    variant={!['3', '7', '14', '30'].includes(formData.expiresInDays) ? 'default' : 'outline'}
+                                    onClick={() => setFormData({ ...formData, expiresInDays: '' })}
+                                    className="flex-1 min-w-[60px]"
+                                >
+                                    Custom
+                                </Button>
                             </div>
+                            {!['3', '7', '14', '30'].includes(formData.expiresInDays) && (
+                                <div className="mt-2">
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        max="90"
+                                        placeholder="Enter days (1-90)"
+                                        value={formData.expiresInDays}
+                                        onChange={e => {
+                                            const val = e.target.value
+                                            if (val === '' || (parseInt(val) >= 1 && parseInt(val) <= 90)) {
+                                                setFormData({ ...formData, expiresInDays: val })
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </GlassCard>
                 )}

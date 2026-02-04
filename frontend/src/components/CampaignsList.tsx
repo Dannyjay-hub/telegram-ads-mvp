@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap, Play } from 'lucide-react'
+import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap, Play, Trash2 } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -76,6 +76,23 @@ export function CampaignsList() {
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
         if (days > 0) return `${days}d ${hours}h left`
         return `${hours}h left`
+    }
+
+    const deleteDraft = async (campaignId: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!confirm('Delete this draft? This cannot be undone.')) return
+
+        try {
+            const response = await fetch(`${API_URL}/campaigns/${campaignId}`, {
+                method: 'DELETE',
+                headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+            })
+            if (response.ok) {
+                setCampaigns(prev => prev.filter(c => c.id !== campaignId))
+            }
+        } catch (e) {
+            console.error('Delete error:', e)
+        }
     }
 
     if (loading || isAuthLoading) {
@@ -170,18 +187,28 @@ export function CampaignsList() {
                                         {campaign.campaignType} Campaign
                                     </span>
                                     {campaign.status === 'draft' ? (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-7 px-3 gap-1"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                navigate('/campaign/create', { state: { resumeDraft: campaign } })
-                                            }}
-                                        >
-                                            <Play className="w-3 h-3" />
-                                            Resume
-                                        </Button>
+                                        <div className="flex gap-1.5">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 px-3 gap-1"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    navigate('/campaign/create', { state: { resumeDraft: campaign } })
+                                                }}
+                                            >
+                                                <Play className="w-3 h-3" />
+                                                Resume
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                                onClick={(e) => deleteDraft(campaign.id, e)}
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </div>
                                     ) : timeLeft && campaign.status === 'active' && (
                                         <span className="flex items-center gap-1 text-amber-400">
                                             <Clock className="w-3 h-3" />
