@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap, ChevronLeft } from 'lucide-react'
+import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -89,16 +89,11 @@ export function CampaignsList() {
         <div className="space-y-6 pb-24">
             {/* Header */}
             <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-white/5 rounded-lg">
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-bold">Your Campaigns</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
-                        </p>
-                    </div>
+                <div>
+                    <h1 className="text-xl font-bold">Your Campaigns</h1>
+                    <p className="text-sm text-muted-foreground">
+                        {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
+                    </p>
                 </div>
                 <Button onClick={() => navigate('/campaign/create')} size="sm">
                     <Plus className="w-4 h-4 mr-1" />
