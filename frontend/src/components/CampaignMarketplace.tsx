@@ -182,8 +182,14 @@ export function CampaignMarketplace() {
                         const slotsLeft = campaign.slots - campaign.slotsFilled
                         const timeLeft = getTimeLeft(campaign.expiresAt)
 
+                        // Check if selected channel meets requirements
+                        const selectedChannelData = userChannels.find(ch => ch.id === selectedChannel)
+                        const channelSubscribers = selectedChannelData?.subscriberCount || selectedChannelData?.subscribers || 0
+                        const meetsMinSubscribers = !campaign.minSubscribers || channelSubscribers >= campaign.minSubscribers
+                        const isEligible = meetsMinSubscribers && slotsLeft > 0
+
                         return (
-                            <GlassCard key={campaign.id} className="space-y-3">
+                            <GlassCard key={campaign.id} className="p-4 space-y-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
@@ -217,8 +223,11 @@ export function CampaignMarketplace() {
                                         </div>
 
                                         {campaign.minSubscribers && (
-                                            <div className="mt-2 text-xs text-muted-foreground">
+                                            <div className={`mt-2 text-xs ${meetsMinSubscribers ? 'text-muted-foreground' : 'text-red-400'}`}>
                                                 Min {campaign.minSubscribers.toLocaleString()} subscribers
+                                                {!meetsMinSubscribers && selectedChannelData && (
+                                                    <span className="ml-1">(your channel has {channelSubscribers.toLocaleString()})</span>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -228,6 +237,10 @@ export function CampaignMarketplace() {
                                     {campaign.hasApplied ? (
                                         <Button className="w-full" disabled variant="outline">
                                             Applied ✓
+                                        </Button>
+                                    ) : !isEligible ? (
+                                        <Button className="w-full" disabled variant="outline">
+                                            {!meetsMinSubscribers ? 'Not enough subscribers' : 'No slots available'}
                                         </Button>
                                     ) : (
                                         <Button
