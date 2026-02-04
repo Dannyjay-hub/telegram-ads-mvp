@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap } from 'lucide-react'
+import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap, ChevronLeft } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -30,14 +30,20 @@ const STATUS_CONFIG = {
 
 export function CampaignsList() {
     const navigate = useNavigate()
-    const { user } = useTelegram()
+    const { user, isLoading: isAuthLoading } = useTelegram()
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        fetchCampaigns()
-    }, [user?.telegramId])
+        if (!isAuthLoading) {
+            if (user?.telegramId) {
+                fetchCampaigns()
+            } else {
+                setLoading(false)
+            }
+        }
+    }, [user?.telegramId, isAuthLoading])
 
     const fetchCampaigns = async () => {
         if (!user?.telegramId) return
@@ -71,7 +77,7 @@ export function CampaignsList() {
         return `${hours}h left`
     }
 
-    if (loading) {
+    if (loading || isAuthLoading) {
         return (
             <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -82,12 +88,17 @@ export function CampaignsList() {
     return (
         <div className="space-y-6 pb-24">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-bold">Your Campaigns</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
-                    </p>
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-white/5 rounded-lg">
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <h1 className="text-xl font-bold">Your Campaigns</h1>
+                        <p className="text-sm text-muted-foreground">
+                            {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
+                        </p>
+                    </div>
                 </div>
                 <Button onClick={() => navigate('/campaign/create')} size="sm">
                     <Plus className="w-4 h-4 mr-1" />

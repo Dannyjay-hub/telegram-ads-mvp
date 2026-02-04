@@ -3,6 +3,7 @@ import { campaignService } from '../services/CampaignService';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { CampaignInsert, CampaignUpdate } from '../domain/entities';
+import { supabase } from '../db';
 
 const userRepository = new SupabaseUserRepository();
 const channelRepository = new SupabaseChannelRepository();
