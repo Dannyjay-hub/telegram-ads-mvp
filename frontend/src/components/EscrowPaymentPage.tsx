@@ -184,14 +184,24 @@ export function EscrowPaymentPage() {
             </div>
 
             <div className="fixed bottom-6 left-4 right-4 z-20">
-                <Button
-                    size="lg"
-                    className="w-full text-lg font-bold shadow-lg shadow-primary/25"
-                    onClick={handlePayment}
-                    disabled={loading || verifying}
-                >
-                    {verifying ? 'Verifying Payment...' : `Pay ${campaign.totalBudget} ${campaign.currency}`}
-                </Button>
+                {!tonConnectUI.connected ? (
+                    <Button
+                        size="lg"
+                        className="w-full text-lg font-bold shadow-lg shadow-primary/25"
+                        onClick={() => tonConnectUI.openModal()}
+                    >
+                        Connect Wallet to Pay
+                    </Button>
+                ) : (
+                    <Button
+                        size="lg"
+                        className="w-full text-lg font-bold shadow-lg shadow-primary/25"
+                        onClick={handlePayment}
+                        disabled={loading || verifying}
+                    >
+                        {verifying ? 'Verifying Payment...' : `Pay ${campaign.totalBudget} ${campaign.currency}`}
+                    </Button>
+                )}
             </div>
         </div>
     )
