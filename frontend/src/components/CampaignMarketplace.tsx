@@ -209,8 +209,26 @@ export function CampaignMarketplace() {
                                 !meetsLanguage ? 'language' :
                                     slotsLeft <= 0 ? 'slots' : null
 
+                        // Debug logging for eligibility checks
+                        if (!meetsLanguage && campaign.requiredLanguages?.length) {
+                            console.log('[Eligibility Debug]', {
+                                campaignTitle: campaign.title,
+                                requiredLanguages: campaign.requiredLanguages,
+                                channelLanguage,
+                                comparison: campaign.requiredLanguages.map(lang => ({
+                                    required: lang.toLowerCase(),
+                                    channel: channelLanguage.toLowerCase(),
+                                    matches: lang.toLowerCase() === channelLanguage.toLowerCase()
+                                }))
+                            })
+                        }
+
                         return (
-                            <GlassCard key={campaign.id} className="p-4 space-y-3">
+                            <GlassCard
+                                key={campaign.id}
+                                className="p-4 space-y-3 cursor-pointer hover:border-primary/50 transition-colors"
+                                onClick={() => navigate(`/campaigns/marketplace/${campaign.id}`)}
+                            >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
@@ -254,7 +272,7 @@ export function CampaignMarketplace() {
                                     </div>
                                 </div>
 
-                                <div className="pt-2 border-t border-muted">
+                                <div className="pt-2 border-t border-muted" onClick={(e) => e.stopPropagation()}>
                                     {campaign.hasApplied ? (
                                         <Button className="w-full" disabled variant="outline">
                                             Applied ✓
@@ -269,7 +287,10 @@ export function CampaignMarketplace() {
                                     ) : (
                                         <Button
                                             className="w-full"
-                                            onClick={() => applyToCampaign(campaign.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                applyToCampaign(campaign.id)
+                                            }}
                                             disabled={applying === campaign.id || !selectedChannel}
                                         >
                                             {applying === campaign.id ? 'Applying...' : (

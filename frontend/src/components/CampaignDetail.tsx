@@ -173,29 +173,29 @@ export function CampaignDetail() {
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
-                <GlassCard className="text-center py-4">
+                <GlassCard className="text-center p-4">
                     <div className="text-2xl font-bold text-primary">{campaign.totalBudget}</div>
                     <div className="text-xs text-muted-foreground">{campaign.currency}</div>
                 </GlassCard>
-                <GlassCard className="text-center py-4">
+                <GlassCard className="text-center p-4">
                     <div className="text-2xl font-bold">{campaign.slotsFilled}/{campaign.slots}</div>
                     <div className="text-xs text-muted-foreground">Slots</div>
                 </GlassCard>
-                <GlassCard className="text-center py-4">
+                <GlassCard className="text-center p-4">
                     <div className="text-2xl font-bold">{campaign.perChannelBudget}</div>
                     <div className="text-xs text-muted-foreground">Per Channel</div>
                 </GlassCard>
             </div>
 
             {/* Brief */}
-            <GlassCard>
+            <GlassCard className="p-4">
                 <h3 className="font-semibold mb-2">Brief</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{campaign.brief}</p>
             </GlassCard>
 
             {/* Draft Actions */}
             {campaign.status === 'draft' && (
-                <GlassCard className="space-y-3">
+                <GlassCard className="p-4 space-y-3">
                     <h3 className="font-semibold">Ready to Launch?</h3>
                     <p className="text-sm text-muted-foreground">
                         {campaign.campaignType === 'open'
@@ -214,7 +214,7 @@ export function CampaignDetail() {
 
             {/* Pending Applications (Closed campaigns) */}
             {campaign.campaignType === 'closed' && pendingApps.length > 0 && (
-                <GlassCard>
+                <GlassCard className="p-4">
                     <h3 className="font-semibold mb-3 flex items-center gap-2">
                         <Clock className="w-4 h-4 text-amber-400" />
                         Pending Applications ({pendingApps.length})
@@ -258,7 +258,7 @@ export function CampaignDetail() {
 
             {/* Approved Channels */}
             {approvedApps.length > 0 && (
-                <GlassCard>
+                <GlassCard className="p-4">
                     <h3 className="font-semibold mb-3 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-green-400" />
                         Active Channels ({approvedApps.length})
@@ -281,7 +281,7 @@ export function CampaignDetail() {
 
             {/* Requirements */}
             {(campaign.minSubscribers || campaign.requiredLanguages?.length || campaign.requiredCategories?.length) && (
-                <GlassCard>
+                <GlassCard className="p-4">
                     <h3 className="font-semibold mb-3">Requirements</h3>
                     <div className="space-y-2 text-sm">
                         {campaign.minSubscribers && (
