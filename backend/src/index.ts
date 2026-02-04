@@ -61,10 +61,15 @@ import { tonWebhookService } from './services/TonWebhookService';
 // Register webhooks for instant payment detection (preferred)
 tonWebhookService.registerWebhooks().catch(console.error);
 
-// Start polling for payments as backup (every 30 seconds)
+// Start polling for payments as backup
 // Disable with ENABLE_TON_POLLING=false if webhooks are working
+// Increase interval with TON_POLL_INTERVAL_MS (default: 60000 = 1 minute)
 if (process.env.ENABLE_TON_POLLING !== 'false') {
-    tonPaymentService.startPolling(30000);
+    const pollInterval = parseInt(process.env.TON_POLL_INTERVAL_MS || '60000', 10);
+    console.log(`TON Polling enabled with interval: ${pollInterval / 1000}s`);
+    tonPaymentService.startPolling(pollInterval);
+} else {
+    console.log('TON Polling disabled (using webhooks only)');
 }
 
 // Admin endpoint to check recent transactions
