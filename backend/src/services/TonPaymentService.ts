@@ -277,6 +277,11 @@ export class TonPaymentService {
         // Extract memo from payload - TON API puts it in payload.Value.Text
         const memo = op.payload?.Value?.Text || '';
 
+        // Only process transfers with valid memo prefix (reduce log noise)
+        if (!memo.startsWith('campaign_') && !memo.startsWith('deal_')) {
+            return; // Ignore transfers without our memo format
+        }
+
         // ✅ Mark as processed BEFORE attempting (to prevent parallel duplicates)
         if (txHash) {
             this.processedJettonTxHashes.add(txHash);
