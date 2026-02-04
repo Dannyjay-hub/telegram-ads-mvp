@@ -55,6 +55,9 @@ export class SupabaseCampaignRepository {
     }
 
     async create(data: CampaignInsert): Promise<Campaign> {
+        // Calculate per-channel budget
+        const perChannelBudget = data.totalBudget / data.slots;
+
         const { data: campaign, error } = await supabase
             .from('campaigns')
             .insert({
@@ -63,6 +66,7 @@ export class SupabaseCampaignRepository {
                 brief: data.brief,
                 media_urls: data.mediaUrls,
                 total_budget: data.totalBudget,
+                per_channel_budget: perChannelBudget,
                 currency: data.currency || 'TON',
                 slots: data.slots,
                 campaign_type: data.campaignType || 'open',
