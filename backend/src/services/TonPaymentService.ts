@@ -91,11 +91,6 @@ export class TonPaymentService {
     // Max size to prevent memory leak
     private readonly MAX_PROCESSED_CACHE = 1000;
 
-    // Blacklist of memos that were manually deleted - never process these again
-    private static readonly ORPHANED_MEMOS = new Set([
-        'deal_2cffbc8d8a2b4184', // Manually deleted from DB
-    ]);
-
     constructor() {
         const dealRepo = new SupabaseDealRepository();
         this.dealService = new DealService(dealRepo);
@@ -285,11 +280,6 @@ export class TonPaymentService {
         // Only process transfers with valid memo prefix (reduce log noise)
         if (!memo.startsWith('campaign_') && !memo.startsWith('deal_')) {
             return; // Ignore transfers without our memo format
-        }
-
-        // Skip orphaned memos (manually deleted from DB)
-        if (TonPaymentService.ORPHANED_MEMOS.has(memo)) {
-            return; // Silently ignore known orphaned transactions
         }
 
         // ✅ Mark as processed BEFORE attempting (to prevent parallel duplicates)
