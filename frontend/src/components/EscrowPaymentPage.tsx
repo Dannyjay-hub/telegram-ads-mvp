@@ -30,7 +30,7 @@ export function EscrowPaymentPage() {
     const [tonConnectUI] = useTonConnectUI()
 
     // Campaign can be passed via state (from wizard) or we fetch it
-    const [campaign, setCampaign] = useState<Campaign | null>(location.state?.campaign || null)
+    const [campaign] = useState<Campaign | null>(location.state?.campaign || null)
     const [loading, setLoading] = useState(!location.state?.campaign)
     const [verifying, setVerifying] = useState(false)
     const [error, setError] = useState<string | null>(null)
