@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Clock, CheckCircle, Loader2, Check, X } from 'lucide-react'
@@ -41,6 +41,7 @@ interface Application {
 
 export function CampaignDetail() {
     const { id } = useParams()
+    const navigate = useNavigate()
     const { user } = useTelegram()
     const [campaign, setCampaign] = useState<Campaign | null>(null)
     const [applications, setApplications] = useState<Application[]>([])
@@ -49,6 +50,19 @@ export function CampaignDetail() {
 
     // Toast notification for undo
     const [toast, setToast] = useState<{ message: string; undoAction?: () => void } | null>(null)
+
+    // Handle Telegram back button - go to advertiser dashboard
+    useEffect(() => {
+        const WebApp = (window as any).Telegram?.WebApp
+        if (!WebApp) return
+
+        WebApp.BackButton.show()
+
+        const handleBack = () => navigate('/advertiser')
+        WebApp.BackButton.onClick(handleBack)
+
+        return () => WebApp.BackButton.offClick(handleBack)
+    }, [navigate])
 
     useEffect(() => {
         if (id) fetchCampaign()

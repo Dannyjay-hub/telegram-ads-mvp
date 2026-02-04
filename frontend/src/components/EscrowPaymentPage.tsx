@@ -5,7 +5,7 @@ import { Info, Wallet, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
-import { TON_TOKEN } from '@/lib/jettons'
+import { TON_TOKEN, USDT_TOKEN } from '@/lib/jettons'
 
 // Temporary GlassCard component if not found
 const GlassCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
@@ -75,10 +75,11 @@ export function EscrowPaymentPage() {
             setLoading(true)
             setError(null)
 
-            // Use sendPayment from useTonWallet (same as ChannelViewPage)
-            // This properly handles TON transfers with memo
+            // Use correct token based on campaign currency
+            const paymentToken = campaign.currency === 'USDT' ? USDT_TOKEN : TON_TOKEN
+
             await sendPayment(
-                TON_TOKEN,
+                paymentToken,
                 paymentInstructions.address,
                 paymentInstructions.amount,
                 paymentInstructions.memo
@@ -92,10 +93,13 @@ export function EscrowPaymentPage() {
             const errMsg = e.message?.toLowerCase() || ''
 
             if (errMsg.includes('rejected') || errMsg.includes('cancelled') || errMsg.includes('canceled')) {
-                // User cancelled, just reset loading
+                // User cancelled, just reset loading - don't show error
                 setLoading(false)
             } else if (errMsg.includes('not connected') || errMsg.includes('connect')) {
-                setError('Please connect your wallet first')
+                // Only show wallet error if genuinely not connected
+                if (!isConnected) {
+                    setError('Please connect your wallet first')
+                }
                 setLoading(false)
             } else {
                 setError(e.message || 'Payment failed. Please try again.')

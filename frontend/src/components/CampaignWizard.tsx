@@ -32,6 +32,7 @@ interface CampaignFormData {
     // Basics
     title: string
     brief: string
+    contentType: 'post' | 'story' | 'forward'
     // Budget - now per-channel based
     perChannelBudget: string
     currency: 'TON' | 'USDT'
@@ -50,6 +51,7 @@ interface CampaignFormData {
 const DEFAULT_FORM_DATA: CampaignFormData = {
     title: '',
     brief: '',
+    contentType: 'post',
     perChannelBudget: '',
     currency: 'TON',
     slots: 3,
@@ -185,6 +187,7 @@ export function CampaignWizard() {
             const payload = {
                 title: formData.title.trim(),
                 brief: formData.brief.trim(),
+                contentType: formData.contentType,
                 totalBudget: Math.round(finalTotalBudget * 100) / 100, // Round to 2 decimals
                 currency: formData.currency,
                 slots: formData.slots,
@@ -355,6 +358,32 @@ export function CampaignWizard() {
                             <p className="text-xs text-muted-foreground mt-1">
                                 {formData.brief.length} / 500 characters
                             </p>
+                        </div>
+
+                        {/* Content Type */}
+                        <div>
+                            <label className="text-sm font-medium mb-2 block">Content Type</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { value: 'post', label: 'Post', icon: '📝', desc: 'Channel post' },
+                                    { value: 'story', label: 'Story', icon: '📱', desc: '24h story' },
+                                    { value: 'forward', label: 'Forward', icon: '↪️', desc: 'Repost' }
+                                ].map(type => (
+                                    <button
+                                        key={type.value}
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, contentType: type.value as 'post' | 'story' | 'forward' })}
+                                        className={`p-3 rounded-xl border-2 text-center transition-all ${formData.contentType === type.value
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-muted hover:border-muted-foreground/30'
+                                            }`}
+                                    >
+                                        <div className="text-2xl mb-1">{type.icon}</div>
+                                        <div className="font-medium text-sm">{type.label}</div>
+                                        <div className="text-xs text-muted-foreground">{type.desc}</div>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </GlassCard>
                 )}
