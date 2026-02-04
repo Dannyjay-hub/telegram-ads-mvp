@@ -6,6 +6,7 @@
 
 import { DealService } from './DealService';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
+import { SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 import { Address } from '@ton/core';
 
 // TON Center API (legacy, kept for reference)
@@ -81,6 +82,7 @@ interface JettonEvent {
 
 export class TonPaymentService {
     private dealService: DealService;
+    private campaignRepo: SupabaseCampaignRepository;
     private lastProcessedLt: string = '0';
     private lastJettonEventId: string = '';
     private isPolling: boolean = false;
@@ -92,6 +94,7 @@ export class TonPaymentService {
     constructor() {
         const dealRepo = new SupabaseDealRepository();
         this.dealService = new DealService(dealRepo);
+        this.campaignRepo = new SupabaseCampaignRepository();
     }
 
     /**
@@ -273,9 +276,6 @@ export class TonPaymentService {
 
         // Extract memo from payload - TON API puts it in payload.Value.Text
         const memo = op.payload?.Value?.Text || '';
-        if (!memo || !memo.startsWith('deal_')) {
-            return;
-        }
 
         // ✅ Mark as processed BEFORE attempting (to prevent parallel duplicates)
         if (txHash) {
@@ -293,15 +293,39 @@ export class TonPaymentService {
         console.log(`  Amount: ${amount} USDT`);
         console.log(`  From: ${op.source?.address}`);
 
-        try {
-            await this.dealService.confirmPayment(memo, txHash);
-            console.log(`✅ TonPaymentService: USDT payment confirmed for ${memo}`);
-        } catch (error: any) {
-            if (error.message.includes('not in') && error.message.includes('status')) {
-                // Already processed
-            } else {
-                console.error(`TonPaymentService: Error confirming USDT ${memo}:`, error.message);
+        // Handle campaign escrow payments
+        if (memo.startsWith('campaign_')) {
+            try {
+                const campaign = await this.campaignRepo.findByPaymentMemo(memo);
+                if (!campaign) {
+                    console.error(`TonPaymentService: Campaign not found for memo: ${memo}`);
+                    return;
+                }
+                if (campaign.escrowDeposited && campaign.escrowDeposited > 0) {
+                    console.log(`TonPaymentService: Campaign ${memo} already funded`);
+                    return;
+                }
+                await this.campaignRepo.confirmEscrowDeposit(campaign.id, amount, txHash);
+                console.log(`✅ TonPaymentService: USDT campaign payment confirmed for ${memo}`);
+            } catch (error: any) {
+                console.error(`TonPaymentService: Error confirming USDT campaign ${memo}:`, error.message);
             }
+            return;
+        }
+
+        // Handle deal payments
+        if (memo.startsWith('deal_')) {
+            try {
+                await this.dealService.confirmPayment(memo, txHash);
+                console.log(`✅ TonPaymentService: USDT payment confirmed for ${memo}`);
+            } catch (error: any) {
+                if (error.message.includes('not in') && error.message.includes('status')) {
+                    // Already processed
+                } else {
+                    console.error(`TonPaymentService: Error confirming USDT ${memo}:`, error.message);
+                }
+            }
+            return;
         }
     }
 

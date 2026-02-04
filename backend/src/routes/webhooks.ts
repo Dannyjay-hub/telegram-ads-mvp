@@ -218,19 +218,26 @@ async function processJettonTransfer(tx: any) {
 
     console.log('[Webhook] USDT transfer:', { amount, comment });
 
-    if (!comment || !comment.startsWith('deal_')) {
-        console.log('[Webhook] No deal memo');
+    // Handle campaign escrow payments with USDT
+    if (comment.startsWith('campaign_')) {
+        await processCampaignPayment(comment, amount, tx.hash);
         return;
     }
 
-    try {
-        await dealService.confirmPayment(comment, tx.hash);
-        console.log(`[Webhook] ✅ USDT payment confirmed: ${amount} USDT for ${comment}`);
-    } catch (error: any) {
-        if (!error.message.includes('not in pending status')) {
-            console.error('[Webhook] Error confirming:', error.message);
+    // Handle deal payments with USDT
+    if (comment.startsWith('deal_')) {
+        try {
+            await dealService.confirmPayment(comment, tx.hash);
+            console.log(`[Webhook] ✅ USDT payment confirmed: ${amount} USDT for ${comment}`);
+        } catch (error: any) {
+            if (!error.message.includes('not in pending status')) {
+                console.error('[Webhook] Error confirming:', error.message);
+            }
         }
+        return;
     }
+
+    console.log('[Webhook] No recognized memo prefix for USDT');
 }
 
 export default app;
