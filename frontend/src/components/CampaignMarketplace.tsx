@@ -64,9 +64,11 @@ export function CampaignMarketplace() {
             })
             if (response.ok) {
                 const data = await response.json()
-                setUserChannels(data.channels || [])
-                if (data.channels?.length > 0) {
-                    setSelectedChannel(data.channels[0].id)
+                // API returns array directly, not { channels: [...] }
+                const channels = Array.isArray(data) ? data : (data.channels || [])
+                setUserChannels(channels)
+                if (channels.length > 0) {
+                    setSelectedChannel(channels[0].id)
                 }
             }
         } catch (e) {
