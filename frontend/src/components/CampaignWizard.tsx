@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,6 +73,10 @@ export function CampaignWizard() {
     const [savingDraft, setSavingDraft] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    // Ref to track current step for back button handler
+    const stepRef = useRef(step)
+    stepRef.current = step // Always keep ref in sync
+
     const [formData, setFormData] = useState<CampaignFormData>(DEFAULT_FORM_DATA)
 
     // Check if resuming a draft
@@ -109,7 +113,7 @@ export function CampaignWizard() {
     }, [location.state])
 
     // Handle Telegram back button - go to previous step or exit
-    // Use a ref to avoid stale closure issues with step value
+    // Using ref so handler doesn't need re-registration on step change
     useEffect(() => {
         const WebApp = (window as any).Telegram?.WebApp
         if (!WebApp) return
@@ -118,16 +122,15 @@ export function CampaignWizard() {
         WebApp.BackButton.show()
 
         const handleBack = () => {
-            // Use functional update to get current step value
-            setStep(currentStep => {
-                if (currentStep > 0) {
-                    return currentStep - 1
-                } else {
-                    // Step 0 - go to advertiser dashboard
-                    navigate('/advertiser')
-                    return currentStep
-                }
-            })
+            const currentStep = stepRef.current
+            console.log('[CampaignWizard] Back button pressed, step:', currentStep)
+
+            if (currentStep > 0) {
+                setStep(currentStep - 1)
+            } else {
+                // Step 0 - navigate to advertiser dashboard
+                navigate('/advertiser')
+            }
         }
 
         WebApp.BackButton.onClick(handleBack)
@@ -135,7 +138,7 @@ export function CampaignWizard() {
         return () => {
             WebApp.BackButton.offClick(handleBack)
         }
-    }, [navigate]) // Remove step from deps - use functional update instead
+    }, [navigate]) // Only navigate in deps - stepRef.current is always fresh
 
     // Save draft to localStorage on change
     useEffect(() => {
