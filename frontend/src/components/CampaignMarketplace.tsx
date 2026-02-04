@@ -143,13 +143,6 @@ export function CampaignMarketplace() {
 
     return (
         <div className="space-y-6 pb-24">
-            {/* Header */}
-            <div>
-                <h1 className="text-xl font-bold">Find Campaigns</h1>
-                <p className="text-sm text-muted-foreground">
-                    {campaigns.length} active campaign{campaigns.length !== 1 ? 's' : ''}
-                </p>
-            </div>
 
             {/* Channel Selector */}
             {userChannels.length > 0 && (
