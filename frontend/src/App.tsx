@@ -17,6 +17,7 @@ import { MarketplaceContainer } from '@/components/MarketplaceContainer'
 import { ChannelWizard } from '@/components/ChannelWizard'
 import { ChannelViewPage } from '@/components/ChannelViewPage'
 import { WalletButton } from '@/components/WalletButton'
+import { EscrowPaymentPage } from '@/components/EscrowPaymentPage'
 import { useTelegramBackButton, initTelegramViewport } from '@/hooks/useTelegramBackButton'
 
 // TON Connect manifest URL - must be accessible publicly
@@ -131,9 +132,11 @@ function AppContent() {
           <Route path="/channel-owner" element={<ChannelOwnerDashboard />} />
           <Route path="/create" element={<CampaignWizard />} />
           <Route path="/campaign/create" element={<CampaignWizard />} />
+          <Route path="/campaign/create" element={<CampaignWizard />} />
           <Route path="/campaigns" element={<CampaignsList />} />
-          <Route path="/campaigns/:id" element={<CampaignDetail />} />
           <Route path="/campaigns/marketplace" element={<CampaignMarketplace />} />
+          <Route path="/campaigns/escrow" element={<EscrowPaymentPage />} />
+          <Route path="/campaigns/:id" element={<CampaignDetail />} />
           <Route path="/channels/new" element={<ChannelWizard />} />
           <Route path="/channels/edit/:id" element={<ChannelWizard />} />
           <Route path="/channels/:id/view" element={<ChannelViewPage />} />
