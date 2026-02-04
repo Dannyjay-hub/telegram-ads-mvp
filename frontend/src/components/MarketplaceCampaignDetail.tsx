@@ -149,6 +149,28 @@ export function MarketplaceCampaignDetail() {
     const channelCategory = selectedChannelData?.category || ''
     const channelLanguage = selectedChannelData?.language || ''
 
+    // Normalize language for comparison (handles 'en' vs 'English' etc)
+    const normalizeLanguage = (lang: string): string => {
+        const lower = lang.toLowerCase().trim()
+        const map: Record<string, string> = {
+            'en': 'english', 'eng': 'english',
+            'ru': 'russian', 'rus': 'russian',
+            'es': 'spanish', 'spa': 'spanish',
+            'pt': 'portuguese', 'por': 'portuguese',
+            'zh': 'chinese', 'chi': 'chinese', 'cn': 'chinese',
+            'ar': 'arabic', 'ara': 'arabic',
+            'hi': 'hindi', 'hin': 'hindi',
+            'fr': 'french', 'fra': 'french',
+            'de': 'german', 'deu': 'german', 'ger': 'german',
+            'ja': 'japanese', 'jpn': 'japanese', 'jp': 'japanese',
+            'ko': 'korean', 'kor': 'korean', 'kr': 'korean',
+            'id': 'indonesian', 'ind': 'indonesian',
+            'tr': 'turkish', 'tur': 'turkish',
+            'it': 'italian', 'ita': 'italian'
+        }
+        return map[lower] || lower
+    }
+
     const meetsMinSubscribers = !campaign.minSubscribers || channelSubscribers >= campaign.minSubscribers
     const meetsMaxSubscribers = !campaign.maxSubscribers || channelSubscribers <= campaign.maxSubscribers
     const meetsCategory = !campaign.requiredCategories?.length ||
@@ -157,7 +179,7 @@ export function MarketplaceCampaignDetail() {
         )
     const meetsLanguage = !campaign.requiredLanguages?.length ||
         campaign.requiredLanguages.some(lang =>
-            lang.toLowerCase() === channelLanguage.toLowerCase()
+            normalizeLanguage(lang) === normalizeLanguage(channelLanguage)
         )
 
     const slotsLeft = campaign.slots - campaign.slotsFilled
