@@ -5,6 +5,7 @@ import { ChevronLeft, Info, Wallet, CheckCircle2, AlertCircle } from 'lucide-rea
 import { Button } from '@/components/ui/button'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
+import { TON_TOKEN } from '@/lib/jettons'
 
 // Temporary GlassCard component if not found
 const GlassCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
@@ -27,79 +28,56 @@ export function EscrowPaymentPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const { user } = useTelegram()
-    const { isConnected, connectWallet, tonConnectUI } = useTonWallet()
+    const { isConnected, connectWallet, sendPayment } = useTonWallet()
 
-    // Campaign can be passed via state (from wizard) or we fetch it
+    // Campaign and payment instructions passed from wizard
     const [campaign] = useState<Campaign | null>(location.state?.campaign || null)
-    const [loading, setLoading] = useState(!location.state?.campaign)
+    const [paymentInstructions] = useState<{ address: string; memo: string; amount: number } | null>(
+        location.state?.paymentInstructions || null
+    )
+    const [loading, setLoading] = useState(false)
     const [verifying, setVerifying] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Parse campaign ID if passed via URL param (fallback)
-    // We might need a route like /campaigns/:id/escrow to be safe, 
-    // but for now handling the /campaigns/escrow state-based route is key.
-
     useEffect(() => {
-        if (!campaign) {
-            // Ideally we should redirect back if no campaign state
-            // But for now let's just show error
-            setError("No campaign details found")
-            setLoading(false)
+        if (!campaign || !paymentInstructions) {
+            setError("No campaign details found. Please create a new campaign.")
         }
-    }, [campaign])
+    }, [campaign, paymentInstructions])
 
     const handlePayment = async () => {
-        if (!campaign) return
+        if (!campaign || !paymentInstructions) return
 
         try {
             setLoading(true)
+            setError(null)
 
-            // 1. Prepare transaction
-            // Amount in nanoton (1 TON = 1e9 nanoton)
-            const amountNano = Math.floor(campaign.totalBudget * 1e9).toString()
+            // Use sendPayment from useTonWallet (same as ChannelViewPage)
+            // This properly handles TON transfers with memo
+            await sendPayment(
+                TON_TOKEN,
+                paymentInstructions.address,
+                paymentInstructions.amount,
+                paymentInstructions.memo
+            )
 
-            // Get wallet address to send to (platform master wallet)
-            // In a real app, this would be campaign.escrowWalletAddress or a unique generated address
-            const destinationAddress = campaign.escrowWalletAddress || "EQ...MASTER_WALLET..."
-
-            // Transaction structure
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
-                messages: [
-                    {
-                        address: destinationAddress,
-                        amount: amountNano,
-                        payload: undefined // logic to create payload (comment/memo) below
-                    }
-                ]
-            }
-
-            // Ideally we need a comment/memo to identify this payment
-            // Using a simple body text if possible, or we need to encode it as BOC
-            // For now, let's assume the backend monitors the sender address + amount
-            // OR usually we pass a 'text' comment in the transaction payload
-
-            // NOTE: tonConnectUI expects payload as specific format if it's a binary message
-            // simpler is to just send amount if the backend tracks it via source/amount match
-            // OR better: The backend should provide a payment link or QR code structure
-
-            // For this MVP, we'll try to send with the campaign ID as comment if supported by UI libs easily,
-            // otherwise just send the amount and rely on the backend finding it.
-
-            await tonConnectUI.sendTransaction(transaction)
-
-            // 2. Start verifying backend receipt
+            // Start verifying backend receipt
             startVerification()
 
         } catch (e: any) {
             console.error('Payment failed:', e)
-            // Use e.message directly for rejection reason
-            if (e?.message?.includes('User rejected')) {
-                // User cancelled, do nothing
+            const errMsg = e.message?.toLowerCase() || ''
+
+            if (errMsg.includes('rejected') || errMsg.includes('cancelled') || errMsg.includes('canceled')) {
+                // User cancelled, just reset loading
+                setLoading(false)
+            } else if (errMsg.includes('not connected') || errMsg.includes('connect')) {
+                setError('Please connect your wallet first')
+                setLoading(false)
             } else {
-                setError("Payment failed. Please try again.")
+                setError(e.message || 'Payment failed. Please try again.')
+                setLoading(false)
             }
-            setLoading(false)
         }
     }
 

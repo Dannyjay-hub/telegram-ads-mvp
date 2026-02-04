@@ -4,9 +4,13 @@ import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRep
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { CampaignInsert, CampaignUpdate } from '../domain/entities';
 import { supabase } from '../db';
+import { v4 as uuidv4 } from 'uuid';
 
 const userRepository = new SupabaseUserRepository();
 const channelRepository = new SupabaseChannelRepository();
+
+// Master hot wallet address for escrow payments (same as in DealService)
+const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || 'EQA...your-wallet...';
 
 const campaigns = new Hono();
 
@@ -33,6 +37,9 @@ campaigns.post('/', async (c) => {
             return c.json({ error: 'User not found' }, 404);
         }
 
+        // Generate unique payment memo for escrow tracking
+        const paymentMemo = `campaign_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
+
         const campaignData: CampaignInsert = {
             advertiserId: user.id,
             title: body.title,
@@ -49,11 +56,20 @@ campaigns.post('/', async (c) => {
             requiredCategories: body.requiredCategories,
             startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
             expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined
+            // Note: paymentMemo is used for payment instructions only, not stored in campaign
         };
 
         const campaign = await campaignService.createCampaign(campaignData);
 
-        return c.json({ campaign }, 201);
+        // Return campaign with payment instructions (same pattern as deals)
+        return c.json({
+            campaign,
+            paymentInstructions: {
+                address: MASTER_WALLET_ADDRESS,
+                memo: paymentMemo,
+                amount: body.totalBudget
+            }
+        }, 201);
     } catch (error: any) {
         console.error('[Campaigns] Create error:', error);
         return c.json({ error: error.message || 'Failed to create campaign' }, 400);

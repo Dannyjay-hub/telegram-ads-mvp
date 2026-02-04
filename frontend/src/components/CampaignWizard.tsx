@@ -165,15 +165,15 @@ export function CampaignWizard() {
                 throw new Error(errData.error || 'Failed to create campaign')
             }
 
-            const { campaign } = await response.json()
+            const { campaign, paymentInstructions } = await response.json()
 
             // Clear draft on success
             localStorage.removeItem(DRAFT_KEY)
 
-            // For open campaigns, go to escrow payment
+            // For open campaigns, go to escrow payment with payment instructions
             // For closed campaigns, go to campaign list
             if (formData.campaignType === 'open') {
-                navigate('/campaigns/escrow', { state: { campaign } })
+                navigate('/campaigns/escrow', { state: { campaign, paymentInstructions } })
             } else {
                 navigate('/campaigns')
             }

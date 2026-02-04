@@ -1,5 +1,9 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// Platform escrow wallet address for receiving campaign funds
+// TODO: Move to environment variable for production
+export const PLATFORM_WALLET_ADDRESS = 'UQDEVQMogJ6w7qQ6hXnsvb1OYWcyvhE576MN6iKvaA0TUwIW';
+
 let authToken: string | null = null;
 
 export const setAuthToken = (token: string) => {
