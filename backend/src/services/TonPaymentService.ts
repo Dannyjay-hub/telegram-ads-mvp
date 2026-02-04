@@ -84,6 +84,10 @@ export class TonPaymentService {
     private lastProcessedLt: string = '0';
     private lastJettonEventId: string = '';
     private isPolling: boolean = false;
+    // Track processed jetton transactions to prevent duplicates (in-memory cache)
+    private processedJettonTxHashes: Set<string> = new Set();
+    // Max size to prevent memory leak
+    private readonly MAX_PROCESSED_CACHE = 1000;
 
     constructor() {
         const dealRepo = new SupabaseDealRepository();
@@ -222,7 +226,8 @@ export class TonPaymentService {
             // API returns 'operations' not 'events'
             const operations = data.operations || [];
 
-            console.log(`[JettonPoll] Received ${operations.length} Jetton operations`);
+            // Only log if there are new operations to process
+            // (Most operations will be skipped by idempotency check)
 
             for (const op of operations) {
                 await this.processJettonOperation(op);
@@ -240,6 +245,13 @@ export class TonPaymentService {
         // Only process incoming transfers
         if (op.operation !== 'transfer') {
             return;
+        }
+
+        const txHash = op.transaction_hash;
+
+        // ✅ IDEMPOTENCY: Skip if already processed
+        if (txHash && this.processedJettonTxHashes.has(txHash)) {
+            return; // Silent skip - already processed
         }
 
         // Check if this is a transfer TO our wallet
@@ -265,14 +277,24 @@ export class TonPaymentService {
             return;
         }
 
+        // ✅ Mark as processed BEFORE attempting (to prevent parallel duplicates)
+        if (txHash) {
+            this.processedJettonTxHashes.add(txHash);
+            // Prune cache if too large
+            if (this.processedJettonTxHashes.size > this.MAX_PROCESSED_CACHE) {
+                const firstKey = this.processedJettonTxHashes.values().next().value;
+                if (firstKey) this.processedJettonTxHashes.delete(firstKey);
+            }
+        }
+
         const amount = Number(op.amount || 0) / 1e6; // USDT has 6 decimals
         console.log(`TonPaymentService: Found USDT transfer with memo: ${memo}`);
-        console.log(`  Transaction: ${op.transaction_hash}`);
+        console.log(`  Transaction: ${txHash}`);
         console.log(`  Amount: ${amount} USDT`);
         console.log(`  From: ${op.source?.address}`);
 
         try {
-            await this.dealService.confirmPayment(memo, op.transaction_hash);
+            await this.dealService.confirmPayment(memo, txHash);
             console.log(`✅ TonPaymentService: USDT payment confirmed for ${memo}`);
         } catch (error: any) {
             if (error.message.includes('not in') && error.message.includes('status')) {
