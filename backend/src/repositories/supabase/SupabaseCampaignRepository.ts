@@ -74,7 +74,9 @@ export class SupabaseCampaignRepository {
                 currency: data.currency || 'TON',
                 slots: data.slots,
                 campaign_type: data.campaignType || 'open',
-                status: 'draft', // Explicitly set to prevent database default issues
+                // Closed campaigns don't need upfront payment - they go active immediately
+                // Open campaigns need escrow payment first - they start as draft
+                status: data.campaignType === 'closed' ? 'active' : 'draft',
                 min_subscribers: data.minSubscribers || 0,
                 max_subscribers: data.maxSubscribers,
                 required_languages: data.requiredLanguages,

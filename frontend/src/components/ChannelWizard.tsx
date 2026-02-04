@@ -210,6 +210,11 @@ export function ChannelWizard() {
                     setLoading(false);
                     return;
                 }
+                if (!language) {
+                    showAlert('Please select a language');
+                    setLoading(false);
+                    return;
+                }
             }
 
             // === OWNER CHECK: For new registrations, verify user is channel owner ===
@@ -515,20 +520,55 @@ export function ChannelWizard() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label>Category</Label>
-                                            <Input
-                                                placeholder="Tech, News, Crypto..."
+                                            <Label>Category <span className="text-red-400">*</span></Label>
+                                            <select
+                                                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                                 value={category}
                                                 onChange={e => setCategory(e.target.value)}
-                                            />
+                                            >
+                                                <option value="">Select category...</option>
+                                                <option value="Crypto">Crypto</option>
+                                                <option value="Tech">Tech</option>
+                                                <option value="News">News</option>
+                                                <option value="Entertainment">Entertainment</option>
+                                                <option value="Education">Education</option>
+                                                <option value="Gaming">Gaming</option>
+                                                <option value="Finance">Finance</option>
+                                                <option value="Lifestyle">Lifestyle</option>
+                                                <option value="Business">Business</option>
+                                                <option value="Sports">Sports</option>
+                                                <option value="Music">Music</option>
+                                                <option value="Art">Art</option>
+                                                <option value="Food">Food</option>
+                                                <option value="Travel">Travel</option>
+                                                <option value="Health">Health</option>
+                                                <option value="Other">Other</option>
+                                            </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Language</Label>
-                                            <Input
-                                                placeholder="English, Spanish, Chinese..."
+                                            <Label>Language <span className="text-red-400">*</span></Label>
+                                            <select
+                                                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                                 value={language}
                                                 onChange={e => setLanguage(e.target.value)}
-                                            />
+                                            >
+                                                <option value="">Select language...</option>
+                                                <option value="English">English</option>
+                                                <option value="Russian">Russian</option>
+                                                <option value="Spanish">Spanish</option>
+                                                <option value="Portuguese">Portuguese</option>
+                                                <option value="Chinese">Chinese</option>
+                                                <option value="Arabic">Arabic</option>
+                                                <option value="Hindi">Hindi</option>
+                                                <option value="French">French</option>
+                                                <option value="German">German</option>
+                                                <option value="Japanese">Japanese</option>
+                                                <option value="Korean">Korean</option>
+                                                <option value="Indonesian">Indonesian</option>
+                                                <option value="Turkish">Turkish</option>
+                                                <option value="Italian">Italian</option>
+                                                <option value="Other">Other</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
