@@ -185,7 +185,10 @@ export function CampaignMarketplace() {
 
                         // Check if selected channel meets requirements
                         const selectedChannelData = userChannels.find(ch => ch.id === selectedChannel)
-                        const channelSubscribers = selectedChannelData?.subscriberCount || selectedChannelData?.subscribers || 0
+                        // Subscriber count can be in verifiedStats.subscribers or directly on channel
+                        const channelSubscribers = selectedChannelData?.verifiedStats?.subscribers ||
+                            selectedChannelData?.subscriberCount ||
+                            selectedChannelData?.subscribers || 0
                         const channelCategory = selectedChannelData?.category || ''
                         const channelLanguage = selectedChannelData?.language || ''
 
