@@ -154,11 +154,14 @@ export interface Campaign {
     slotsFilled: number;
 
     // Escrow Tracking
+    paymentMemo?: string;           // Unique memo for payment verification
+    escrowTxHash?: string;          // Transaction hash of deposit
     escrowWalletAddress?: string;
     escrowDeposited: number;
     escrowAllocated: number;
     escrowAvailable: number; // Generated column
     escrowFunded: boolean;   // Generated column
+    fundedAt?: Date;
 
     // Timestamps
     createdAt: Date;
@@ -192,6 +195,7 @@ export interface CampaignInsert {
     requiredCategories?: string[];
     startsAt?: Date;
     expiresAt?: Date;
+    paymentMemo?: string;  // For escrow tracking
 }
 
 export interface CampaignUpdate {

@@ -83,22 +83,46 @@ export function EscrowPaymentPage() {
 
     const startVerification = () => {
         setVerifying(true)
-        // Poll backend for status update
+        setLoading(false)
+
+        // Poll for campaign activation (webhook will update status to 'active')
+        let pollCount = 0
+        const maxPolls = 40 // 2 minutes max (every 3 seconds)
+
         const interval = setInterval(async () => {
+            pollCount++
+
             try {
                 if (!campaign?.id) return
+
                 const res = await fetch(`${API_URL}/campaigns/${campaign.id}`, {
                     headers: { 'X-Telegram-ID': String(user?.telegramId || '') }
                 })
                 const data = await res.json()
 
-                if (data.status === 'active' || data.escrowFunded) {
+                // Check if campaign was funded and activated
+                if (data.status === 'active' || data.escrowDeposited > 0) {
                     clearInterval(interval)
                     setVerifying(false)
-                    navigate('/campaigns', { replace: true })
+                    navigate('/campaigns', {
+                        replace: true,
+                        state: { paymentSuccess: true, campaignId: campaign.id }
+                    })
+                    return
                 }
             } catch (e) {
-                console.error('Poll error', e)
+                console.error('Poll error:', e)
+            }
+
+            // Timeout after max polls
+            if (pollCount >= maxPolls) {
+                clearInterval(interval)
+                setVerifying(false)
+                // Still redirect, payment may be processing
+                navigate('/campaigns', {
+                    replace: true,
+                    state: { paymentPending: true, campaignId: campaign?.id }
+                })
             }
         }, 3000)
     }

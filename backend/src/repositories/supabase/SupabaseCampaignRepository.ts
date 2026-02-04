@@ -31,11 +31,15 @@ export class SupabaseCampaignRepository {
             expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
             status: row.status,
             slotsFilled: row.slots_filled,
+            // Escrow fields
+            paymentMemo: row.payment_memo,
+            escrowTxHash: row.escrow_tx_hash,
             escrowWalletAddress: row.escrow_wallet_address,
             escrowDeposited: parseFloat(row.escrow_deposited || 0),
             escrowAllocated: parseFloat(row.escrow_allocated || 0),
             escrowAvailable: parseFloat(row.escrow_available || 0),
             escrowFunded: row.escrow_funded,
+            fundedAt: row.funded_at ? new Date(row.funded_at) : undefined,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at),
             expiredAt: row.expired_at ? new Date(row.expired_at) : undefined
@@ -77,7 +81,8 @@ export class SupabaseCampaignRepository {
                 min_avg_views: data.minAvgViews || 0,
                 required_categories: data.requiredCategories,
                 starts_at: data.startsAt || new Date(),
-                expires_at: data.expiresAt
+                expires_at: data.expiresAt,
+                payment_memo: data.paymentMemo  // For escrow tracking
             })
             .select()
             .single();
@@ -95,6 +100,39 @@ export class SupabaseCampaignRepository {
 
         if (error || !data) return null;
         return this.mapRowToCampaign(data);
+    }
+
+    /**
+     * Find campaign by payment memo (for webhook verification)
+     */
+    async findByPaymentMemo(memo: string): Promise<Campaign | null> {
+        const { data, error } = await supabase
+            .from('campaigns')
+            .select('*')
+            .eq('payment_memo', memo)
+            .single();
+
+        if (error || !data) return null;
+        return this.mapRowToCampaign(data);
+    }
+
+    /**
+     * Confirm escrow deposit and activate campaign
+     */
+    async confirmEscrowDeposit(id: string, amount: number, txHash: string): Promise<void> {
+        const { error } = await supabase
+            .from('campaigns')
+            .update({
+                escrow_deposited: amount,
+                escrow_tx_hash: txHash,
+                status: 'active',
+                funded_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) {
+            throw new Error(`Failed to confirm escrow: ${error.message}`);
+        }
     }
 
     async findByAdvertiserId(advertiserId: string): Promise<Campaign[]> {

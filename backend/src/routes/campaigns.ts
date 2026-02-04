@@ -55,8 +55,8 @@ campaigns.post('/', async (c) => {
             minAvgViews: body.minAvgViews || 0,
             requiredCategories: body.requiredCategories,
             startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
-            expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined
-            // Note: paymentMemo is used for payment instructions only, not stored in campaign
+            expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
+            paymentMemo // Store for webhook verification
         };
 
         const campaign = await campaignService.createCampaign(campaignData);

@@ -6,10 +6,12 @@
 import { Hono } from 'hono';
 import { DealService } from '../services/DealService';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
+import { SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 import { Address } from '@ton/core';
 
 const app = new Hono();
 const dealService = new DealService(new SupabaseDealRepository());
+const campaignRepository = new SupabaseCampaignRepository();
 
 // Platform wallet address - parsed once at startup
 const PLATFORM_WALLET = process.env.MASTER_WALLET_ADDRESS || '';
@@ -130,20 +132,65 @@ async function processTonTransfer(tx: any) {
 
     console.log('[Webhook] 💎 TON transfer:', { amount: tonAmount, comment });
 
-    if (!comment || !comment.startsWith('deal_')) {
-        console.log('[Webhook] No deal memo');
+    // Handle campaign escrow deposits
+    if (comment.startsWith('campaign_')) {
+        await processCampaignPayment(comment, tonAmount, tx.hash);
         return;
     }
 
-    try {
-        await dealService.confirmPayment(comment, tx.hash);
-        console.log(`[Webhook] ✅ TON payment confirmed: ${tonAmount} TON for ${comment}`);
-    } catch (error: any) {
-        if (error.message.includes('not in pending status')) {
-            console.log(`[Webhook] ℹ️ Deal ${comment} already processed`);
-        } else {
-            console.error('[Webhook] ❌ Error confirming:', error.message);
+    // Handle deal payments
+    if (comment.startsWith('deal_')) {
+        try {
+            await dealService.confirmPayment(comment, tx.hash);
+            console.log(`[Webhook] ✅ Deal payment confirmed: ${tonAmount} TON for ${comment}`);
+        } catch (error: any) {
+            if (error.message.includes('not in pending status')) {
+                console.log(`[Webhook] ℹ️ Deal ${comment} already processed`);
+            } else {
+                console.error('[Webhook] ❌ Error confirming deal:', error.message);
+            }
         }
+        return;
+    }
+
+    console.log('[Webhook] No recognized memo prefix');
+}
+
+/**
+ * Process campaign escrow payment
+ */
+async function processCampaignPayment(memo: string, amount: number, txHash: string) {
+    try {
+        const campaign = await campaignRepository.findByPaymentMemo(memo);
+
+        if (!campaign) {
+            console.error('[Webhook] ❌ Campaign not found for memo:', memo);
+            return;
+        }
+
+        // ✅ Idempotency check - don't process twice
+        if (campaign.escrowDeposited && campaign.escrowDeposited > 0) {
+            console.log(`[Webhook] ℹ️ Campaign ${memo} already funded, ignoring duplicate`);
+            return;
+        }
+
+        // ✅ Amount validation
+        if (amount < campaign.totalBudget) {
+            console.warn('[Webhook] ⚠️ Partial payment:', {
+                expected: campaign.totalBudget,
+                received: amount,
+                campaignId: campaign.id
+            });
+            // For MVP: Log and continue - manual review may be needed
+            // In production: could set status to 'partially_funded'
+        }
+
+        // ✅ Update campaign - activate it
+        await campaignRepository.confirmEscrowDeposit(campaign.id, amount, txHash);
+
+        console.log(`[Webhook] ✅ Campaign funded: ${amount} TON for ${memo}`);
+    } catch (error: any) {
+        console.error('[Webhook] ❌ Error processing campaign payment:', error.message);
     }
 }
 
