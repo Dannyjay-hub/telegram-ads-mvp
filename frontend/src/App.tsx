@@ -31,6 +31,7 @@ function AppContent() {
   useTelegramBackButton();
 
   // Handle deep links from startapp parameter (e.g., from bot notifications)
+  // IMPORTANT: Only run once on app mount to prevent navigation loops
   useEffect(() => {
     // Try multiple sources for the start parameter (Telegram injects it differently in different contexts)
     const getStartParam = (): string | null => {
@@ -53,6 +54,11 @@ function AppContent() {
     if (startParam) {
       console.log('[App] Deep link startapp:', startParam);
 
+      // Clear URL params to prevent loop on navigation
+      if (window.location.search) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
       // Parse and navigate based on parameter
       if (startParam.startsWith('channel_')) {
         const channelId = startParam.replace('channel_', '');
@@ -70,7 +76,8 @@ function AppContent() {
         navigate('/campaigns');
       }
     }
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps = only run once on mount
 
   // WebApp initialization & theme handling
   useEffect(() => {

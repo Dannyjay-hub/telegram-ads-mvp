@@ -230,7 +230,7 @@ export function CampaignWizard() {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                 {/* Step 0: Basics */}
                 {step === 0 && (
-                    <GlassCard className="space-y-5">
+                    <GlassCard className="p-5 space-y-5">
                         <div className="flex items-center gap-2 text-primary mb-2">
                             <Sparkles className="w-5 h-5" />
                             <span className="font-semibold">Campaign Details</span>
@@ -263,7 +263,7 @@ export function CampaignWizard() {
 
                 {/* Step 1: Budget - Now per-channel based */}
                 {step === 1 && (
-                    <GlassCard className="space-y-5">
+                    <GlassCard className="p-5 space-y-5">
                         <div className="flex items-center gap-2 text-primary mb-2">
                             <Target className="w-5 h-5" />
                             <span className="font-semibold">Budget & Slots</span>
@@ -342,7 +342,7 @@ export function CampaignWizard() {
 
                 {/* Step 2: Targeting */}
                 {step === 2 && (
-                    <GlassCard className="space-y-5">
+                    <GlassCard className="p-5 space-y-5">
                         <div className="flex items-center gap-2 text-primary mb-2">
                             <Users className="w-5 h-5" />
                             <span className="font-semibold">Channel Requirements</span>
@@ -447,7 +447,7 @@ export function CampaignWizard() {
 
                 {/* Step 3: Type & Duration */}
                 {step === 3 && (
-                    <GlassCard className="space-y-5">
+                    <GlassCard className="p-5 space-y-5">
                         <div className="flex items-center gap-2 text-primary mb-2">
                             <Clock className="w-5 h-5" />
                             <span className="font-semibold">Campaign Type</span>
@@ -517,7 +517,7 @@ export function CampaignWizard() {
 
                 {/* Step 4: Review */}
                 {step === 4 && (
-                    <GlassCard className="space-y-4">
+                    <GlassCard className="p-5 space-y-4">
                         <h3 className="font-semibold text-lg flex items-center gap-2">
                             <Check className="w-5 h-5 text-primary" />
                             Review Campaign
