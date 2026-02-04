@@ -18,6 +18,7 @@ interface MarketplaceCampaign {
     campaignType: 'open' | 'closed'
     minSubscribers?: number
     requiredCategories?: string[]
+    requiredLanguages?: string[]
     expiresAt?: string
     advertiser?: {
         username?: string
@@ -185,8 +186,25 @@ export function CampaignMarketplace() {
                         // Check if selected channel meets requirements
                         const selectedChannelData = userChannels.find(ch => ch.id === selectedChannel)
                         const channelSubscribers = selectedChannelData?.subscriberCount || selectedChannelData?.subscribers || 0
+                        const channelCategory = selectedChannelData?.category || ''
+                        const channelLanguage = selectedChannelData?.language || ''
+
+                        // Eligibility checks
                         const meetsMinSubscribers = !campaign.minSubscribers || channelSubscribers >= campaign.minSubscribers
-                        const isEligible = meetsMinSubscribers && slotsLeft > 0
+                        const meetsCategory = !campaign.requiredCategories?.length ||
+                            campaign.requiredCategories.some(cat =>
+                                cat.toLowerCase() === channelCategory.toLowerCase()
+                            )
+                        const meetsLanguage = !campaign.requiredLanguages?.length ||
+                            campaign.requiredLanguages.some(lang =>
+                                lang.toLowerCase() === channelLanguage.toLowerCase()
+                            )
+
+                        const isEligible = meetsMinSubscribers && meetsCategory && meetsLanguage && slotsLeft > 0
+                        const ineligibilityReason = !meetsMinSubscribers ? 'subscribers' :
+                            !meetsCategory ? 'category' :
+                                !meetsLanguage ? 'language' :
+                                    slotsLeft <= 0 ? 'slots' : null
 
                         return (
                             <GlassCard key={campaign.id} className="p-4 space-y-3">
@@ -240,7 +258,10 @@ export function CampaignMarketplace() {
                                         </Button>
                                     ) : !isEligible ? (
                                         <Button className="w-full" disabled variant="outline">
-                                            {!meetsMinSubscribers ? 'Not enough subscribers' : 'No slots available'}
+                                            {ineligibilityReason === 'subscribers' ? 'Not enough subscribers' :
+                                                ineligibilityReason === 'category' ? 'Category mismatch' :
+                                                    ineligibilityReason === 'language' ? 'Language mismatch' :
+                                                        'No slots available'}
                                         </Button>
                                     ) : (
                                         <Button
