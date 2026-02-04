@@ -32,16 +32,42 @@ function AppContent() {
 
   // Handle deep links from startapp parameter (e.g., from bot notifications)
   useEffect(() => {
-    const startParam = WebApp.initDataUnsafe?.start_param;
+    // Try multiple sources for the start parameter (Telegram injects it differently in different contexts)
+    const getStartParam = (): string | null => {
+      // Method 1: From WebApp SDK
+      if (WebApp.initDataUnsafe?.start_param) {
+        return WebApp.initDataUnsafe.start_param;
+      }
+
+      // Method 2: From URL search params (for inline button links)
+      const urlParams = new URLSearchParams(window.location.search);
+      const startapp = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp');
+      if (startapp) {
+        return startapp;
+      }
+
+      return null;
+    };
+
+    const startParam = getStartParam();
     if (startParam) {
       console.log('[App] Deep link startapp:', startParam);
 
-      // Parse the startapp parameter
+      // Parse and navigate based on parameter
       if (startParam.startsWith('channel_')) {
         const channelId = startParam.replace('channel_', '');
         navigate(`/channels/${channelId}/view`);
+      } else if (startParam.startsWith('deal_')) {
+        const dealId = startParam.replace('deal_', '');
+        navigate(`/partnerships?deal=${dealId}`);
       } else if (startParam === 'dashboard') {
         navigate('/channel-owner');
+      } else if (startParam === 'advertiser') {
+        navigate('/advertiser');
+      } else if (startParam === 'partnerships') {
+        navigate('/partnerships');
+      } else if (startParam === 'campaigns') {
+        navigate('/campaigns');
       }
     }
   }, [navigate]);
