@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useTonConnectUI } from '@tonconnect/ui-react'
+import { useTonWallet } from '@/hooks/useTonWallet'
 import { ChevronLeft, Info, Wallet, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTelegram } from '@/providers/TelegramProvider'
@@ -27,7 +27,7 @@ export function EscrowPaymentPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const { user } = useTelegram()
-    const [tonConnectUI] = useTonConnectUI()
+    const { isConnected, connectWallet, tonConnectUI } = useTonWallet()
 
     // Campaign can be passed via state (from wizard) or we fetch it
     const [campaign] = useState<Campaign | null>(location.state?.campaign || null)
@@ -184,11 +184,11 @@ export function EscrowPaymentPage() {
             </div>
 
             <div className="fixed bottom-6 left-4 right-4 z-20">
-                {!tonConnectUI.connected ? (
+                {!isConnected ? (
                     <Button
                         size="lg"
                         className="w-full text-lg font-bold shadow-lg shadow-primary/25"
-                        onClick={() => tonConnectUI.openModal()}
+                        onClick={connectWallet}
                     >
                         Connect Wallet to Pay
                     </Button>
