@@ -122,19 +122,19 @@ export function CampaignsList() {
             ) : (
                 <div className="space-y-3">
                     {campaigns.map(campaign => {
-                        const statusConfig = STATUS_CONFIG[campaign.status]
+                        const statusConfig = STATUS_CONFIG[campaign.status] || STATUS_CONFIG.draft
                         const timeLeft = getTimeLeft(campaign.expiresAt)
 
                         return (
                             <GlassCard
                                 key={campaign.id}
-                                className="cursor-pointer hover:bg-white/5 transition-all"
+                                className="cursor-pointer hover:bg-white/5 transition-all p-4"
                                 onClick={() => navigate(`/campaigns/${campaign.id}`)}
                             >
                                 <div className="flex items-start justify-between gap-3 mb-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-semibold truncate">{campaign.title}</h3>
+                                            <h3 className="font-bold text-lg truncate">{campaign.title || 'Untitled Campaign'}</h3>
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusConfig.color} flex items-center gap-1`}>
                                                 <statusConfig.icon className="w-3 h-3" />
                                                 {statusConfig.label}
