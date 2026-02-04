@@ -155,6 +155,7 @@ export interface Campaign {
 
     // Escrow Tracking
     paymentMemo?: string;           // Unique memo for payment verification
+    paymentExpiresAt?: Date;        // 15-min payment window
     escrowTxHash?: string;          // Transaction hash of deposit
     escrowWalletAddress?: string;
     escrowDeposited: number;
@@ -162,6 +163,9 @@ export interface Campaign {
     escrowAvailable: number; // Generated column
     escrowFunded: boolean;   // Generated column
     fundedAt?: Date;
+
+    // Draft
+    draftStep?: number;             // For resume at correct step
 
     // Timestamps
     createdAt: Date;
@@ -196,6 +200,8 @@ export interface CampaignInsert {
     startsAt?: Date;
     expiresAt?: Date;
     paymentMemo?: string;  // For escrow tracking
+    paymentExpiresAt?: Date;  // 15-min payment window
+    draftStep?: number;  // For resume draft functionality
 }
 
 export interface CampaignUpdate {

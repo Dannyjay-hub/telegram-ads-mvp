@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
-import { ChevronRight, Check, Users, Globe, Folder, Clock, Sparkles, Target } from 'lucide-react'
+import { ChevronRight, Check, Users, Globe, Folder, Clock, Sparkles, Target, Save } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -67,6 +67,7 @@ export function CampaignWizard() {
     const { user } = useTelegram()
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
+    const [savingDraft, setSavingDraft] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const [formData, setFormData] = useState<CampaignFormData>(DEFAULT_FORM_DATA)
@@ -191,6 +192,56 @@ export function CampaignWizard() {
             : [...arr, item]
     }
 
+    const saveAsDraft = async () => {
+        if (!user?.telegramId) {
+            setError('Please connect your Telegram account first')
+            return
+        }
+
+        setSavingDraft(true)
+        setError(null)
+
+        try {
+            const response = await fetch(`${API_URL}/campaigns/draft`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-ID': String(user.telegramId)
+                },
+                body: JSON.stringify({
+                    title: formData.title,
+                    brief: formData.brief,
+                    totalBudget: parseFloat(formData.perChannelBudget || '0') * formData.slots,
+                    currency: formData.currency,
+                    slots: formData.slots,
+                    campaignType: formData.campaignType,
+                    minSubscribers: parseInt(formData.minSubscribers) || 0,
+                    maxSubscribers: formData.maxSubscribers ? parseInt(formData.maxSubscribers) : null,
+                    requiredLanguages: formData.requiredLanguages,
+                    requiredCategories: formData.requiredCategories,
+                    minAvgViews: parseInt(formData.minAvgViews) || 0,
+                    draftStep: step // Save current step for resume
+                })
+            })
+
+            if (!response.ok) {
+                const errData = await response.json()
+                throw new Error(errData.error || 'Failed to save draft')
+            }
+
+            // Clear localStorage draft after successful save
+            localStorage.removeItem(DRAFT_KEY)
+
+            // Navigate back to campaigns list
+            navigate('/advertiser', { state: { draftSaved: true } })
+        } catch (e: any) {
+            console.error('Draft save error:', e)
+            setError(e.message || 'Failed to save draft')
+        } finally {
+            setSavingDraft(false)
+        }
+    }
+
     // Prevent negative numbers in numeric inputs
     const handleNumericInput = (value: string, field: keyof CampaignFormData) => {
         const num = parseFloat(value)
@@ -201,9 +252,21 @@ export function CampaignWizard() {
     return (
         <div className="pb-24">
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-xl font-bold">Create Campaign</h1>
-                <p className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</p>
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-xl font-bold">Create Campaign</h1>
+                    <p className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</p>
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={saveAsDraft}
+                    disabled={savingDraft || !formData.title}
+                    className="gap-1.5"
+                >
+                    <Save className="w-4 h-4" />
+                    {savingDraft ? 'Saving...' : 'Save Draft'}
+                </Button>
             </div>
 
             {/* Progress */}

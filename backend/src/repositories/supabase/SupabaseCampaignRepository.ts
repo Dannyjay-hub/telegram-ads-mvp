@@ -33,6 +33,7 @@ export class SupabaseCampaignRepository {
             slotsFilled: row.slots_filled,
             // Escrow fields
             paymentMemo: row.payment_memo,
+            paymentExpiresAt: row.payment_expires_at ? new Date(row.payment_expires_at) : undefined,
             escrowTxHash: row.escrow_tx_hash,
             escrowWalletAddress: row.escrow_wallet_address,
             escrowDeposited: parseFloat(row.escrow_deposited || 0),
@@ -40,6 +41,8 @@ export class SupabaseCampaignRepository {
             escrowAvailable: parseFloat(row.escrow_available || 0),
             escrowFunded: row.escrow_funded,
             fundedAt: row.funded_at ? new Date(row.funded_at) : undefined,
+            // Draft
+            draftStep: row.draft_step,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at),
             expiredAt: row.expired_at ? new Date(row.expired_at) : undefined
@@ -74,9 +77,9 @@ export class SupabaseCampaignRepository {
                 currency: data.currency || 'TON',
                 slots: data.slots,
                 campaign_type: data.campaignType || 'open',
-                // Closed campaigns don't need upfront payment - they go active immediately
-                // Open campaigns need escrow payment first - they start as draft
-                status: data.campaignType === 'closed' ? 'active' : 'draft',
+                // UNIFIED ESCROW: Both open and closed campaigns start as draft
+                // They go active only after escrow payment is confirmed
+                status: 'draft',
                 min_subscribers: data.minSubscribers || 0,
                 max_subscribers: data.maxSubscribers,
                 required_languages: data.requiredLanguages,
@@ -84,7 +87,9 @@ export class SupabaseCampaignRepository {
                 required_categories: data.requiredCategories,
                 starts_at: data.startsAt || new Date(),
                 expires_at: data.expiresAt,
-                payment_memo: data.paymentMemo  // For escrow tracking
+                payment_memo: data.paymentMemo,  // For escrow tracking
+                payment_expires_at: data.paymentExpiresAt,  // 15-min payment window
+                draft_step: data.draftStep || 0  // Resume draft functionality
             })
             .select()
             .single();

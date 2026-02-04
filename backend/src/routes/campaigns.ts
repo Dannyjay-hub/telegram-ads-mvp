@@ -40,6 +40,10 @@ campaigns.post('/', async (c) => {
         // Generate unique payment memo for escrow tracking
         const paymentMemo = `campaign_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
 
+        // 15-minute payment window
+        const PAYMENT_WINDOW_MINUTES = 15;
+        const paymentExpiresAt = new Date(Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000);
+
         const campaignData: CampaignInsert = {
             advertiserId: user.id,
             title: body.title,
@@ -56,23 +60,69 @@ campaigns.post('/', async (c) => {
             requiredCategories: body.requiredCategories,
             startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
             expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
-            paymentMemo // Store for webhook verification
+            paymentMemo, // Store for webhook verification
+            paymentExpiresAt // 15-minute payment window
         };
 
         const campaign = await campaignService.createCampaign(campaignData);
 
-        // Return campaign with payment instructions (same pattern as deals)
+        // Return campaign with payment instructions including expiry
         return c.json({
             campaign,
             paymentInstructions: {
                 address: MASTER_WALLET_ADDRESS,
                 memo: paymentMemo,
-                amount: body.totalBudget
+                amount: body.totalBudget,
+                expiresAt: paymentExpiresAt.toISOString()
             }
         }, 201);
     } catch (error: any) {
         console.error('[Campaigns] Create error:', error);
         return c.json({ error: error.message || 'Failed to create campaign' }, 400);
+    }
+});
+
+/**
+ * Save campaign as draft
+ * POST /campaigns/draft
+ */
+campaigns.post('/draft', async (c) => {
+    try {
+        const body = await c.req.json();
+        const telegramId = c.req.header('X-Telegram-ID');
+
+        if (!telegramId) {
+            return c.json({ error: 'Telegram ID required' }, 401);
+        }
+
+        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        // Draft doesn't need payment memo - that's generated when publishing
+        const campaignData: CampaignInsert = {
+            advertiserId: user.id,
+            title: body.title || 'Untitled Draft',
+            brief: body.brief || '',
+            totalBudget: body.totalBudget || 0,
+            currency: body.currency || 'TON',
+            slots: body.slots || 1,
+            campaignType: body.campaignType || 'open',
+            minSubscribers: body.minSubscribers || 0,
+            maxSubscribers: body.maxSubscribers,
+            requiredLanguages: body.requiredLanguages || [],
+            requiredCategories: body.requiredCategories || [],
+            minAvgViews: body.minAvgViews || 0,
+            draftStep: body.draftStep || 0
+        };
+
+        const campaign = await campaignService.createCampaign(campaignData);
+
+        return c.json({ campaign, message: 'Draft saved' }, 201);
+    } catch (error: any) {
+        console.error('[Campaigns] Draft save error:', error);
+        return c.json({ error: error.message || 'Failed to save draft' }, 400);
     }
 });
 
