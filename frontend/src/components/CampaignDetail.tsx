@@ -47,6 +47,9 @@ export function CampaignDetail() {
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
+    // Toast notification for undo
+    const [toast, setToast] = useState<{ message: string; undoAction?: () => void } | null>(null)
+
     useEffect(() => {
         if (id) fetchCampaign()
     }, [id])
@@ -79,7 +82,27 @@ export function CampaignDetail() {
     }
 
     const handleApprove = async (applicationId: string) => {
-        setActionLoading(applicationId)
+        const app = applications.find(a => a.id === applicationId)
+        if (!app) return
+
+        // Optimistic update - immediately show approved
+        setApplications(prev => prev.map(a =>
+            a.id === applicationId ? { ...a, status: 'approved' as const } : a
+        ))
+
+        // Show toast with undo
+        const undoAction = () => {
+            setApplications(prev => prev.map(a =>
+                a.id === applicationId ? { ...a, status: 'pending' as const } : a
+            ))
+            setToast(null)
+        }
+        setToast({ message: `Approved ${app.channel?.title || 'channel'}. Funds allocated!`, undoAction })
+
+        // Clear toast after 5 seconds
+        setTimeout(() => setToast(null), 5000)
+
+        // Actually make the API call
         try {
             const response = await fetch(`${API_URL}/campaigns/applications/${applicationId}/approve`, {
                 method: 'POST',
@@ -89,18 +112,35 @@ export function CampaignDetail() {
                 }
             })
 
-            if (response.ok) {
-                await fetchCampaign() // Refresh
+            if (!response.ok) {
+                // Revert on error
+                undoAction()
+                setToast({ message: 'Failed to approve. Please try again.' })
             }
         } catch (e) {
             console.error('Error approving:', e)
-        } finally {
-            setActionLoading(null)
+            undoAction()
         }
     }
 
     const handleReject = async (applicationId: string) => {
-        setActionLoading(applicationId)
+        const app = applications.find(a => a.id === applicationId)
+        if (!app) return
+
+        // Optimistic update - immediately hide
+        setApplications(prev => prev.filter(a => a.id !== applicationId))
+
+        // Show toast with undo
+        const undoAction = () => {
+            setApplications(prev => [...prev, app])
+            setToast(null)
+        }
+        setToast({ message: `Rejected ${app.channel?.title || 'channel'}.`, undoAction })
+
+        // Clear toast after 5 seconds
+        setTimeout(() => setToast(null), 5000)
+
+        // Actually make the API call
         try {
             const response = await fetch(`${API_URL}/campaigns/applications/${applicationId}/reject`, {
                 method: 'POST',
@@ -110,13 +150,14 @@ export function CampaignDetail() {
                 }
             })
 
-            if (response.ok) {
-                await fetchCampaign()
+            if (!response.ok) {
+                // Revert on error
+                undoAction()
+                setToast({ message: 'Failed to reject. Please try again.' })
             }
         } catch (e) {
             console.error('Error rejecting:', e)
-        } finally {
-            setActionLoading(null)
+            undoAction()
         }
     }
 
@@ -304,6 +345,25 @@ export function CampaignDetail() {
                         )}
                     </div>
                 </GlassCard>
+            )}
+
+            {/* Toast Notification */}
+            {toast && (
+                <div className="fixed bottom-20 left-4 right-4 z-50 animate-in slide-in-from-bottom fade-in duration-200">
+                    <div className="bg-card border border-border shadow-lg rounded-lg p-4 flex items-center justify-between gap-3">
+                        <span className="text-sm">{toast.message}</span>
+                        {toast.undoAction && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="shrink-0"
+                                onClick={toast.undoAction}
+                            >
+                                Undo
+                            </Button>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     )

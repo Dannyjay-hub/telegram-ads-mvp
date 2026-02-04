@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap } from 'lucide-react'
+import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap, Play } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -16,6 +16,7 @@ interface Campaign {
     slotsFilled: number
     campaignType: 'open' | 'closed'
     status: 'draft' | 'active' | 'filled' | 'expired' | 'ended'
+    draftStep?: number
     expiresAt?: string
     createdAt: string
 }
@@ -168,7 +169,20 @@ export function CampaignsList() {
                                         }`}>
                                         {campaign.campaignType} Campaign
                                     </span>
-                                    {timeLeft && campaign.status === 'active' && (
+                                    {campaign.status === 'draft' ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-7 px-3 gap-1"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                navigate('/campaign/create', { state: { resumeDraft: campaign } })
+                                            }}
+                                        >
+                                            <Play className="w-3 h-3" />
+                                            Resume
+                                        </Button>
+                                    ) : timeLeft && campaign.status === 'active' && (
                                         <span className="flex items-center gap-1 text-amber-400">
                                             <Clock className="w-3 h-3" />
                                             {timeLeft}

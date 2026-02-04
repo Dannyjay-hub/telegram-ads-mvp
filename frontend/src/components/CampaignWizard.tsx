@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
@@ -64,6 +64,7 @@ const DEFAULT_FORM_DATA: CampaignFormData = {
 
 export function CampaignWizard() {
     const navigate = useNavigate()
+    const location = useLocation()
     const { user } = useTelegram()
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -72,8 +73,35 @@ export function CampaignWizard() {
 
     const [formData, setFormData] = useState<CampaignFormData>(DEFAULT_FORM_DATA)
 
-    // Load draft from localStorage on mount
+    // Check if resuming a draft
     useEffect(() => {
+        const resumeDraft = location.state?.resumeDraft
+        if (resumeDraft) {
+            // Load draft data into form
+            setFormData({
+                ...DEFAULT_FORM_DATA,
+                title: resumeDraft.title || '',
+                brief: resumeDraft.brief || '',
+                slots: resumeDraft.slots || 5,
+                perChannelBudget: resumeDraft.totalBudget && resumeDraft.slots
+                    ? String(resumeDraft.totalBudget / resumeDraft.slots)
+                    : '',
+                currency: resumeDraft.currency || 'TON',
+                requiredLanguages: resumeDraft.requiredLanguages || [],
+                requiredCategories: resumeDraft.requiredCategories || [],
+                minSubscribers: resumeDraft.minSubscribers ? String(resumeDraft.minSubscribers) : '',
+                maxSubscribers: resumeDraft.maxSubscribers ? String(resumeDraft.maxSubscribers) : '',
+                minAvgViews: resumeDraft.minAvgViews ? String(resumeDraft.minAvgViews) : '',
+                campaignType: resumeDraft.campaignType || 'open'
+            })
+            // Resume at saved step
+            setStep(resumeDraft.draftStep || 0)
+            // Clear localStorage draft since we're resuming from DB
+            localStorage.removeItem(DRAFT_KEY)
+            return
+        }
+
+        // Otherwise load from localStorage
         try {
             const saved = localStorage.getItem(DRAFT_KEY)
             if (saved) {
@@ -83,7 +111,7 @@ export function CampaignWizard() {
         } catch (e) {
             console.warn('Failed to load draft:', e)
         }
-    }, [])
+    }, [location.state])
 
     // Save draft to localStorage on change
     useEffect(() => {
