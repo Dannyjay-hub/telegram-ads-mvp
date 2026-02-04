@@ -1,28 +1,13 @@
 
 import { useSearchParams } from 'react-router-dom'
-import { Search, Megaphone, Briefcase } from 'lucide-react'
+import { Megaphone, Briefcase } from 'lucide-react'
 import { MarketplacePage } from './MarketplacePage'
-import { Input } from '@/components/ui/input'
+import { CampaignMarketplace } from './CampaignMarketplace'
 
-// Placeholder for the Campaigns Marketplace (Sell Side)
+
+// CampaignsMarketplaceTab - uses the real CampaignMarketplace component
 function CampaignsMarketplaceTab() {
-    return (
-        <div className="space-y-4">
-            <div className="flex gap-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input placeholder="Search campaigns by niche, budget..." className="pl-9 bg-white/5 border-white/10" />
-                </div>
-            </div>
-
-            <div className="text-center py-20 text-muted-foreground border border-dashed border-white/10 rounded-xl">
-                <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">No Open Campaigns</h3>
-                <p>Advertisers haven't posted any public campaigns yet.</p>
-                <p className="text-sm mt-2">Check back later or enable notifications.</p>
-            </div>
-        </div>
-    )
+    return <CampaignMarketplace />
 }
 
 export function MarketplaceContainer() {
