@@ -70,6 +70,7 @@ export class SupabaseCampaignRepository {
                 currency: data.currency || 'TON',
                 slots: data.slots,
                 campaign_type: data.campaignType || 'open',
+                status: 'draft', // Explicitly set to prevent database default issues
                 min_subscribers: data.minSubscribers || 0,
                 max_subscribers: data.maxSubscribers,
                 required_languages: data.requiredLanguages,
