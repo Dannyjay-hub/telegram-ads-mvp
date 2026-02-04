@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
-import { ChevronRight, ChevronLeft, Check, Users, Globe, Folder, Clock, Sparkles, Target } from 'lucide-react'
+import { ChevronRight, Check, Users, Globe, Folder, Clock, Sparkles, Target } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -185,11 +185,6 @@ export function CampaignWizard() {
         }
     }
 
-    const handleBack = () => {
-        if (step > 0) setStep(s => s - 1)
-        else navigate(-1)
-    }
-
     const toggleArrayItem = (arr: string[], item: string) => {
         return arr.includes(item)
             ? arr.filter(x => x !== item)
@@ -206,14 +201,9 @@ export function CampaignWizard() {
     return (
         <div className="pb-24">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-                <button onClick={handleBack} className="p-2 -ml-2 hover:bg-white/5 rounded-lg">
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div>
-                    <h1 className="text-xl font-bold">Create Campaign</h1>
-                    <p className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</p>
-                </div>
+            <div className="mb-6">
+                <h1 className="text-xl font-bold">Create Campaign</h1>
+                <p className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</p>
             </div>
 
             {/* Progress */}

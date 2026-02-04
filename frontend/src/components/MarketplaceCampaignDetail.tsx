@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Clock, Zap, Loader2, ChevronLeft, Tag, Globe, CheckCircle } from 'lucide-react'
+import { Users, Clock, Zap, Loader2, Tag, Globe, CheckCircle } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -199,21 +199,11 @@ export function MarketplaceCampaignDetail() {
     return (
         <div className="p-4 pb-24 space-y-4">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-2">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate('/campaigns/marketplace')}
-                    className="shrink-0"
-                >
-                    <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <div>
-                    <h1 className="text-xl font-bold">{campaign.title}</h1>
-                    {campaign.advertiser?.username && (
-                        <p className="text-sm text-muted-foreground">by @{campaign.advertiser.username}</p>
-                    )}
-                </div>
+            <div className="mb-2">
+                <h1 className="text-xl font-bold">{campaign.title}</h1>
+                {campaign.advertiser?.username && (
+                    <p className="text-sm text-muted-foreground">by @{campaign.advertiser.username}</p>
+                )}
             </div>
 
             {/* Stats Row */}

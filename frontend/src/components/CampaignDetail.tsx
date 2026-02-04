@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, Clock, CheckCircle, Loader2, Check, X } from 'lucide-react'
+import { Clock, CheckCircle, Loader2, Check, X } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
 
@@ -41,7 +41,6 @@ interface Application {
 
 export function CampaignDetail() {
     const { id } = useParams()
-    const navigate = useNavigate()
     const { user } = useTelegram()
     const [campaign, setCampaign] = useState<Campaign | null>(null)
     const [applications, setApplications] = useState<Application[]>([])
@@ -161,14 +160,9 @@ export function CampaignDetail() {
     return (
         <div className="space-y-6 pb-24">
             {/* Header */}
-            <div className="flex items-center gap-3">
-                <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-white/5 rounded-lg">
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div className="flex-1">
-                    <h1 className="text-xl font-bold">{campaign.title}</h1>
-                    <p className="text-xs text-muted-foreground capitalize">{campaign.status}</p>
-                </div>
+            <div>
+                <h1 className="text-xl font-bold">{campaign.title}</h1>
+                <p className="text-xs text-muted-foreground capitalize">{campaign.status}</p>
             </div>
 
             {/* Stats */}

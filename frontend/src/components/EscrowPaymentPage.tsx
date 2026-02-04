@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTonWallet } from '@/hooks/useTonWallet'
-import { ChevronLeft, Info, Wallet, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Info, Wallet, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL } from '@/lib/api'
@@ -148,12 +148,7 @@ export function EscrowPaymentPage() {
 
     return (
         <div className="pb-24 space-y-6">
-            <div className="flex items-center gap-3">
-                <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-white/5 rounded-lg">
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-                <h1 className="text-xl font-bold">Fund Campaign</h1>
-            </div>
+            <h1 className="text-xl font-bold">Fund Campaign</h1>
 
             <GlassCard className="space-y-4">
                 <div className="flex items-center justify-between">
