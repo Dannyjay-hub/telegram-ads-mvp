@@ -109,6 +109,7 @@ export function CampaignWizard() {
     }, [location.state])
 
     // Handle Telegram back button - go to previous step or exit
+    // Use a ref to avoid stale closure issues with step value
     useEffect(() => {
         const WebApp = (window as any).Telegram?.WebApp
         if (!WebApp) return
@@ -117,12 +118,16 @@ export function CampaignWizard() {
         WebApp.BackButton.show()
 
         const handleBack = () => {
-            if (step > 0) {
-                setStep(step - 1)
-            } else {
-                // Step 0 - go to advertiser dashboard
-                navigate('/advertiser')
-            }
+            // Use functional update to get current step value
+            setStep(currentStep => {
+                if (currentStep > 0) {
+                    return currentStep - 1
+                } else {
+                    // Step 0 - go to advertiser dashboard
+                    navigate('/advertiser')
+                    return currentStep
+                }
+            })
         }
 
         WebApp.BackButton.onClick(handleBack)
@@ -130,7 +135,7 @@ export function CampaignWizard() {
         return () => {
             WebApp.BackButton.offClick(handleBack)
         }
-    }, [step, navigate])
+    }, [navigate]) // Remove step from deps - use functional update instead
 
     // Save draft to localStorage on change
     useEffect(() => {
