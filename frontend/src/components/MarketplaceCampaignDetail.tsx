@@ -70,7 +70,9 @@ export function MarketplaceCampaignDetail() {
 
             if (campaignRes.ok) {
                 const data = await campaignRes.json()
-                setCampaign(data)
+                console.log('[MarketplaceCampaignDetail] API response:', data)
+                // API returns { campaign: {...} } wrapper
+                setCampaign(data.campaign || data)
             }
 
             if (channelsRes.ok) {

@@ -48,6 +48,11 @@ export function CampaignMarketplace() {
 
             if (response.ok) {
                 const data = await response.json()
+                console.log('[CampaignMarketplace] Campaigns API:', data.campaigns?.map((c: any) => ({
+                    id: c.id,
+                    title: c.title,
+                    requiredLanguages: c.requiredLanguages
+                })))
                 setCampaigns(data.campaigns || [])
             }
         } catch (e) {
@@ -65,8 +70,15 @@ export function CampaignMarketplace() {
             })
             if (response.ok) {
                 const data = await response.json()
+                console.log('[CampaignMarketplace] Channels API raw:', data)
                 // API returns array directly, not { channels: [...] }
                 const channels = Array.isArray(data) ? data : (data.channels || [])
+                console.log('[CampaignMarketplace] Parsed channels:', channels.map((ch: any) => ({
+                    id: ch.id,
+                    title: ch.title,
+                    language: ch.language,
+                    category: ch.category
+                })))
                 setUserChannels(channels)
                 if (channels.length > 0) {
                     setSelectedChannel(channels[0].id)
