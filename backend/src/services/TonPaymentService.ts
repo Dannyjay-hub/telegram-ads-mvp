@@ -98,6 +98,18 @@ export class TonPaymentService {
     }
 
     /**
+     * Mark a transaction as processed (add to in-memory cache with size limit)
+     */
+    private markAsProcessed(txHash: string): void {
+        this.processedJettonTxHashes.add(txHash);
+        // Prune cache if too large
+        if (this.processedJettonTxHashes.size > this.MAX_PROCESSED_CACHE) {
+            const firstKey = this.processedJettonTxHashes.values().next().value;
+            if (firstKey) this.processedJettonTxHashes.delete(firstKey);
+        }
+    }
+
+    /**
      * Start polling for transactions (call once on server start)
      */
     startPolling(intervalMs: number = 30000) {
@@ -252,9 +264,14 @@ export class TonPaymentService {
 
         const txHash = op.transaction_hash;
 
-        // ✅ IDEMPOTENCY: Skip if already processed
-        if (txHash && this.processedJettonTxHashes.has(txHash)) {
-            return; // Silent skip - already processed
+        // Skip operations without transaction hash - can't dedupe them
+        if (!txHash) {
+            return;
+        }
+
+        // ✅ IDEMPOTENCY: Skip if already processed (in-memory check)
+        if (this.processedJettonTxHashes.has(txHash)) {
+            return; // Silent skip - already processed this session
         }
 
         // Check if this is a transfer TO our wallet
@@ -282,16 +299,6 @@ export class TonPaymentService {
             return; // Ignore transfers without our memo format
         }
 
-        // ✅ Mark as processed BEFORE attempting (to prevent parallel duplicates)
-        if (txHash) {
-            this.processedJettonTxHashes.add(txHash);
-            // Prune cache if too large
-            if (this.processedJettonTxHashes.size > this.MAX_PROCESSED_CACHE) {
-                const firstKey = this.processedJettonTxHashes.values().next().value;
-                if (firstKey) this.processedJettonTxHashes.delete(firstKey);
-            }
-        }
-
         const amount = Number(op.amount || 0) / 1e6; // USDT has 6 decimals
         console.log(`TonPaymentService: Found USDT transfer with memo: ${memo}`);
         console.log(`  Transaction: ${txHash}`);
@@ -306,13 +313,20 @@ export class TonPaymentService {
                     console.error(`TonPaymentService: Campaign not found for memo: ${memo}`);
                     return;
                 }
+                // DB-backed idempotency: check if already funded
+                if (campaign.escrowTxHash === txHash) {
+                    return; // Already processed this exact transaction
+                }
                 if (campaign.escrowDeposited && campaign.escrowDeposited > 0) {
                     console.log(`TonPaymentService: Campaign ${memo} already funded`);
+                    this.markAsProcessed(txHash); // Mark to avoid future log spam
                     return;
                 }
                 await this.campaignRepo.confirmEscrowDeposit(campaign.id, amount, txHash);
+                this.markAsProcessed(txHash); // ✅ Mark AFTER success
                 console.log(`✅ TonPaymentService: USDT campaign payment confirmed for ${memo}`);
             } catch (error: any) {
+                // Don't mark as processed - allow retry
                 console.error(`TonPaymentService: Error confirming USDT campaign ${memo}:`, error.message);
             }
             return;
@@ -322,11 +336,18 @@ export class TonPaymentService {
         if (memo.startsWith('deal_')) {
             try {
                 await this.dealService.confirmPayment(memo, txHash);
+                this.markAsProcessed(txHash); // ✅ Mark AFTER success
                 console.log(`✅ TonPaymentService: USDT payment confirmed for ${memo}`);
             } catch (error: any) {
                 if (error.message.includes('not in') && error.message.includes('status')) {
-                    // Already processed
+                    // Already processed via DB check
+                    this.markAsProcessed(txHash);
+                } else if (error.message.includes('No deal found')) {
+                    // Deal doesn't exist - mark processed to avoid log spam
+                    this.markAsProcessed(txHash);
+                    console.warn(`TonPaymentService: Deal not found for ${memo} - skipping`);
                 } else {
+                    // Other error - don't mark, allow retry
                     console.error(`TonPaymentService: Error confirming USDT ${memo}:`, error.message);
                 }
             }
@@ -494,12 +515,9 @@ export class TonPaymentService {
             .single();
 
         if (error) {
-            // Table might not exist yet - log and continue
-            console.log('TonPaymentService: Payout queued (table pending_payouts may need creation)');
-            console.log(`  Deal: ${dealId}`);
-            console.log(`  To: ${recipientAddress}`);
-            console.log(`  Amount: ${amountTon} TON`);
-            return { queued: true, payoutId: `pending_${dealId}` };
+            // Log the error but throw so caller knows it failed
+            console.error(`TonPaymentService: Failed to queue payout for deal ${dealId}:`, error.message);
+            throw new Error(`Failed to queue payout: ${error.message}`);
         }
 
         console.log(`TonPaymentService: Payout queued with ID ${(data as any).id}`);
@@ -534,12 +552,9 @@ export class TonPaymentService {
             .single();
 
         if (error) {
-            console.log('TonPaymentService: Refund queued (table pending_payouts may need creation)');
-            console.log(`  Deal: ${dealId}`);
-            console.log(`  To: ${advertiserAddress}`);
-            console.log(`  Amount: ${amountTon} TON`);
-            console.log(`  Reason: ${reason}`);
-            return { queued: true, refundId: `refund_${dealId}` };
+            // Log the error but throw so caller knows it failed
+            console.error(`TonPaymentService: Failed to queue refund for deal ${dealId}:`, error.message);
+            throw new Error(`Failed to queue refund: ${error.message}`);
         }
 
         console.log(`TonPaymentService: Refund queued with ID ${(data as any).id}`);
