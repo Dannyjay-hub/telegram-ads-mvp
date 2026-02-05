@@ -258,7 +258,7 @@ export class DealService {
                                 dealId,
                                 deal.advertiserWalletAddress,
                                 deal.priceAmount,
-                                'TON',
+                                (deal.priceCurrency as 'TON' | 'USDT') || 'TON',
                                 'Rejected by channel owner'
                             );
                             refundQueued = refundResult !== null;
