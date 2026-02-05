@@ -13,16 +13,25 @@ const app = new Hono();
 const dealService = new DealService(new SupabaseDealRepository());
 const campaignRepository = new SupabaseCampaignRepository();
 
-// Platform wallet address - parsed once at startup
+// Configuration
 const PLATFORM_WALLET = process.env.MASTER_WALLET_ADDRESS || '';
+const TON_API_KEY = process.env.TONAPI_KEY || '';
+const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Mainnet USDT
+
 let PLATFORM_ADDRESS: Address | null = null;
+let USDT_ADDRESS: Address | null = null;
+
 try {
     if (PLATFORM_WALLET) {
         PLATFORM_ADDRESS = Address.parse(PLATFORM_WALLET);
     }
+    USDT_ADDRESS = Address.parse(USDT_MASTER_ADDRESS);
 } catch (error) {
-    console.error('[Webhook] Invalid MASTER_WALLET_ADDRESS format!');
+    console.error('[Webhook] Invalid address format!');
 }
+
+// Track processed Jetton transactions to avoid duplicates
+const processedJettonTxHashes = new Set<string>();
 
 /**
  * Check if two TON addresses are equal using @ton/core
@@ -74,6 +83,10 @@ app.post('/ton', async (c) => {
         } else {
             await processTonTransfer(txDetails);
         }
+
+        // HYBRID APPROACH: Also check for recent Jetton transfers
+        // This catches USDT payments that don't trigger the main webhook
+        await checkRecentJettonTransfers();
 
         return c.json({ ok: true });
 
@@ -238,6 +251,78 @@ async function processJettonTransfer(tx: any) {
     }
 
     console.log('[Webhook] No recognized memo prefix for USDT');
+}
+
+/**
+ * HYBRID APPROACH: Check for recent Jetton transfers
+ * Called whenever any webhook fires to immediately detect USDT payments
+ * This catches Jetton transfers that don't trigger the main wallet webhook
+ */
+async function checkRecentJettonTransfers() {
+    if (!PLATFORM_WALLET || !USDT_ADDRESS) return;
+
+    try {
+        const url = `https://tonapi.io/v2/accounts/${PLATFORM_WALLET}/jettons/history?limit=10`;
+        const headers: Record<string, string> = { 'Accept': 'application/json' };
+        if (TON_API_KEY) {
+            headers['Authorization'] = `Bearer ${TON_API_KEY}`;
+        }
+
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            console.error('[Webhook-Jetton] TonAPI error:', response.status);
+            return;
+        }
+
+        const data = await response.json();
+        const operations = data.operations || [];
+
+        for (const op of operations) {
+            // Only process incoming transfers
+            if (op.operation !== 'transfer') continue;
+
+            const txHash = op.transaction_hash;
+            if (!txHash) continue;
+
+            // Skip if already processed
+            if (processedJettonTxHashes.has(txHash)) continue;
+
+            // Verify it's to our wallet
+            const destAddress = op.destination?.address;
+            if (!destAddress || !PLATFORM_ADDRESS) continue;
+            if (!addressesEqual(destAddress, PLATFORM_ADDRESS)) continue;
+
+            // Verify it's USDT
+            const jettonAddress = op.jetton?.address;
+            if (!jettonAddress || !addressesEqual(jettonAddress, USDT_ADDRESS)) continue;
+
+            // Extract memo
+            const memo = op.payload?.Value?.Text || '';
+            if (!memo.startsWith('campaign_') && !memo.startsWith('deal_')) continue;
+
+            // Mark as processed
+            processedJettonTxHashes.add(txHash);
+
+            const amount = Number(op.amount || 0) / 1e6; // USDT has 6 decimals
+            console.log(`[Webhook-Jetton] 💵 USDT detected via hybrid: ${amount} USDT, memo: ${memo}`);
+
+            // Process the payment
+            if (memo.startsWith('campaign_')) {
+                await processCampaignPayment(memo, amount, txHash);
+            } else if (memo.startsWith('deal_')) {
+                try {
+                    await dealService.confirmPayment(memo, txHash);
+                    console.log(`[Webhook-Jetton] ✅ USDT payment confirmed: ${amount} USDT for ${memo}`);
+                } catch (error: any) {
+                    if (!error.message.includes('not in pending status')) {
+                        console.error('[Webhook-Jetton] Error confirming:', error.message);
+                    }
+                }
+            }
+        }
+    } catch (error: any) {
+        console.error('[Webhook-Jetton] Error checking jetton transfers:', error.message);
+    }
 }
 
 export default app;
