@@ -35,9 +35,10 @@ export function ChannelViewPage() {
     const [selectedPackages, setSelectedPackages] = useState<SelectedPackage[]>([])
     const [showCheckout, setShowCheckout] = useState(false)
     const [isProcessing, setIsProcessing] = useState(false)
-    const [paymentStep, setPaymentStep] = useState<'confirm' | 'paying' | 'success' | 'error'>('confirm')
+    const [paymentStep, setPaymentStep] = useState<'confirm' | 'paying' | 'verifying' | 'success' | 'error'>('confirm')
     const [paymentError, setPaymentError] = useState<string | null>(null)
     const [brief, setBrief] = useState('')  // Advertiser's brief describing what they want to promote
+    const [currentDealId, setCurrentDealId] = useState<string | null>(null) // Track deal for verification polling
 
     // Payment timer state (frontend-only, uses timestamp for accurate time even when backgrounded)
     const [paymentTimeLeft, setPaymentTimeLeft] = useState(15 * 60)
@@ -80,6 +81,63 @@ export function ChannelViewPage() {
         const interval = setInterval(updateTimer, 1000)
         return () => clearInterval(interval)
     }, [showCheckout, paymentStep])
+
+    // Payment verification polling - poll deal status until confirmed on blockchain
+    useEffect(() => {
+        if (paymentStep !== 'verifying' || !currentDealId) return
+
+        let cancelled = false
+        const pollInterval = setInterval(async () => {
+            if (cancelled) return
+
+            try {
+                const res = await fetch(`${API_URL}/deals/${currentDealId}/status`, {
+                    headers: getHeaders()
+                })
+
+                if (!res.ok) return
+
+                const data = await res.json()
+
+                // Deal status changes from 'draft' to 'pending' when payment is confirmed
+                if (data.status !== 'draft') {
+                    clearInterval(pollInterval)
+                    if (cancelled) return
+
+                    // Payment confirmed!
+                    haptic.success()
+                    setPaymentStep('success')
+                    setIsProcessing(false)
+
+                    // Auto-navigate after brief success display
+                    setTimeout(() => {
+                        setShowCheckout(false)
+                        navigate('/partnerships')
+                    }, 2000)
+                }
+            } catch (err) {
+                console.error('Verification poll error:', err)
+            }
+        }, 3000) // Poll every 3 seconds
+
+        // Safety timeout - after 2 minutes, navigate anyway (polling will continue in background)
+        const timeout = setTimeout(() => {
+            if (cancelled) return
+            clearInterval(pollInterval)
+            setPaymentStep('success')
+            setIsProcessing(false)
+            setTimeout(() => {
+                setShowCheckout(false)
+                navigate('/partnerships')
+            }, 1000)
+        }, 120000) // 2 minutes max wait
+
+        return () => {
+            cancelled = true
+            clearInterval(pollInterval)
+            clearTimeout(timeout)
+        }
+    }, [paymentStep, currentDealId, navigate])
 
     const loadChannel = async () => {
         setLoading(true)
@@ -233,7 +291,10 @@ export function ChannelViewPage() {
             const deal = await res.json()
             const { paymentInstructions } = deal
 
-            // Step 2: Send transaction
+            // Store deal ID for verification polling
+            setCurrentDealId(deal.deal.id)
+
+            // Step 2: Send transaction to wallet
             await sendPayment(
                 paymentToken,
                 paymentInstructions.address,
@@ -241,14 +302,9 @@ export function ChannelViewPage() {
                 paymentInstructions.memo
             )
 
-            haptic.success()
-            setPaymentStep('success')
-
-            // Auto-navigate after success
-            setTimeout(() => {
-                setShowCheckout(false)
-                navigate('/partnerships')
-            }, 2000)
+            // Step 3: Wallet confirmed - now verify on blockchain
+            haptic.light()
+            setPaymentStep('verifying')
 
         } catch (error: any) {
             console.error('Payment error:', error)
@@ -418,7 +474,7 @@ export function ChannelViewPage() {
 
                             return (
                                 <div key={idx} className={`bg-white/5 p-4 rounded-xl border transition-all ${qty > 0 ? 'border-primary/50 bg-primary/5' :
-                                        isLocked ? 'border-white/5 opacity-50' : 'border-white/5'
+                                    isLocked ? 'border-white/5 opacity-50' : 'border-white/5'
                                     }`}>
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
@@ -627,12 +683,30 @@ export function ChannelViewPage() {
                             </div>
                         )}
 
+                        {paymentStep === 'verifying' && (
+                            <div className="text-center py-8">
+                                <div className="relative mx-auto mb-4 w-16 h-16">
+                                    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
+                                    </div>
+                                </div>
+                                <h3 className="text-lg font-semibold">Verifying Payment</h3>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Your transaction is being confirmed on the blockchain...
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-3">
+                                    This usually takes a few seconds
+                                </p>
+                            </div>
+                        )}
+
                         {paymentStep === 'success' && (
                             <div className="text-center py-8">
                                 <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
                                     <Check className="w-8 h-8 text-green-500" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-green-500">Payment Sent!</h3>
+                                <h3 className="text-lg font-semibold text-green-500">Payment Confirmed!</h3>
                                 <p className="text-sm text-muted-foreground mt-2">
                                     Your deal request has been submitted. The channel owner will review it shortly.
                                 </p>

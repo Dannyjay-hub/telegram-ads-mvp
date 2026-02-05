@@ -83,6 +83,24 @@ app.get('/:id/payment-instructions', async (c) => {
     }
 });
 
+// GET /deals/:id/status - Poll deal status for payment verification
+app.get('/:id/status', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const deal = await dealRepo.findById(id);
+        if (!deal) {
+            return c.json({ error: 'Deal not found' }, 404);
+        }
+        return c.json({
+            id: deal.id,
+            status: deal.status,
+            paymentTxHash: deal.paymentTxHash
+        });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
 // POST /deals/create-with-items - Create deal with content items (escrow flow)
 app.post('/create-with-items', async (c) => {
     try {
