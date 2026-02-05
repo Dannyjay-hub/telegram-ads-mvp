@@ -17,6 +17,7 @@ function getParentRoute(pathname: string): string | null {
         '/channels/dashboard': '/channel-owner',
         '/channels/partnerships': '/channel-owner',
         '/create': 'SKIP', // CampaignWizard handles its own back button
+        '/campaign/create': 'SKIP', // CampaignWizard (alternate route)
         '/campaigns': '/advertiser',
         '/partnerships': '/advertiser',
         '/marketplace': '/', // Could be reached from either dashboard

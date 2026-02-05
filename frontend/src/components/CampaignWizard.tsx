@@ -139,14 +139,14 @@ export function CampaignWizard() {
         }
     }, [navigate])
 
-    // Save draft to localStorage on change
+    // Save draft to localStorage on change (including step)
     useEffect(() => {
         try {
-            localStorage.setItem(DRAFT_KEY, JSON.stringify(formData))
+            localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...formData, draftStep: step }))
         } catch (e) {
             console.warn('Failed to save draft:', e)
         }
-    }, [formData])
+    }, [formData, step])
 
     // Calculate total budget from per-channel × slots
     const totalBudget = formData.slots > 0 && formData.perChannelBudget
