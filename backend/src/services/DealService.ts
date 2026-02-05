@@ -254,11 +254,17 @@ export class DealService {
                     if (deal.advertiserWalletAddress) {
                         console.log(`DealService: Triggering refund for rejected deal ${dealId}`);
                         try {
+                            // Ensure we have the correct currency - never default!
+                            const refundCurrency = deal.priceCurrency as 'TON' | 'USDT';
+                            if (!refundCurrency) {
+                                throw new Error(`Cannot refund deal ${dealId} - no currency specified`);
+                            }
+
                             const refundResult = await tonPayoutService.queueRefund(
                                 dealId,
                                 deal.advertiserWalletAddress,
                                 deal.priceAmount,
-                                (deal.priceCurrency as 'TON' | 'USDT') || 'TON',
+                                refundCurrency,
                                 'Rejected by channel owner'
                             );
                             refundQueued = refundResult !== null;
