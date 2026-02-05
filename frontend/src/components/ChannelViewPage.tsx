@@ -189,7 +189,7 @@ export function ChannelViewPage() {
                     contentItems,
                     walletAddress,
                     brief: brief.trim() || undefined,
-                    currency: paymentToken  // Pass the selected payment currency (TON or USDT)
+                    currency: selectedCurrency  // Pass the selected payment currency (TON or USDT)
                 })
             })
 
