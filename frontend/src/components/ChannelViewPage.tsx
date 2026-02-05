@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
-import { Settings, RefreshCw, Check, Users, Eye, TrendingUp, ExternalLink, Globe, Plus, Minus, ShoppingCart, Wallet } from 'lucide-react'
+import { Settings, RefreshCw, Check, Users, Eye, TrendingUp, ExternalLink, Globe, Plus, Minus, ShoppingCart, Wallet, Clock } from 'lucide-react'
 import { type Channel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { useTonWallet } from '@/hooks/useTonWallet'
@@ -39,6 +39,13 @@ export function ChannelViewPage() {
     const [paymentError, setPaymentError] = useState<string | null>(null)
     const [brief, setBrief] = useState('')  // Advertiser's brief describing what they want to promote
 
+    // Payment timer state (15 minutes = 900 seconds)
+    const [paymentTimeLeft, setPaymentTimeLeft] = useState(15 * 60)
+    const paymentMinutes = Math.floor(paymentTimeLeft / 60)
+    const paymentSeconds = paymentTimeLeft % 60
+    const isLowTime = paymentTimeLeft < 300 && paymentTimeLeft > 0 // < 5 min
+    const isExpired = paymentTimeLeft <= 0
+
     // Derive currency from first selected package (all packages must be same currency)
     const selectedCurrency = useMemo((): 'TON' | 'USDT' => {
         if (selectedPackages.length === 0) return 'TON'
@@ -56,6 +63,26 @@ export function ChannelViewPage() {
     useEffect(() => {
         if (id) loadChannel()
     }, [id])
+
+    // Payment countdown timer effect
+    useEffect(() => {
+        if (!showCheckout || paymentStep !== 'confirm') return
+
+        // Reset timer when checkout opens
+        setPaymentTimeLeft(15 * 60)
+
+        const interval = setInterval(() => {
+            setPaymentTimeLeft(prev => {
+                if (prev <= 0) {
+                    clearInterval(interval)
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+
+        return () => clearInterval(interval)
+    }, [showCheckout, paymentStep])
 
     const loadChannel = async () => {
         setLoading(true)
@@ -491,8 +518,26 @@ export function ChannelViewPage() {
                             <>
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xl font-bold">Confirm Partnership</h3>
-                                    <Button variant="ghost" size="sm" onClick={() => setShowCheckout(false)}>×</Button>
+                                    <div className="flex items-center gap-3">
+                                        {/* Payment Timer */}
+                                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono font-bold ${isExpired
+                                                ? 'bg-red-500/20 text-red-400'
+                                                : isLowTime
+                                                    ? 'bg-amber-500/20 text-amber-400 animate-pulse'
+                                                    : 'bg-primary/20 text-primary'
+                                            }`}>
+                                            <Clock className="w-4 h-4" />
+                                            {isExpired ? 'Expired' : `${paymentMinutes}:${paymentSeconds.toString().padStart(2, '0')}`}
+                                        </div>
+                                        <Button variant="ghost" size="sm" onClick={() => setShowCheckout(false)}>×</Button>
+                                    </div>
                                 </div>
+
+                                {isExpired && (
+                                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
+                                        <p className="text-sm text-red-400">Payment window expired. Please close and try again.</p>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     {selectedPackages.map((pkg, idx) => (
@@ -536,9 +581,9 @@ export function ChannelViewPage() {
                                 <Button
                                     className="w-full h-12 text-lg"
                                     onClick={processPayment}
-                                    disabled={isProcessing}
+                                    disabled={isProcessing || isExpired}
                                 >
-                                    Pay {totalAmount.toLocaleString()} {selectedCurrency}
+                                    {isExpired ? 'Payment Expired' : `Pay ${totalAmount.toLocaleString()} ${selectedCurrency}`}
                                 </Button>
 
                                 <p className="text-xs text-center text-muted-foreground">
