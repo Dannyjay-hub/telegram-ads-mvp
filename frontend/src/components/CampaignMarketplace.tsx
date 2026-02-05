@@ -31,7 +31,6 @@ export function CampaignMarketplace() {
     const { user } = useTelegram()
     const [campaigns, setCampaigns] = useState<MarketplaceCampaign[]>([])
     const [loading, setLoading] = useState(true)
-    const [applying, setApplying] = useState<string | null>(null)
     const [selectedChannel, setSelectedChannel] = useState<string | null>(null)
     const [userChannels, setUserChannels] = useState<any[]>([])
 
@@ -48,11 +47,6 @@ export function CampaignMarketplace() {
 
             if (response.ok) {
                 const data = await response.json()
-                console.log('[CampaignMarketplace] Campaigns API:', data.campaigns?.map((c: any) => ({
-                    id: c.id,
-                    title: c.title,
-                    requiredLanguages: c.requiredLanguages
-                })))
                 setCampaigns(data.campaigns || [])
             }
         } catch (e) {
@@ -70,15 +64,7 @@ export function CampaignMarketplace() {
             })
             if (response.ok) {
                 const data = await response.json()
-                console.log('[CampaignMarketplace] Channels API raw:', data)
-                // API returns array directly, not { channels: [...] }
                 const channels = Array.isArray(data) ? data : (data.channels || [])
-                console.log('[CampaignMarketplace] Parsed channels:', channels.map((ch: any) => ({
-                    id: ch.id,
-                    title: ch.title,
-                    language: ch.language,
-                    category: ch.category
-                })))
                 setUserChannels(channels)
                 if (channels.length > 0) {
                     setSelectedChannel(channels[0].id)
@@ -86,40 +72,6 @@ export function CampaignMarketplace() {
             }
         } catch (e) {
             console.error('Error fetching channels:', e)
-        }
-    }
-
-    const applyToCampaign = async (campaignId: string) => {
-        if (!selectedChannel) {
-            alert('Please select a channel first')
-            return
-        }
-
-        setApplying(campaignId)
-        try {
-            const response = await fetch(`${API_URL}/campaigns/${campaignId}/apply`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Telegram-Id': String(user?.telegramId || '')
-                },
-                body: JSON.stringify({ channelId: selectedChannel })
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success) {
-                    // Refresh to update hasApplied status
-                    await fetchMarketplace()
-                }
-            } else {
-                const err = await response.json()
-                alert(err.error || 'Failed to apply')
-            }
-        } catch (e) {
-            console.error('Error applying:', e)
-        } finally {
-            setApplying(null)
         }
     }
 
@@ -143,7 +95,6 @@ export function CampaignMarketplace() {
 
     return (
         <div className="space-y-6 pb-24">
-
             {/* Channel Selector */}
             {userChannels.length > 0 && (
                 <GlassCard className="p-3">
@@ -155,13 +106,14 @@ export function CampaignMarketplace() {
                     >
                         {userChannels.map(ch => (
                             <option key={ch.id} value={ch.id}>
-                                {ch.title} {ch.username ? `(@${ch.username})` : ''}
+                                {ch.title} ({ch.username ? `@${ch.username}` : 'No username'})
                             </option>
                         ))}
                     </select>
                 </GlassCard>
             )}
 
+            {/* Empty State for No Channels */}
             {userChannels.length === 0 && (
                 <GlassCard className="p-4 text-center">
                     <p className="text-sm text-muted-foreground mb-3">
@@ -187,68 +139,6 @@ export function CampaignMarketplace() {
                     {campaigns.map(campaign => {
                         const slotsLeft = campaign.slots - campaign.slotsFilled
                         const timeLeft = getTimeLeft(campaign.expiresAt)
-
-                        // Check if selected channel meets requirements
-                        const selectedChannelData = userChannels.find(ch => ch.id === selectedChannel)
-                        // Subscriber count can be in verifiedStats.subscribers or directly on channel
-                        const channelSubscribers = selectedChannelData?.verifiedStats?.subscribers ||
-                            selectedChannelData?.subscriberCount ||
-                            selectedChannelData?.subscribers || 0
-                        const channelCategory = selectedChannelData?.category || ''
-                        const channelLanguage = selectedChannelData?.language || ''
-
-                        // Normalize language for comparison (handles 'en' vs 'English' etc)
-                        const normalizeLanguage = (lang: string): string => {
-                            const lower = lang.toLowerCase().trim()
-                            const map: Record<string, string> = {
-                                'en': 'english', 'eng': 'english',
-                                'ru': 'russian', 'rus': 'russian',
-                                'es': 'spanish', 'spa': 'spanish',
-                                'pt': 'portuguese', 'por': 'portuguese',
-                                'zh': 'chinese', 'chi': 'chinese', 'cn': 'chinese',
-                                'ar': 'arabic', 'ara': 'arabic',
-                                'hi': 'hindi', 'hin': 'hindi',
-                                'fr': 'french', 'fra': 'french',
-                                'de': 'german', 'deu': 'german', 'ger': 'german',
-                                'ja': 'japanese', 'jpn': 'japanese', 'jp': 'japanese',
-                                'ko': 'korean', 'kor': 'korean', 'kr': 'korean',
-                                'id': 'indonesian', 'ind': 'indonesian',
-                                'tr': 'turkish', 'tur': 'turkish',
-                                'it': 'italian', 'ita': 'italian'
-                            }
-                            return map[lower] || lower
-                        }
-
-                        // Eligibility checks
-                        const meetsMinSubscribers = !campaign.minSubscribers || channelSubscribers >= campaign.minSubscribers
-                        const meetsCategory = !campaign.requiredCategories?.length ||
-                            campaign.requiredCategories.some(cat =>
-                                cat.toLowerCase() === channelCategory.toLowerCase()
-                            )
-                        const meetsLanguage = !campaign.requiredLanguages?.length ||
-                            campaign.requiredLanguages.some(lang =>
-                                normalizeLanguage(lang) === normalizeLanguage(channelLanguage)
-                            )
-
-                        const isEligible = meetsMinSubscribers && meetsCategory && meetsLanguage && slotsLeft > 0
-                        const ineligibilityReason = !meetsMinSubscribers ? 'subscribers' :
-                            !meetsCategory ? 'category' :
-                                !meetsLanguage ? 'language' :
-                                    slotsLeft <= 0 ? 'slots' : null
-
-                        // Debug logging for eligibility checks
-                        if (!meetsLanguage && campaign.requiredLanguages?.length) {
-                            console.log('[Eligibility Debug]', {
-                                campaignTitle: campaign.title,
-                                requiredLanguages: campaign.requiredLanguages,
-                                channelLanguage,
-                                comparison: campaign.requiredLanguages.map(lang => ({
-                                    required: lang.toLowerCase(),
-                                    channel: channelLanguage.toLowerCase(),
-                                    matches: lang.toLowerCase() === channelLanguage.toLowerCase()
-                                }))
-                            })
-                        }
 
                         return (
                             <GlassCard
