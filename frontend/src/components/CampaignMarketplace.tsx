@@ -21,7 +21,7 @@ interface MarketplaceCampaign {
     requiredLanguages?: string[]
     expiresAt?: string
     advertiser?: {
-        username?: string
+        firstName?: string
     }
     hasApplied?: boolean
 }
@@ -253,78 +253,57 @@ export function CampaignMarketplace() {
                         return (
                             <GlassCard
                                 key={campaign.id}
-                                className="p-4 space-y-3 cursor-pointer hover:border-primary/50 transition-colors"
+                                className="p-4 cursor-pointer hover:border-primary/50 transition-colors"
                                 onClick={() => navigate(`/campaigns/marketplace/${campaign.id}${selectedChannel ? `?channel=${selectedChannel}` : ''}`)}
                             >
-                                <div className="flex items-start justify-between gap-3">
+                                {/* Header: Avatar + Title */}
+                                <div className="flex items-start gap-3 mb-3">
+                                    {/* Avatar with gradient initial */}
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/60 to-primary flex items-center justify-center text-white font-bold text-lg shrink-0">
+                                        {campaign.advertiser?.firstName?.charAt(0)?.toUpperCase() || 'A'}
+                                    </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
+                                        <div className="flex items-center gap-2">
                                             <h3 className="font-semibold truncate">{campaign.title}</h3>
                                             {campaign.campaignType === 'open' && (
-                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 flex items-center gap-1">
-                                                    <Zap className="w-3 h-3" />
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/20 text-green-400 flex items-center gap-0.5">
+                                                    <Zap className="w-2.5 h-2.5" />
                                                     Auto
                                                 </span>
                                             )}
                                         </div>
-
-                                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                                            {campaign.brief}
+                                        <p className="text-xs text-muted-foreground">
+                                            by {campaign.advertiser?.firstName || 'Advertiser'}
                                         </p>
-
-                                        <div className="flex flex-wrap items-center gap-3 text-xs">
-                                            <span className="font-mono font-bold text-primary text-base">
-                                                {campaign.perChannelBudget} {campaign.currency}
-                                            </span>
-                                            <span className="flex items-center gap-1 text-muted-foreground">
-                                                <Users className="w-3 h-3" />
-                                                {slotsLeft} slot{slotsLeft !== 1 ? 's' : ''} left
-                                            </span>
-                                            {timeLeft && (
-                                                <span className="flex items-center gap-1 text-amber-400">
-                                                    <Clock className="w-3 h-3" />
-                                                    {timeLeft}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {campaign.minSubscribers && (
-                                            <div className={`mt-2 text-xs ${meetsMinSubscribers ? 'text-muted-foreground' : 'text-red-400'}`}>
-                                                Min {campaign.minSubscribers.toLocaleString()} subscribers
-                                                {!meetsMinSubscribers && selectedChannelData && (
-                                                    <span className="ml-1">(your channel has {channelSubscribers.toLocaleString()})</span>
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
-                                <div className="pt-2 border-t border-muted" onClick={(e) => e.stopPropagation()}>
-                                    {campaign.hasApplied ? (
-                                        <Button className="w-full" disabled variant="outline">
-                                            Applied ✓
-                                        </Button>
-                                    ) : !isEligible ? (
-                                        <Button className="w-full" disabled variant="outline">
-                                            {ineligibilityReason === 'subscribers' ? 'Not enough subscribers' :
-                                                ineligibilityReason === 'category' ? 'Category mismatch' :
-                                                    ineligibilityReason === 'language' ? 'Language mismatch' :
-                                                        'No slots available'}
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            className="w-full"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                applyToCampaign(campaign.id)
-                                            }}
-                                            disabled={applying === campaign.id || !selectedChannel}
-                                        >
-                                            {applying === campaign.id ? 'Applying...' : (
-                                                campaign.campaignType === 'open' ? 'Apply & Join' : 'Apply'
-                                            )}
-                                        </Button>
+                                {/* Stats row */}
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                                    {campaign.minSubscribers && campaign.minSubscribers > 0 && (
+                                        <span className="flex items-center gap-1">
+                                            <Users className="w-3 h-3" />
+                                            {campaign.minSubscribers >= 1000
+                                                ? `${(campaign.minSubscribers / 1000).toFixed(campaign.minSubscribers >= 10000 ? 0 : 1)}K`
+                                                : campaign.minSubscribers} min
+                                        </span>
                                     )}
+                                    {timeLeft && (
+                                        <span className="flex items-center gap-1 text-amber-400">
+                                            <Clock className="w-3 h-3" />
+                                            {timeLeft}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Footer: Slots + Budget */}
+                                <div className="flex items-center justify-between py-2 px-3 bg-card/50 rounded-lg border border-border/50">
+                                    <span className="text-sm text-muted-foreground">
+                                        {slotsLeft} slot{slotsLeft !== 1 ? 's' : ''} left
+                                    </span>
+                                    <span className="font-mono font-bold text-primary">
+                                        {campaign.perChannelBudget} {campaign.currency}+
+                                    </span>
                                 </div>
                             </GlassCard>
                         )

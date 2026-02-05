@@ -198,17 +198,27 @@ export class SupabaseCampaignRepository {
     // ============================================
 
     /**
-     * Get active campaigns visible in marketplace
+     * Get active campaigns visible in marketplace (with advertiser info)
      */
-    async findActiveCampaigns(): Promise<Campaign[]> {
+    async findActiveCampaigns(): Promise<(Campaign & { advertiser?: { firstName: string } })[]> {
         const { data, error } = await supabase
             .from('campaigns')
-            .select('*')
+            .select(`
+                *,
+                users!advertiser_id (
+                    first_name
+                )
+            `)
             .eq('status', 'active')
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(`Failed to fetch active campaigns: ${error.message}`);
-        return (data || []).map(this.mapRowToCampaign);
+        return (data || []).map(row => ({
+            ...this.mapRowToCampaign(row),
+            advertiser: (row as any).users ? {
+                firstName: (row as any).users.first_name
+            } : undefined
+        }));
     }
 
     /**
