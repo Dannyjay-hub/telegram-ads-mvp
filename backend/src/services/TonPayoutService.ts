@@ -228,8 +228,14 @@ export class TonPayoutService {
                     payout.memo || `${payout.type}_${payout.deal_id?.substring(0, 8) || 'unknown'}`
                 );
             } else {
-                // TON transfer
-                const amount = toNano(payout.amount_ton.toString());
+                // TON transfer - add 0.01 TON to cover network fees (platform absorbs)
+                // Network fees are constant ~0.003-0.005 TON regardless of amount
+                const NETWORK_FEE_BUFFER = 0.01;
+                const amountWithBuffer = Number(payout.amount_ton) + NETWORK_FEE_BUFFER;
+                const amount = toNano(amountWithBuffer.toString());
+
+                console.log(`TonPayoutService: Sending ${payout.amount_ton} TON + ${NETWORK_FEE_BUFFER} buffer = ${amountWithBuffer} TON`);
+
                 await contract.sendTransfer({
                     seqno,
                     secretKey: this.keyPair!.secretKey,
