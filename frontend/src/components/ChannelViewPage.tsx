@@ -292,7 +292,7 @@ export function ChannelViewPage() {
             const { paymentInstructions } = deal
 
             // Store deal ID for verification polling
-            setCurrentDealId(deal.deal.id)
+            setCurrentDealId(deal.id)
 
             // Step 2: Send transaction to wallet
             await sendPayment(
