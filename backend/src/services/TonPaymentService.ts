@@ -317,12 +317,8 @@ export class TonPaymentService {
                     return;
                 }
                 // DB-backed idempotency: check if already funded
-                if (campaign.escrowTxHash === txHash) {
-                    return; // Already processed this exact transaction
-                }
-                if (campaign.escrowDeposited && campaign.escrowDeposited > 0) {
-                    console.log(`TonPaymentService: Campaign ${memo} already funded`);
-                    this.markAsProcessed(txHash); // Mark to avoid future log spam
+                if (campaign.escrowTxHash === txHash || (campaign.escrowDeposited && campaign.escrowDeposited > 0)) {
+                    this.markAsProcessed(txHash); // Stop log spam
                     return;
                 }
                 await this.campaignRepo.confirmEscrowDeposit(campaign.id, amount, txHash);
