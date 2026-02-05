@@ -1,13 +1,14 @@
 import { mnemonicToPrivateKey } from '@ton/crypto';
-import { WalletContractV4, internal, TonClient, Address, toNano, fromNano } from '@ton/ton';
+import { WalletContractV4, internal, TonClient, Address, toNano, fromNano, Cell, beginCell } from '@ton/ton';
 import { supabase } from '../db';
 
 // Environment variables
 const HOT_WALLET_MNEMONIC = process.env.HOT_WALLET_MNEMONIC || '';
 const TON_API_URL = 'https://toncenter.com/api/v2';
 const TON_API_KEY = process.env.TON_API_KEY || '';
+const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Mainnet USDT
 
-// Auto-approve threshold (in TON)
+// Auto-approve threshold (in TON or USDT)
 const AUTO_APPROVE_THRESHOLD = 5;
 
 interface PayoutRequest {
@@ -175,7 +176,7 @@ export class TonPayoutService {
     }
 
     /**
-     * Execute a pending payout (send TON/USDT)
+     * Execute a pending payout (send TON or USDT)
      */
     async executePayout(payoutId: string): Promise<boolean> {
         // Initialize wallet if needed
@@ -209,27 +210,39 @@ export class TonPayoutService {
 
         try {
             const recipientAddress = Address.parse(payout.recipient_address);
-            const amount = toNano(payout.amount_ton.toString());
+            const currency = payout.currency || 'TON';
 
-            console.log(`TonPayoutService: Executing ${payout.type} of ${payout.amount_ton} TON to ${payout.recipient_address}`);
+            console.log(`TonPayoutService: Executing ${payout.type} of ${payout.amount_ton} ${currency} to ${payout.recipient_address}`);
 
             // Get wallet contract
             const contract = this.client.open(this.wallet!);
             const seqno = await contract.getSeqno();
 
-            // Create and send transfer
-            await contract.sendTransfer({
-                seqno,
-                secretKey: this.keyPair!.secretKey,
-                messages: [
-                    internal({
-                        to: recipientAddress,
-                        value: amount,
-                        body: payout.memo || `${payout.type}_${payout.deal_id?.substring(0, 8) || 'unknown'}`,
-                        bounce: false
-                    })
-                ]
-            });
+            if (currency === 'USDT') {
+                // USDT (Jetton) transfer - need to send to Jetton wallet
+                await this.executeJettonTransfer(
+                    contract,
+                    seqno,
+                    recipientAddress,
+                    payout.amount_ton,
+                    payout.memo || `${payout.type}_${payout.deal_id?.substring(0, 8) || 'unknown'}`
+                );
+            } else {
+                // TON transfer
+                const amount = toNano(payout.amount_ton.toString());
+                await contract.sendTransfer({
+                    seqno,
+                    secretKey: this.keyPair!.secretKey,
+                    messages: [
+                        internal({
+                            to: recipientAddress,
+                            value: amount,
+                            body: payout.memo || `${payout.type}_${payout.deal_id?.substring(0, 8) || 'unknown'}`,
+                            bounce: false
+                        })
+                    ]
+                });
+            }
 
             // Wait a bit for transaction to be processed
             await new Promise(resolve => setTimeout(resolve, 10000));
@@ -244,13 +257,115 @@ export class TonPayoutService {
                 })
                 .eq('id', payoutId);
 
-            console.log(`✅ TonPayoutService: ${payout.type} completed for deal ${payout.deal_id}`);
+            console.log(`✅ TonPayoutService: ${payout.type} of ${payout.amount_ton} ${currency} completed for deal ${payout.deal_id}`);
             return true;
 
         } catch (error: any) {
             console.error(`TonPayoutService: Failed to execute payout:`, error);
             await this.markPayoutFailed(payoutId, error.message || 'Unknown error');
             return false;
+        }
+    }
+
+    /**
+     * Execute Jetton (USDT) transfer
+     * This sends a Jetton transfer message to our Jetton wallet
+     */
+    private async executeJettonTransfer(
+        walletContract: any,
+        seqno: number,
+        recipientAddress: Address,
+        amount: number,
+        comment: string
+    ): Promise<void> {
+        // First, get our Jetton wallet address (the USDT wallet for our hot wallet)
+        const jettonWalletAddress = await this.getJettonWalletAddress(
+            this.wallet!.address,
+            Address.parse(USDT_MASTER_ADDRESS)
+        );
+
+        if (!jettonWalletAddress) {
+            throw new Error('Could not determine USDT wallet address for hot wallet');
+        }
+
+        console.log(`TonPayoutService: Sending USDT via Jetton wallet: ${jettonWalletAddress.toString()}`);
+
+        // USDT has 6 decimals
+        const jettonAmount = BigInt(Math.round(amount * 1e6));
+
+        // Build Jetton transfer message
+        // Format: op=0xf8a7ea5 (jetton transfer), query_id, amount, destination, response_destination, custom_payload, forward_ton_amount, forward_payload
+        const forwardPayload = beginCell()
+            .storeUint(0, 32) // text comment op
+            .storeStringTail(comment)
+            .endCell();
+
+        const jettonTransferBody = beginCell()
+            .storeUint(0xf8a7ea5, 32) // jetton transfer op code
+            .storeUint(0, 64) // query_id
+            .storeCoins(jettonAmount) // amount of jettons to transfer
+            .storeAddress(recipientAddress) // destination
+            .storeAddress(this.wallet!.address) // response_destination (refund excess to our wallet)
+            .storeBit(0) // no custom_payload
+            .storeCoins(toNano('0.01')) // forward_ton_amount (for notification, 0.01 TON)
+            .storeBit(1) // forward_payload is a reference
+            .storeRef(forwardPayload)
+            .endCell();
+
+        // Send the Jetton transfer - we send to the Jetton wallet, not directly to recipient
+        await walletContract.sendTransfer({
+            seqno,
+            secretKey: this.keyPair!.secretKey,
+            messages: [
+                internal({
+                    to: jettonWalletAddress,
+                    value: toNano('0.05'), // TON for gas (0.05 is safe)
+                    body: jettonTransferBody,
+                    bounce: true
+                })
+            ]
+        });
+
+        console.log(`TonPayoutService: USDT transfer sent (${amount} USDT = ${jettonAmount} smallest units)`);
+    }
+
+    /**
+     * Get the Jetton wallet address for a given owner and Jetton master
+     * Uses TonAPI to query the Jetton wallet address
+     */
+    private async getJettonWalletAddress(
+        ownerAddress: Address,
+        jettonMasterAddress: Address
+    ): Promise<Address | null> {
+        try {
+            const ownerStr = ownerAddress.toString();
+            const jettonMasterStr = jettonMasterAddress.toRawString();
+
+            // Use TonAPI to get the Jetton wallet address
+            const response = await fetch(
+                `https://tonapi.io/v2/accounts/${ownerStr}/jettons/${jettonMasterStr}`,
+                {
+                    headers: {
+                        'Accept': 'application/json',
+                        ...(process.env.TONAPI_KEY ? { 'Authorization': `Bearer ${process.env.TONAPI_KEY}` } : {})
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                console.error(`TonPayoutService: Failed to get Jetton wallet: ${response.status}`);
+                return null;
+            }
+
+            const data = await response.json();
+            if (data.wallet_address?.address) {
+                return Address.parse(data.wallet_address.address);
+            }
+
+            return null;
+        } catch (error) {
+            console.error('TonPayoutService: Error getting Jetton wallet address:', error);
+            return null;
         }
     }
 
