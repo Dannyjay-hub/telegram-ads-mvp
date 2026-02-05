@@ -135,7 +135,7 @@ export function ChannelViewPage() {
         return found?.quantity || 0
     }
 
-    // Update package quantity
+    // Update package quantity - prevents mixing currencies
     const updatePackageQuantity = (pkg: any, idx: number, delta: number) => {
         haptic.light()
         const currentQty = getPackageQuantity(idx)
@@ -152,6 +152,14 @@ export function ChannelViewPage() {
                     p.packageIndex === idx ? { ...p, quantity: newQty } : p
                 ))
             } else {
+                // Check currency compatibility - can't mix TON and USDT
+                const pkgCurrency = pkg.currency || 'TON'
+                if (selectedPackages.length > 0 && selectedPackages[0].currency !== pkgCurrency) {
+                    // Different currency, reject with haptic feedback
+                    haptic.error()
+                    return
+                }
+
                 // Add new selection
                 setSelectedPackages(prev => [...prev, {
                     packageIndex: idx,
@@ -159,7 +167,7 @@ export function ChannelViewPage() {
                     type: pkg.type,
                     price: pkg.price,
                     quantity: newQty,
-                    currency: pkg.currency || 'TON'
+                    currency: pkgCurrency
                 }])
             }
         }
@@ -402,8 +410,16 @@ export function ChannelViewPage() {
                     {channel.rateCard && channel.rateCard.length > 0 ? (
                         channel.rateCard.map((pkg: any, idx: number) => {
                             const qty = getPackageQuantity(idx)
+                            const pkgCurrency = pkg.currency || 'TON'
+                            // Check if this package is locked due to currency mismatch
+                            const isLocked = selectedPackages.length > 0 &&
+                                selectedPackages[0].currency !== pkgCurrency &&
+                                qty === 0
+
                             return (
-                                <div key={idx} className={`bg-white/5 p-4 rounded-xl border transition-all ${qty > 0 ? 'border-primary/50 bg-primary/5' : 'border-white/5'}`}>
+                                <div key={idx} className={`bg-white/5 p-4 rounded-xl border transition-all ${qty > 0 ? 'border-primary/50 bg-primary/5' :
+                                        isLocked ? 'border-white/5 opacity-50' : 'border-white/5'
+                                    }`}>
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
@@ -411,6 +427,11 @@ export function ChannelViewPage() {
                                                 <span className="text-[10px] uppercase bg-primary/20 text-primary px-1.5 py-0.5 rounded tracking-wider">
                                                     {pkg.type}
                                                 </span>
+                                                {isLocked && (
+                                                    <span className="text-[10px] bg-muted/50 text-muted-foreground px-1.5 py-0.5 rounded">
+                                                        {selectedCurrency} only
+                                                    </span>
+                                                )}
                                             </div>
                                             {pkg.description && (
                                                 <p className="text-xs text-muted-foreground mt-1">{pkg.description}</p>
@@ -442,6 +463,7 @@ export function ChannelViewPage() {
                                                 size="sm"
                                                 className="h-8 w-8 p-0 rounded-full"
                                                 onClick={() => updatePackageQuantity(pkg, idx, 1)}
+                                                disabled={isLocked}
                                             >
                                                 <Plus className="w-4 h-4" />
                                             </Button>
