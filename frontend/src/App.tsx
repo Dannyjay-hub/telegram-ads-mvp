@@ -67,7 +67,7 @@ function AppContent() {
       } else if (startParam.startsWith('owner_deal_')) {
         // Channel owner viewing a deal request - go to channel partnerships
         const dealId = startParam.replace('owner_deal_', '');
-        navigate(`/channel-partnerships?deal=${dealId}`);
+        navigate(`/channels/partnerships?deal=${dealId}`);
       } else if (startParam.startsWith('deal_')) {
         // Advertiser viewing their deal - go to partnerships
         const dealId = startParam.replace('deal_', '');
