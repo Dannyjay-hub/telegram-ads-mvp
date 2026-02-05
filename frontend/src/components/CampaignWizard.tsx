@@ -123,8 +123,6 @@ export function CampaignWizard() {
 
         const handleBack = () => {
             const currentStep = stepRef.current
-            console.log('[CampaignWizard] Back button pressed, step:', currentStep)
-
             if (currentStep > 0) {
                 setStep(currentStep - 1)
             } else {
