@@ -302,6 +302,11 @@ export class TonPaymentService {
             return; // Ignore transfers without our memo format
         }
 
+        // Early skip if already in cache (before logging)
+        if (this.processedJettonTxHashes.has(txHash)) {
+            return;
+        }
+
         const amount = Number(op.amount || 0) / 1e6; // USDT has 6 decimals
         console.log(`TonPaymentService: Found USDT transfer with memo: ${memo}`);
         console.log(`  Transaction: ${txHash}`);
