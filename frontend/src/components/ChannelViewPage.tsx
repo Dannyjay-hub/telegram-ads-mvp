@@ -40,7 +40,6 @@ export function ChannelViewPage() {
     const [brief, setBrief] = useState('')  // Advertiser's brief describing what they want to promote
 
     // Payment timer state (frontend-only, uses timestamp for accurate time even when backgrounded)
-    const [paymentEndTime, setPaymentEndTime] = useState<number | null>(null)
     const [paymentTimeLeft, setPaymentTimeLeft] = useState(15 * 60)
     const paymentMinutes = Math.floor(paymentTimeLeft / 60)
     const paymentSeconds = paymentTimeLeft % 60
@@ -67,14 +66,10 @@ export function ChannelViewPage() {
 
     // Payment countdown timer effect - uses timestamp for accurate time when app is backgrounded
     useEffect(() => {
-        if (!showCheckout || paymentStep !== 'confirm') {
-            setPaymentEndTime(null)
-            return
-        }
+        if (!showCheckout || paymentStep !== 'confirm') return
 
         // Set end time when checkout opens (15 minutes from now)
         const endTime = Date.now() + (15 * 60 * 1000)
-        setPaymentEndTime(endTime)
         setPaymentTimeLeft(15 * 60)
 
         const updateTimer = () => {
