@@ -39,7 +39,8 @@ export function ChannelViewPage() {
     const [paymentError, setPaymentError] = useState<string | null>(null)
     const [brief, setBrief] = useState('')  // Advertiser's brief describing what they want to promote
 
-    // Payment timer state (frontend-only, 15 minutes = 900 seconds)
+    // Payment timer state (frontend-only, uses timestamp for accurate time even when backgrounded)
+    const [paymentEndTime, setPaymentEndTime] = useState<number | null>(null)
     const [paymentTimeLeft, setPaymentTimeLeft] = useState(15 * 60)
     const paymentMinutes = Math.floor(paymentTimeLeft / 60)
     const paymentSeconds = paymentTimeLeft % 60
@@ -64,23 +65,24 @@ export function ChannelViewPage() {
         if (id) loadChannel()
     }, [id])
 
-    // Payment countdown timer effect (frontend-only, resets when checkout opens)
+    // Payment countdown timer effect - uses timestamp for accurate time when app is backgrounded
     useEffect(() => {
-        if (!showCheckout || paymentStep !== 'confirm') return
+        if (!showCheckout || paymentStep !== 'confirm') {
+            setPaymentEndTime(null)
+            return
+        }
 
-        // Reset timer when checkout opens
+        // Set end time when checkout opens (15 minutes from now)
+        const endTime = Date.now() + (15 * 60 * 1000)
+        setPaymentEndTime(endTime)
         setPaymentTimeLeft(15 * 60)
 
-        const interval = setInterval(() => {
-            setPaymentTimeLeft(prev => {
-                if (prev <= 0) {
-                    clearInterval(interval)
-                    return 0
-                }
-                return prev - 1
-            })
-        }, 1000)
+        const updateTimer = () => {
+            const remaining = Math.floor((endTime - Date.now()) / 1000)
+            setPaymentTimeLeft(Math.max(0, remaining))
+        }
 
+        const interval = setInterval(updateTimer, 1000)
         return () => clearInterval(interval)
     }, [showCheckout, paymentStep])
 
