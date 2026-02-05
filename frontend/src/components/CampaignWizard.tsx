@@ -113,7 +113,7 @@ export function CampaignWizard() {
     }, [location.state])
 
     // Handle Telegram back button - go to previous step or exit
-    // Using ref so handler doesn't need re-registration on step change
+    // Using onEvent to properly intercept before global handler
     useEffect(() => {
         const WebApp = (window as any).Telegram?.WebApp
         if (!WebApp) return
@@ -131,12 +131,13 @@ export function CampaignWizard() {
             }
         }
 
-        WebApp.BackButton.onClick(handleBack)
+        // Use onEvent instead of onClick to properly handle the event
+        WebApp.onEvent('backButtonClicked', handleBack)
 
         return () => {
-            WebApp.BackButton.offClick(handleBack)
+            WebApp.offEvent('backButtonClicked', handleBack)
         }
-    }, [navigate]) // Only navigate in deps - stepRef.current is always fresh
+    }, [navigate])
 
     // Save draft to localStorage on change
     useEffect(() => {

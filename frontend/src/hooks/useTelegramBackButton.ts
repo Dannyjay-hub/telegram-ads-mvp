@@ -7,15 +7,16 @@ import { useLocation, useNavigate } from 'react-router-dom';
  */
 function getParentRoute(pathname: string): string | null {
     // Exact matches first
-    const exactParents: Record<string, string> = {
-        '/': null as any, // Root has no parent (hide back button)
+    // Return 'SKIP' for routes that handle their own back button
+    const exactParents: Record<string, string | null> = {
+        '/': null, // Root has no parent (hide back button)
         '/advertiser': '/',
         '/channel-owner': '/',
         '/channels/my': '/channel-owner',
         '/channels/new': '/channels/my',
         '/channels/dashboard': '/channel-owner',
         '/channels/partnerships': '/channel-owner',
-        '/create': '/advertiser',
+        '/create': 'SKIP', // CampaignWizard handles its own back button
         '/campaigns': '/advertiser',
         '/partnerships': '/advertiser',
         '/marketplace': '/', // Could be reached from either dashboard
@@ -68,6 +69,9 @@ export function useTelegramBackButton() {
         if (parentRoute === null) {
             // Root page has no parent - hide back button (show X Close)
             BackButton.hide();
+        } else if (parentRoute === 'SKIP') {
+            // Component handles its own back button - just show it, don't register handler
+            BackButton.show();
         } else {
             // Has a parent - show back button
             BackButton.show();
