@@ -162,7 +162,7 @@ An advertiser wants to work with you! Review and respond to keep your response r
                 inline_keyboard: [[
                     {
                         text: '📋 View Deal',
-                        url: `${MINI_APP_URL}?startapp=deal_${dealId}`
+                        url: `${MINI_APP_URL}?startapp=owner_deal_${dealId}`
                     }
                 ]]
             }

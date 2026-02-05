@@ -64,7 +64,12 @@ function AppContent() {
       if (startParam.startsWith('channel_')) {
         const channelId = startParam.replace('channel_', '');
         navigate(`/channels/${channelId}/view`);
+      } else if (startParam.startsWith('owner_deal_')) {
+        // Channel owner viewing a deal request - go to channel partnerships
+        const dealId = startParam.replace('owner_deal_', '');
+        navigate(`/channel-partnerships?deal=${dealId}`);
       } else if (startParam.startsWith('deal_')) {
+        // Advertiser viewing their deal - go to partnerships
         const dealId = startParam.replace('deal_', '');
         navigate(`/partnerships?deal=${dealId}`);
       } else if (startParam === 'dashboard') {

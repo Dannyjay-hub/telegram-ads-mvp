@@ -59,6 +59,7 @@ export function ChannelOwnerPartnerships() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<TabType>('pending')
     const [processingId, setProcessingId] = useState<string | null>(null)
+    const [processingAction, setProcessingAction] = useState<'accept' | 'reject' | null>(null)
 
     useEffect(() => {
         loadDeals()
@@ -82,6 +83,7 @@ export function ChannelOwnerPartnerships() {
 
     const handleApprove = async (dealId: string, reject: boolean) => {
         setProcessingId(dealId)
+        setProcessingAction(reject ? 'reject' : 'accept')
         haptic.light()
 
         try {
@@ -111,6 +113,7 @@ export function ChannelOwnerPartnerships() {
             haptic.error()
         } finally {
             setProcessingId(null)
+            setProcessingAction(null)
         }
     }
 
@@ -244,12 +247,12 @@ export function ChannelOwnerPartnerships() {
                                             onClick={() => handleApprove(deal.id, false)}
                                             disabled={processingId === deal.id}
                                         >
-                                            {processingId === deal.id ? (
+                                            {processingId === deal.id && processingAction === 'accept' ? (
                                                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                                             ) : (
                                                 <CheckCircle className="w-4 h-4 mr-1" />
                                             )}
-                                            {processingId === deal.id ? 'Processing...' : 'Accept'}
+                                            {processingId === deal.id && processingAction === 'accept' ? 'Processing...' : 'Accept'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -258,12 +261,12 @@ export function ChannelOwnerPartnerships() {
                                             onClick={() => handleApprove(deal.id, true)}
                                             disabled={processingId === deal.id}
                                         >
-                                            {processingId === deal.id ? (
+                                            {processingId === deal.id && processingAction === 'reject' ? (
                                                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                                             ) : (
                                                 <XCircle className="w-4 h-4 mr-1" />
                                             )}
-                                            {processingId === deal.id ? 'Processing...' : 'Reject'}
+                                            {processingId === deal.id && processingAction === 'reject' ? 'Processing...' : 'Reject'}
                                         </Button>
                                     </div>
                                 )}
