@@ -171,6 +171,7 @@ export class SupabaseCampaignRepository {
         if (updates.escrowDeposited !== undefined) dbUpdates.escrow_deposited = updates.escrowDeposited;
         if (updates.escrowAllocated !== undefined) dbUpdates.escrow_allocated = updates.escrowAllocated;
         if (updates.slotsFilled !== undefined) dbUpdates.slots_filled = updates.slotsFilled;
+        if (updates.draftStep !== undefined) dbUpdates.draft_step = updates.draftStep;
 
         const { data, error } = await supabase
             .from('campaigns')

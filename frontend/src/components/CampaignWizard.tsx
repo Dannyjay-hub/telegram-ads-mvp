@@ -72,6 +72,7 @@ export function CampaignWizard() {
     const [loading, setLoading] = useState(false)
     const [savingDraft, setSavingDraft] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [campaignId, setCampaignId] = useState<string | null>(null) // Track existing draft ID
 
     // Ref to track current step for back button handler
     const stepRef = useRef(step)
@@ -102,6 +103,8 @@ export function CampaignWizard() {
             })
             // Resume at saved step
             setStep(resumeDraft.draftStep || 0)
+            // Track the campaign ID for future updates
+            setCampaignId(resumeDraft.id)
             // Clear localStorage draft since we're resuming from DB
             localStorage.removeItem(DRAFT_KEY)
             return
@@ -257,8 +260,14 @@ export function CampaignWizard() {
         setError(null)
 
         try {
-            const response = await fetch(`${API_URL}/campaigns/draft`, {
-                method: 'POST',
+            // Use PATCH for existing drafts, POST for new ones
+            const isUpdate = !!campaignId
+            const url = isUpdate
+                ? `${API_URL}/campaigns/${campaignId}/draft`
+                : `${API_URL}/campaigns/draft`
+
+            const response = await fetch(url, {
+                method: isUpdate ? 'PATCH' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Telegram-ID': String(user.telegramId)

@@ -220,4 +220,5 @@ export interface CampaignUpdate {
     escrowDeposited?: number;
     escrowAllocated?: number;
     slotsFilled?: number;
+    draftStep?: number;
 }

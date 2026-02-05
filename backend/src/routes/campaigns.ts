@@ -127,6 +127,63 @@ campaigns.post('/draft', async (c) => {
 });
 
 /**
+ * Update an existing draft campaign
+ * PATCH /campaigns/:id/draft
+ */
+campaigns.patch('/:id/draft', async (c) => {
+    try {
+        const campaignId = c.req.param('id');
+        const body = await c.req.json();
+        const telegramId = c.req.header('X-Telegram-ID');
+
+        if (!telegramId) {
+            return c.json({ error: 'Telegram ID required' }, 401);
+        }
+
+        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        // Get campaign and verify ownership
+        const existing = await campaignService.getCampaign(campaignId);
+        if (!existing) {
+            return c.json({ error: 'Campaign not found' }, 404);
+        }
+
+        if (existing.advertiserId !== user.id) {
+            return c.json({ error: 'Not authorized' }, 403);
+        }
+
+        if (existing.status !== 'draft') {
+            return c.json({ error: 'Can only update draft campaigns' }, 400);
+        }
+
+        // Update the draft with new values
+        const updates: any = {};
+        if (body.title !== undefined) updates.title = body.title;
+        if (body.brief !== undefined) updates.brief = body.brief;
+        if (body.totalBudget !== undefined) updates.totalBudget = body.totalBudget;
+        if (body.currency !== undefined) updates.currency = body.currency;
+        if (body.slots !== undefined) updates.slots = body.slots;
+        if (body.campaignType !== undefined) updates.campaignType = body.campaignType;
+        if (body.minSubscribers !== undefined) updates.minSubscribers = body.minSubscribers;
+        if (body.maxSubscribers !== undefined) updates.maxSubscribers = body.maxSubscribers;
+        if (body.requiredLanguages !== undefined) updates.requiredLanguages = body.requiredLanguages;
+        if (body.requiredCategories !== undefined) updates.requiredCategories = body.requiredCategories;
+        if (body.minAvgViews !== undefined) updates.minAvgViews = body.minAvgViews;
+        if (body.draftStep !== undefined) updates.draftStep = body.draftStep;
+
+        const campaign = await campaignService.updateCampaign(campaignId, updates);
+
+        return c.json({ campaign, message: 'Draft updated' });
+    } catch (error: any) {
+        console.error('[Campaigns] Draft update error:', error);
+        return c.json({ error: error.message || 'Failed to update draft' }, 400);
+    }
+});
+
+/**
  * Get advertiser's campaigns
  * GET /campaigns
  */
