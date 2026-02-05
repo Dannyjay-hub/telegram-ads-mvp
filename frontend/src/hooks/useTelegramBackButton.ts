@@ -47,6 +47,18 @@ function getParentRoute(pathname: string): string | null {
         // /marketplace/channel/:id -> Marketplace
         return '/marketplace';
     }
+    if (pathname.match(/^\/campaigns\/marketplace\/[^/]+$/)) {
+        // /campaigns/marketplace/:id -> Campaign Marketplace
+        return '/campaigns/marketplace';
+    }
+    if (pathname === '/campaigns/marketplace') {
+        // Campaign marketplace -> Channel Owner dashboard
+        return '/channel-owner';
+    }
+    if (pathname.match(/^\/campaigns\/[^/]+$/) && !pathname.includes('marketplace') && !pathname.includes('escrow')) {
+        // /campaigns/:id (campaign detail for advertiser) -> My Campaigns
+        return '/campaigns';
+    }
 
     // Default fallback - go to main dashboard
     return '/';
