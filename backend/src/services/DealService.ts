@@ -2,7 +2,7 @@ import { IDealRepository } from '../repositories/interfaces';
 import { Deal, ContentItem } from '../domain/entities';
 import { v4 as uuidv4 } from 'uuid';
 import { tonPayoutService } from './TonPayoutService';
-import { notifyDealStatusChange } from './NotificationService';
+import { notifyDealStatusChange, notifyNewDealRequest, notifyPaymentConfirmed } from './NotificationService';
 import { supabase } from '../db';
 
 // Master hot wallet address for escrow payments
@@ -71,6 +71,7 @@ export class DealService {
 
     /**
      * Confirm payment received (called by payment monitor)
+     * Also sends bot notifications to channel owner and advertiser
      */
     async confirmPayment(paymentMemo: string, txHash: string): Promise<Deal> {
         const deal = await this.dealRepo.findByPaymentMemo(paymentMemo);
@@ -87,7 +88,69 @@ export class DealService {
             throw new Error(`Deal ${deal.id} payment window has expired`);
         }
 
-        return this.dealRepo.updatePaymentConfirmed(deal.id, txHash);
+        // Update deal status to 'pending' (awaiting channel owner approval)
+        const updatedDeal = await this.dealRepo.updatePaymentConfirmed(deal.id, txHash);
+
+        // Send notifications (fire and forget - don't block on notification failures)
+        try {
+            // Fetch channel title
+            const { data: channel } = await supabase
+                .from('channels')
+                .select('title')
+                .eq('id', deal.channelId)
+                .single();
+
+            // Fetch channel owner via channel_admins (role = 'owner')
+            const { data: ownerAdmin } = await supabase
+                .from('channel_admins')
+                .select('users(telegram_id)')
+                .eq('channel_id', deal.channelId)
+                .eq('role', 'owner')
+                .single();
+
+            // Fetch advertiser info
+            const { data: advertiser } = await supabase
+                .from('users')
+                .select('telegram_id')
+                .eq('id', deal.advertiserId)
+                .single();
+
+            const ownerTelegramId = (ownerAdmin as any)?.users?.telegram_id;
+            const channelTitle = channel?.title || 'Your channel';
+
+            if (ownerTelegramId) {
+                // Build items summary for notification
+                const itemsSummary = deal.contentItems
+                    ?.map((item: any) => `• ${item.quantity}x ${item.title}`)
+                    .join('\n') || '';
+
+                // Notify channel owner about new deal request
+                await notifyNewDealRequest(
+                    ownerTelegramId,
+                    channelTitle,
+                    deal.id,
+                    deal.priceAmount,
+                    itemsSummary + (deal.briefText ? `\n\n📝 Brief: "${deal.briefText}"` : '')
+                );
+                console.log(`[DealService] ✅ Notified channel owner ${ownerTelegramId} about new deal`);
+            }
+
+            if (advertiser && advertiser.telegram_id) {
+                // Notify advertiser that payment was confirmed
+                await notifyPaymentConfirmed(
+                    advertiser.telegram_id,
+                    channelTitle,
+                    deal.id,
+                    deal.priceAmount
+                );
+                console.log(`[DealService] ✅ Notified advertiser ${advertiser.telegram_id} about payment confirmation`);
+            }
+        } catch (notifyError: any) {
+            // Log but don't throw - notifications are non-critical
+            console.warn('[DealService] Notification error (non-fatal):', notifyError.message);
+        }
+
+        return updatedDeal;
     }
 
     /**
