@@ -106,7 +106,7 @@ export function CampaignMarketplace() {
                     >
                         {userChannels.map(ch => (
                             <option key={ch.id} value={ch.id}>
-                                {ch.title} ({ch.username ? `@${ch.username}` : 'No username'})
+                                {ch.title}
                             </option>
                         ))}
                     </select>
