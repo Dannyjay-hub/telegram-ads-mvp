@@ -39,7 +39,7 @@ export function ChannelViewPage() {
     const [paymentError, setPaymentError] = useState<string | null>(null)
     const [brief, setBrief] = useState('')  // Advertiser's brief describing what they want to promote
 
-    // Payment timer state (15 minutes = 900 seconds)
+    // Payment timer state (frontend-only, 15 minutes = 900 seconds)
     const [paymentTimeLeft, setPaymentTimeLeft] = useState(15 * 60)
     const paymentMinutes = Math.floor(paymentTimeLeft / 60)
     const paymentSeconds = paymentTimeLeft % 60
@@ -64,7 +64,7 @@ export function ChannelViewPage() {
         if (id) loadChannel()
     }, [id])
 
-    // Payment countdown timer effect
+    // Payment countdown timer effect (frontend-only, resets when checkout opens)
     useEffect(() => {
         if (!showCheckout || paymentStep !== 'confirm') return
 
@@ -177,11 +177,11 @@ export function ChannelViewPage() {
         return selectedPackages.reduce((sum, pkg) => sum + pkg.quantity, 0)
     }, [selectedPackages])
 
-    // Handle checkout
-    const handleRequestPartnership = async () => {
+    // Handle checkout - just open modal 
+    const openCheckout = () => {
         haptic.medium()
         if (!isConnected) {
-            await connectWallet()
+            connectWallet()
             return
         }
         setPaymentStep('confirm')
@@ -189,7 +189,7 @@ export function ChannelViewPage() {
         setShowCheckout(true)
     }
 
-    // Process payment: Create deal via API then send TON transaction
+    // Process payment: Create deal via API then send transaction
     const processPayment = async () => {
         if (!walletAddress || !id) return
 
@@ -216,7 +216,7 @@ export function ChannelViewPage() {
                     contentItems,
                     walletAddress,
                     brief: brief.trim() || undefined,
-                    currency: selectedCurrency  // Pass the selected payment currency (TON or USDT)
+                    currency: selectedCurrency
                 })
             })
 
@@ -228,15 +228,11 @@ export function ChannelViewPage() {
             const deal = await res.json()
             const { paymentInstructions } = deal
 
-            // Step 2: Send transaction using the package's currency
-            // For TON: use the amount directly (prices are in TON)
-            // For USDT: use the amount directly (prices are in USDT)
-            const paymentAmount = paymentInstructions.amount
-
+            // Step 2: Send transaction
             await sendPayment(
                 paymentToken,
                 paymentInstructions.address,
-                paymentAmount,
+                paymentInstructions.amount,
                 paymentInstructions.memo
             )
 
@@ -501,7 +497,7 @@ export function ChannelViewPage() {
                         <Button
                             size="lg"
                             className="gap-2"
-                            onClick={handleRequestPartnership}
+                            onClick={openCheckout}
                         >
                             <ShoppingCart className="w-4 h-4" />
                             {isConnected ? 'Request Deal' : 'Connect Wallet'}
@@ -518,18 +514,28 @@ export function ChannelViewPage() {
                             <>
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xl font-bold">Confirm Partnership</h3>
-                                    <div className="flex items-center gap-3">
-                                        {/* Payment Timer */}
-                                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono font-bold ${isExpired
-                                                ? 'bg-red-500/20 text-red-400'
-                                                : isLowTime
-                                                    ? 'bg-amber-500/20 text-amber-400 animate-pulse'
-                                                    : 'bg-primary/20 text-primary'
-                                            }`}>
-                                            <Clock className="w-4 h-4" />
-                                            {isExpired ? 'Expired' : `${paymentMinutes}:${paymentSeconds.toString().padStart(2, '0')}`}
-                                        </div>
-                                        <Button variant="ghost" size="sm" onClick={() => setShowCheckout(false)}>×</Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setShowCheckout(false)}>×</Button>
+                                </div>
+
+                                {/* Payment Window Countdown - matches campaign escrow style */}
+                                <div className={`p-3 rounded-lg flex items-center gap-3 ${isExpired ? 'bg-red-500/20 text-red-400' :
+                                    isLowTime ? 'bg-yellow-500/20 text-yellow-400' :
+                                        'bg-green-500/20 text-green-400'
+                                    }`}>
+                                    <Clock className="w-5 h-5" />
+                                    <div className="flex-1">
+                                        {isExpired ? (
+                                            <span className="font-medium">Session Expired</span>
+                                        ) : (
+                                            <>
+                                                <span className="font-medium">
+                                                    {String(paymentMinutes).padStart(2, '0')}:{String(paymentSeconds).padStart(2, '0')}
+                                                </span>
+                                                <span className="text-sm ml-2 opacity-80">
+                                                    {isLowTime ? 'Hurry!' : 'remaining'}
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
@@ -583,7 +589,7 @@ export function ChannelViewPage() {
                                     onClick={processPayment}
                                     disabled={isProcessing || isExpired}
                                 >
-                                    {isExpired ? 'Payment Expired' : `Pay ${totalAmount.toLocaleString()} ${selectedCurrency}`}
+                                    {isExpired ? 'Payment Expired' : isProcessing ? 'Processing...' : `Pay ${totalAmount.toLocaleString()} ${selectedCurrency}`}
                                 </Button>
 
                                 <p className="text-xs text-center text-muted-foreground">
