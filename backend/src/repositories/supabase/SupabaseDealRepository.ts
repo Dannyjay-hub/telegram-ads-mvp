@@ -29,6 +29,20 @@ export class SupabaseDealRepository implements IDealRepository {
             expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
             statusUpdatedAt: row.status_updated_at ? new Date(row.status_updated_at) : undefined,
             rejectionReason: row.rejection_reason,
+            // Post-escrow draft fields
+            draftText: row.draft_text,
+            draftMediaFileId: row.draft_media_file_id,
+            draftMediaType: row.draft_media_type,
+            draftSubmittedAt: row.draft_submitted_at ? new Date(row.draft_submitted_at) : undefined,
+            draftFeedback: row.draft_feedback,
+            // Scheduling fields
+            proposedPostTime: row.proposed_post_time,
+            timeProposedBy: row.time_proposed_by,
+            agreedPostTime: row.agreed_post_time,
+            // Monitoring fields
+            postedMessageId: row.posted_message_id,
+            postedAt: row.posted_at ? new Date(row.posted_at) : undefined,
+            monitoringEndAt: row.monitoring_end_at,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at)
         };

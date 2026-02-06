@@ -4,10 +4,16 @@ export type DealStatus =
     | 'pending'       // Awaiting payment
     | 'negotiating'
     | 'funded'        // Payment received
-    | 'approved'      // Channel accepted
+    | 'draft_pending' // Channel accepted, awaiting draft from owner
+    | 'draft_submitted' // Draft submitted, awaiting advertiser review
+    | 'changes_requested' // Advertiser requested changes
+    | 'approved'      // Draft approved, ready for scheduling
+    | 'scheduling'    // Negotiating post time
+    | 'scheduled'     // Time agreed, waiting to post
     | 'rejected'      // Channel rejected (refund queued)
-    | 'in_progress'   // Drafting/scheduling
+    | 'in_progress'   // Drafting/scheduling (legacy)
     | 'posted'        // Content published
+    | 'failed_to_post' // Posting failed (bot removed, etc.)
     | 'monitoring'    // Safety period
     | 'released'      // Funds released (completed)
     | 'refunded'      // Refund completed
@@ -92,6 +98,23 @@ export interface Deal {
     statusUpdatedAt?: Date;
     expiresAt?: Date;
     rejectionReason?: string;
+
+    // Post-escrow draft fields
+    draftText?: string;
+    draftMediaFileId?: string;
+    draftMediaType?: string;
+    draftSubmittedAt?: Date;
+    draftFeedback?: string;
+
+    // Scheduling fields
+    proposedPostTime?: string;
+    timeProposedBy?: 'advertiser' | 'channel_owner';
+    agreedPostTime?: string;
+
+    // Monitoring fields
+    postedMessageId?: number;
+    postedAt?: Date;
+    monitoringEndAt?: string;
 
     createdAt: Date;
     updatedAt: Date;
