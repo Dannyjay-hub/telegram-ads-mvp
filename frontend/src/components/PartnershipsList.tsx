@@ -327,8 +327,8 @@ export function PartnershipsList() {
                                     </div>
                                 )}
 
-                                {/* Approved: Propose time (only if draft exists) or wait for draft */}
-                                {deal.status === 'approved' && (deal.draftText || deal.draftMediaFileId) && (
+                                {/* Approved: Propose time button */}
+                                {deal.status === 'approved' && (
                                     <div className="pt-2 border-t border-white/10">
                                         <Button
                                             variant="default"
@@ -340,14 +340,6 @@ export function PartnershipsList() {
                                             Propose Post Time
                                         </Button>
                                     </div>
-                                )}
-
-                                {/* Legacy deal: Approved but no draft - waiting for channel owner */}
-                                {deal.status === 'approved' && !deal.draftText && !deal.draftMediaFileId && (
-                                    <p className="text-xs text-blue-400 flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        Waiting for channel owner to create draft
-                                    </p>
                                 )}
 
                                 {/* Scheduling: Accept or Counter */}

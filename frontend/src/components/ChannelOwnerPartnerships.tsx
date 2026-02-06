@@ -372,20 +372,6 @@ export function ChannelOwnerPartnerships() {
                                     </div>
                                 )}
 
-                                {/* Legacy deal: Approved but no draft - needs draft creation */}
-                                {deal.status === 'approved' && !deal.draftText && !deal.draftMediaFileId && (
-                                    <div className="flex gap-2 pt-2 border-t border-white/10">
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            className="flex-1 bg-blue-600 hover:bg-blue-700"
-                                            onClick={() => openBotDeepLink(`draft_${deal.id}`)}
-                                        >
-                                            <Send className="w-4 h-4 mr-1" />
-                                            Create Draft
-                                        </Button>
-                                    </div>
-                                )}
 
                                 {/* Draft Submitted: Waiting message */}
                                 {deal.status === 'draft_submitted' && (
