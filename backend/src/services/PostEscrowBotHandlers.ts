@@ -1,5 +1,6 @@
 import { Bot, Context, InlineKeyboard } from 'grammy';
 import { supabase } from '../db';
+import { bot } from '../botInstance';
 import { DraftService } from './DraftService';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 
@@ -513,9 +514,38 @@ async function handleFeedbackReceived(
             { parse_mode: 'Markdown' }
         );
 
-        // Notify channel owner
+        // Notify ALL channel admins with the feedback
         const deal = await draftService.getDealWithDraft(dealId);
-        // TODO: Notify channel owner with feedback
+        if (deal?.channel_id) {
+            const { data: admins } = await supabase
+                .from('channel_admins')
+                .select('users(telegram_id)')
+                .eq('channel_id', deal.channel_id);
+
+            if (admins?.length) {
+                for (const admin of admins) {
+                    const telegramId = (admin as any)?.users?.telegram_id;
+                    if (telegramId) {
+                        await bot.api.sendMessage(
+                            telegramId,
+                            `✏️ **Changes Requested**\n\n` +
+                            `The advertiser has requested changes to your draft.\n\n` +
+                            `**Feedback:**\n"${feedback}"\n\n` +
+                            `Please revise and resubmit.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [[
+                                        { text: '📝 Revise Draft', url: `https://t.me/DanielAdsMVP_bot?start=draft_${dealId}` }
+                                    ]]
+                                }
+                            }
+                        );
+                    }
+                }
+                console.log(`[PostEscrowBotHandlers] Sent feedback to ${admins.length} channel admin(s)`);
+            }
+        }
 
     } catch (error: any) {
         console.error('[PostEscrowBotHandlers] Error sending feedback:', error);

@@ -69,7 +69,7 @@ export class AutoPostService {
                     status: 'posted',
                     posted_message_id: messageId,
                     posted_at: new Date().toISOString(),
-                    monitoring_end_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    monitoring_end_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
                     status_updated_at: new Date().toISOString()
                 })
                 .eq('id', dealId);

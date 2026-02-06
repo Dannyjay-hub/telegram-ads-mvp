@@ -56,7 +56,7 @@ export class SchedulingService {
         }
 
         const agreedTime = new Date(deal.proposed_post_time);
-        const monitoringEnd = new Date(agreedTime.getTime() + 24 * 60 * 60 * 1000); // +24h
+        const monitoringEnd = new Date(agreedTime.getTime() + 6 * 60 * 60 * 1000); // +6h (testing)
 
         // Lock the time
         const { error } = await (supabase as any)
