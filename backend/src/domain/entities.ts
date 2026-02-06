@@ -166,6 +166,7 @@ export interface Campaign {
 
     // Draft
     draftStep?: number;             // For resume at correct step
+    expiresInDays?: number;         // Campaign duration in days
 
     // Timestamps
     createdAt: Date;
@@ -202,6 +203,7 @@ export interface CampaignInsert {
     paymentMemo?: string;  // For escrow tracking
     paymentExpiresAt?: Date;  // 15-min payment window
     draftStep?: number;  // For resume draft functionality
+    expiresInDays?: number;  // Campaign duration in days (for draft resume)
 }
 
 export interface CampaignUpdate {
@@ -221,4 +223,5 @@ export interface CampaignUpdate {
     escrowAllocated?: number;
     slotsFilled?: number;
     draftStep?: number;
+    expiresInDays?: number;
 }

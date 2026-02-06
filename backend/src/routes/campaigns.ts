@@ -114,7 +114,8 @@ campaigns.post('/draft', async (c) => {
             requiredLanguages: body.requiredLanguages || [],
             requiredCategories: body.requiredCategories || [],
             minAvgViews: body.minAvgViews || 0,
-            draftStep: body.draftStep || 0
+            draftStep: body.draftStep || 0,
+            expiresInDays: body.expiresInDays || 7
         };
 
         const campaign = await campaignService.createCampaign(campaignData);
@@ -173,6 +174,7 @@ campaigns.patch('/:id/draft', async (c) => {
         if (body.requiredCategories !== undefined) updates.requiredCategories = body.requiredCategories;
         if (body.minAvgViews !== undefined) updates.minAvgViews = body.minAvgViews;
         if (body.draftStep !== undefined) updates.draftStep = body.draftStep;
+        if (body.expiresInDays !== undefined) updates.expiresInDays = body.expiresInDays;
 
         const campaign = await campaignService.updateCampaign(campaignId, updates);
 

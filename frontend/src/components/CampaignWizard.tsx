@@ -99,7 +99,8 @@ export function CampaignWizard() {
                 minSubscribers: resumeDraft.minSubscribers ? String(resumeDraft.minSubscribers) : '',
                 maxSubscribers: resumeDraft.maxSubscribers ? String(resumeDraft.maxSubscribers) : '',
                 minAvgViews: resumeDraft.minAvgViews ? String(resumeDraft.minAvgViews) : '',
-                campaignType: resumeDraft.campaignType || 'open'
+                campaignType: resumeDraft.campaignType || 'open',
+                expiresInDays: resumeDraft.expiresInDays ? String(resumeDraft.expiresInDays) : '7'
             })
             // Resume at saved step
             setStep(resumeDraft.draftStep || 0)
@@ -229,13 +230,10 @@ export function CampaignWizard() {
             // Clear draft on success
             localStorage.removeItem(DRAFT_KEY)
 
-            // For open campaigns, go to escrow payment with payment instructions
-            // For closed campaigns, go to campaign list
-            if (formData.campaignType === 'open') {
-                navigate('/campaigns/escrow', { state: { campaign, paymentInstructions } })
-            } else {
-                navigate('/campaigns')
-            }
+            // Both open and closed campaigns require escrow payment upfront
+            // The difference is: open campaigns appear in marketplace for anyone to apply,
+            // closed campaigns require advertiser to manually invite specific channels
+            navigate('/campaigns/escrow', { state: { campaign, paymentInstructions } })
         } catch (e: any) {
             console.error('Campaign creation error:', e)
             setError(e.message || 'Failed to create campaign')
@@ -284,7 +282,8 @@ export function CampaignWizard() {
                     requiredLanguages: formData.requiredLanguages,
                     requiredCategories: formData.requiredCategories,
                     minAvgViews: parseInt(formData.minAvgViews) || 0,
-                    draftStep: step // Save current step for resume
+                    draftStep: step, // Save current step for resume
+                    expiresInDays: parseInt(formData.expiresInDays) || 7
                 })
             })
 

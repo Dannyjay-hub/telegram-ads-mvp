@@ -43,6 +43,7 @@ export class SupabaseCampaignRepository {
             fundedAt: row.funded_at ? new Date(row.funded_at) : undefined,
             // Draft
             draftStep: row.draft_step,
+            expiresInDays: row.expires_in_days,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at),
             expiredAt: row.expired_at ? new Date(row.expired_at) : undefined
@@ -89,7 +90,8 @@ export class SupabaseCampaignRepository {
                 expires_at: data.expiresAt,
                 payment_memo: data.paymentMemo,  // For escrow tracking
                 payment_expires_at: data.paymentExpiresAt,  // 15-min payment window
-                draft_step: data.draftStep || 0  // Resume draft functionality
+                draft_step: data.draftStep || 0,  // Resume draft functionality
+                expires_in_days: data.expiresInDays || 7
             })
             .select()
             .single();
@@ -172,6 +174,7 @@ export class SupabaseCampaignRepository {
         if (updates.escrowAllocated !== undefined) dbUpdates.escrow_allocated = updates.escrowAllocated;
         if (updates.slotsFilled !== undefined) dbUpdates.slots_filled = updates.slotsFilled;
         if (updates.draftStep !== undefined) dbUpdates.draft_step = updates.draftStep;
+        if (updates.expiresInDays !== undefined) dbUpdates.expires_in_days = updates.expiresInDays;
 
         const { data, error } = await supabase
             .from('campaigns')
