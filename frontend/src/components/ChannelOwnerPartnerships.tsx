@@ -29,6 +29,8 @@ interface DealWithDetails {
         username?: string
     }
     // Post-escrow fields
+    draftText?: string
+    draftMediaFileId?: string
     proposedPostTime?: string
     timeProposedBy?: 'advertiser' | 'channel_owner'
     agreedPostTime?: string
@@ -366,6 +368,21 @@ export function ChannelOwnerPartnerships() {
                                         >
                                             <Send className="w-4 h-4 mr-1" />
                                             {deal.status === 'changes_requested' ? 'Edit Draft' : 'Create Draft'}
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {/* Legacy deal: Approved but no draft - needs draft creation */}
+                                {deal.status === 'approved' && !deal.draftText && !deal.draftMediaFileId && (
+                                    <div className="flex gap-2 pt-2 border-t border-white/10">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                            onClick={() => openBotDeepLink(`draft_${deal.id}`)}
+                                        >
+                                            <Send className="w-4 h-4 mr-1" />
+                                            Create Draft
                                         </Button>
                                     </div>
                                 )}
