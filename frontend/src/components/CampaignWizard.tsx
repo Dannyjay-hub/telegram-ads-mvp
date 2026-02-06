@@ -254,19 +254,24 @@ export function CampaignWizard() {
             return
         }
 
+        // Prevent double-click
+        if (savingDraft) return
+
         setSavingDraft(true)
         setError(null)
 
-        try {
-            // Use PATCH for existing drafts, POST for new ones
-            const isUpdate = !!campaignId
-            const url = isUpdate
-                ? `${API_URL}/campaigns/${campaignId}/draft`
-                : `${API_URL}/campaigns/draft`
+        // Retry mechanism for iOS Safari "Load failed" errors
+        const maxRetries = 3
 
-            let response: Response
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                response = await fetch(url, {
+                // Use PATCH for existing drafts, POST for new ones
+                const isUpdate = !!campaignId
+                const url = isUpdate
+                    ? `${API_URL}/campaigns/${campaignId}/draft`
+                    : `${API_URL}/campaigns/draft`
+
+                const response = await fetch(url, {
                     method: isUpdate ? 'PATCH' : 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -284,36 +289,48 @@ export function CampaignWizard() {
                         requiredLanguages: formData.requiredLanguages,
                         requiredCategories: formData.requiredCategories,
                         minAvgViews: parseInt(formData.minAvgViews) || 0,
-                        draftStep: step, // Save current step for resume
+                        draftStep: step,
                         expiresInDays: parseInt(formData.expiresInDays) || 7
                     })
                 })
-            } catch (fetchError: any) {
-                throw new Error(`Network error: ${fetchError.message || 'Failed to connect'}`)
-            }
 
-            if (!response.ok) {
-                let errMsg = 'Failed to save draft'
-                try {
-                    const errData = await response.json()
-                    errMsg = errData.error || errMsg
-                } catch {
-                    errMsg = `Server error: ${response.status} ${response.statusText}`
+                if (!response.ok) {
+                    let errMsg = 'Failed to save draft'
+                    try {
+                        const errData = await response.json()
+                        errMsg = errData.error || errMsg
+                    } catch {
+                        errMsg = `Server error: ${response.status} ${response.statusText}`
+                    }
+                    throw new Error(errMsg)
                 }
-                throw new Error(errMsg)
+
+                // Success! Clear draft and navigate
+                localStorage.removeItem(DRAFT_KEY)
+                navigate('/advertiser', { state: { draftSaved: true } })
+                setSavingDraft(false)
+                return // Exit function on success
+
+            } catch (e: any) {
+                const isNetworkError = e.message?.includes('Load failed') ||
+                    e.message?.includes('Network') ||
+                    e.message?.includes('fetch')
+
+                // Only retry on network errors
+                if (isNetworkError && attempt < maxRetries) {
+                    console.log(`Draft save attempt ${attempt} failed, retrying...`)
+                    await new Promise(r => setTimeout(r, 500)) // Wait 500ms before retry
+                    continue
+                }
+
+                // Final attempt or non-network error - show error
+                console.error('Draft save error:', e)
+                setError(e.message || 'Failed to save draft')
+                break
             }
-
-            // Clear localStorage draft after successful save
-            localStorage.removeItem(DRAFT_KEY)
-
-            // Navigate back to campaigns list
-            navigate('/advertiser', { state: { draftSaved: true } })
-        } catch (e: any) {
-            console.error('Draft save error:', e)
-            setError(e.message || 'Failed to save draft')
-        } finally {
-            setSavingDraft(false)
         }
+
+        setSavingDraft(false)
     }
 
     // Prevent negative numbers in numeric inputs
