@@ -22,6 +22,13 @@ export class SchedulingService {
         proposedTime: Date,
         proposedBy: 'advertiser' | 'channel_owner'
     ): Promise<void> {
+        // Get deal + channel info first for notification
+        const { data: deal } = await (supabase as any)
+            .from('deals')
+            .select('channel_id')
+            .eq('id', dealId)
+            .single();
+
         const { error } = await (supabase as any)
             .from('deals')
             .update({
@@ -38,6 +45,88 @@ export class SchedulingService {
         }
 
         console.log(`[SchedulingService] Time proposed for deal ${dealId}: ${proposedTime}`);
+
+        // Notify the other party
+        if (bot && deal?.channel_id) {
+            try {
+                const formattedTime = proposedTime.toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                if (proposedBy === 'advertiser') {
+                    // Notify channel admins
+                    const { data: admins } = await supabase
+                        .from('channel_admins')
+                        .select('users(telegram_id)')
+                        .eq('channel_id', deal.channel_id);
+
+                    for (const admin of (admins || [])) {
+                        const telegramId = (admin as any)?.users?.telegram_id;
+                        if (telegramId) {
+                            await bot.api.sendMessage(
+                                telegramId,
+                                `⏰ **Time Proposed**\n\n` +
+                                `The advertiser wants to post at:\n` +
+                                `**${formattedTime}**\n\n` +
+                                `Open the app to Accept or Counter.`,
+                                {
+                                    parse_mode: 'Markdown',
+                                    reply_markup: {
+                                        inline_keyboard: [[
+                                            { text: '📱 View in App', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }
+                                        ]]
+                                    }
+                                }
+                            );
+                        }
+                    }
+                    console.log(`[SchedulingService] Notified channel admins of time proposal`);
+                } else {
+                    // Notify advertiser - need to get advertiser telegram_id
+                    const { data: dealDetails } = await (supabase as any)
+                        .from('deals')
+                        .select('campaigns(advertiser_id)')
+                        .eq('id', dealId)
+                        .single();
+
+                    const advertiserId = dealDetails?.campaigns?.advertiser_id;
+                    if (advertiserId) {
+                        const { data: user } = await supabase
+                            .from('users')
+                            .select('telegram_id')
+                            .eq('id', advertiserId)
+                            .single();
+
+                        if (user?.telegram_id) {
+                            await bot.api.sendMessage(
+                                user.telegram_id,
+                                `⏰ **Counter Proposal**\n\n` +
+                                `The channel owner wants to post at:\n` +
+                                `**${formattedTime}**\n\n` +
+                                `Open the app to Accept or Counter.`,
+                                {
+                                    parse_mode: 'Markdown',
+                                    reply_markup: {
+                                        inline_keyboard: [[
+                                            { text: '📱 View in App', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }
+                                        ]]
+                                    }
+                                }
+                            );
+                        }
+                    }
+                    console.log(`[SchedulingService] Notified advertiser of counter proposal`);
+                }
+            } catch (notifyError) {
+                console.error('[SchedulingService] Error sending notification:', notifyError);
+                // Don't throw - notification failure shouldn't fail the proposal
+            }
+        }
     }
 
     /**
