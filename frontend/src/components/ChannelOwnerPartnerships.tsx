@@ -207,7 +207,7 @@ export function ChannelOwnerPartnerships() {
     // Open support for failed posts
     const openSupport = () => {
         haptic.light()
-        window.open('https://t.me/DanielAdsMVP_bot', '_blank')
+        openTelegramLink('https://t.me/DanielAdsMVP_bot')
     }
 
     // Categorize deals - including new post-escrow statuses
