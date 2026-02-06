@@ -72,6 +72,10 @@ if (process.env.ENABLE_TON_POLLING !== 'false') {
     console.log('TON Polling disabled (using webhooks only)');
 }
 
+// Start Post-Escrow Background Jobs (auto-posting, monitoring, timeouts)
+import { startBackgroundJobs } from './jobs/backgroundJobs';
+startBackgroundJobs();
+
 // Admin endpoint to check recent transactions
 app.get('/admin/transactions', async (c) => {
     try {

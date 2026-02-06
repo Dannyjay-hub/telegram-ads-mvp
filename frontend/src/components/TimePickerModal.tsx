@@ -88,8 +88,8 @@ export function TimePickerModal({
     const isCounterPartyProposal = existingProposal && existingProposal.proposedBy !== userRole;
 
     return (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <GlassCard className="w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center">
+            <GlassCard className="w-full max-w-md p-6 relative rounded-t-3xl animate-in slide-in-from-bottom">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
