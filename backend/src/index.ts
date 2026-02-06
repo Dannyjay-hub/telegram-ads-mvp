@@ -12,7 +12,7 @@ const app = new Hono();
 // Enable CORS
 app.use('/*', async (c, next) => {
     c.header('Access-Control-Allow-Origin', '*');
-    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-ID');
     if (c.req.method === 'OPTIONS') {
         return c.body(null, 204);
