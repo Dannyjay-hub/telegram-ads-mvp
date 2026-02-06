@@ -5,6 +5,7 @@ import { SupabaseDealRepository } from './repositories/supabase/SupabaseDealRepo
 import { SupabaseChannelRepository } from './repositories/supabase/SupabaseChannelRepository';
 import { BotConversationService } from './services/BotConversationService';
 import { getChatMember } from './services/telegram';
+import { registerPostEscrowHandlers } from './services/PostEscrowBotHandlers';
 
 dotenv.config();
 
@@ -20,7 +21,10 @@ const dealRepo = new SupabaseDealRepository();
 const channelRepo = new SupabaseChannelRepository();
 const convoService = new BotConversationService(userRepo);
 
+// Register post-escrow handlers FIRST (they handle deep links)
 if (bot) {
+    registerPostEscrowHandlers(bot);
+
     // 1. Start - Identify User
     bot.command('start', async (ctx) => {
         const telegramId = ctx.from?.id;

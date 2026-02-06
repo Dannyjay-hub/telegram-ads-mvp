@@ -75,20 +75,27 @@ export type Database = {
           created_at: string | null
           creative_content: Json | null
           currency: string | null
+          draft_step: number | null
           eligibility_criteria: Json | null
           escrow_allocated: number | null
           escrow_available: number | null
           escrow_deposited: number | null
           escrow_funded: boolean | null
+          escrow_released: number | null
+          escrow_tx_hash: string | null
           escrow_wallet_address: string | null
           expired_at: string | null
           expires_at: string | null
+          expires_in_days: number | null
+          funded_at: string | null
           id: string
           individual_slot_budget: number
           max_subscribers: number | null
           media_urls: string[] | null
           min_avg_views: number | null
           min_subscribers: number | null
+          payment_expires_at: string | null
+          payment_memo: string | null
           per_channel_budget: number | null
           required_categories: string[] | null
           required_languages: string[] | null
@@ -109,20 +116,27 @@ export type Database = {
           created_at?: string | null
           creative_content?: Json | null
           currency?: string | null
+          draft_step?: number | null
           eligibility_criteria?: Json | null
           escrow_allocated?: number | null
           escrow_available?: number | null
           escrow_deposited?: number | null
           escrow_funded?: boolean | null
+          escrow_released?: number | null
+          escrow_tx_hash?: string | null
           escrow_wallet_address?: string | null
           expired_at?: string | null
           expires_at?: string | null
+          expires_in_days?: number | null
+          funded_at?: string | null
           id?: string
           individual_slot_budget: number
           max_subscribers?: number | null
           media_urls?: string[] | null
           min_avg_views?: number | null
           min_subscribers?: number | null
+          payment_expires_at?: string | null
+          payment_memo?: string | null
           per_channel_budget?: number | null
           required_categories?: string[] | null
           required_languages?: string[] | null
@@ -143,20 +157,27 @@ export type Database = {
           created_at?: string | null
           creative_content?: Json | null
           currency?: string | null
+          draft_step?: number | null
           eligibility_criteria?: Json | null
           escrow_allocated?: number | null
           escrow_available?: number | null
           escrow_deposited?: number | null
           escrow_funded?: boolean | null
+          escrow_released?: number | null
+          escrow_tx_hash?: string | null
           escrow_wallet_address?: string | null
           expired_at?: string | null
           expires_at?: string | null
+          expires_in_days?: number | null
+          funded_at?: string | null
           id?: string
           individual_slot_budget?: number
           max_subscribers?: number | null
           media_urls?: string[] | null
           min_avg_views?: number | null
           min_subscribers?: number | null
+          payment_expires_at?: string | null
+          payment_memo?: string | null
           per_channel_budget?: number | null
           required_categories?: string[] | null
           required_languages?: string[] | null
@@ -308,11 +329,57 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_messages: {
+        Row: {
+          created_at: string | null
+          deal_id: string | null
+          id: string
+          message_text: string | null
+          message_type: string | null
+          sender_id: string | null
+          sender_role: string
+        }
+        Insert: {
+          created_at?: string | null
+          deal_id?: string | null
+          id?: string
+          message_text?: string | null
+          message_type?: string | null
+          sender_id?: string | null
+          sender_role: string
+        }
+        Update: {
+          created_at?: string | null
+          deal_id?: string | null
+          id?: string
+          message_text?: string | null
+          message_type?: string | null
+          sender_id?: string | null
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_messages_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           actual_post_time: string | null
           advertiser_id: string | null
           advertiser_wallet_address: string | null
+          agreed_post_time: string | null
           bidding_history: Json | null
           bids_today_count: number | null
           brief_id: string | null
@@ -323,12 +390,22 @@ export type Database = {
           content_items: Json | null
           created_at: string | null
           creative_content: Json | null
+          draft_feedback: string | null
+          draft_media_file_id: string | null
+          draft_media_type: string | null
+          draft_submitted_at: string | null
+          draft_text: string | null
+          draft_version: number | null
           escrow_wallet_id: string | null
           expires_at: string | null
+          funded_at: string | null
           id: string
           last_activity_at: string | null
           last_bid_at: string | null
+          last_checked_at: string | null
           min_duration_hours: number | null
+          monitoring_checks: number | null
+          monitoring_end_at: string | null
           negotiation_status: string | null
           origin: string | null
           package_description: string | null
@@ -338,20 +415,26 @@ export type Database = {
           payment_tx_hash: string | null
           payout_at: string | null
           payout_tx_hash: string | null
+          posted_at: string | null
+          posted_message_id: number | null
           price_amount: number
           price_currency: string | null
+          proposed_post_time: string | null
           refund_at: string | null
           refund_tx_hash: string | null
           rejection_reason: string | null
           requested_post_time: string | null
           status: Database["public"]["Enums"]["deal_status"] | null
+          status_history: Json | null
           status_updated_at: string | null
+          time_proposed_by: string | null
           updated_at: string | null
         }
         Insert: {
           actual_post_time?: string | null
           advertiser_id?: string | null
           advertiser_wallet_address?: string | null
+          agreed_post_time?: string | null
           bidding_history?: Json | null
           bids_today_count?: number | null
           brief_id?: string | null
@@ -362,12 +445,22 @@ export type Database = {
           content_items?: Json | null
           created_at?: string | null
           creative_content?: Json | null
+          draft_feedback?: string | null
+          draft_media_file_id?: string | null
+          draft_media_type?: string | null
+          draft_submitted_at?: string | null
+          draft_text?: string | null
+          draft_version?: number | null
           escrow_wallet_id?: string | null
           expires_at?: string | null
+          funded_at?: string | null
           id?: string
           last_activity_at?: string | null
           last_bid_at?: string | null
+          last_checked_at?: string | null
           min_duration_hours?: number | null
+          monitoring_checks?: number | null
+          monitoring_end_at?: string | null
           negotiation_status?: string | null
           origin?: string | null
           package_description?: string | null
@@ -377,20 +470,26 @@ export type Database = {
           payment_tx_hash?: string | null
           payout_at?: string | null
           payout_tx_hash?: string | null
+          posted_at?: string | null
+          posted_message_id?: number | null
           price_amount: number
           price_currency?: string | null
+          proposed_post_time?: string | null
           refund_at?: string | null
           refund_tx_hash?: string | null
           rejection_reason?: string | null
           requested_post_time?: string | null
           status?: Database["public"]["Enums"]["deal_status"] | null
+          status_history?: Json | null
           status_updated_at?: string | null
+          time_proposed_by?: string | null
           updated_at?: string | null
         }
         Update: {
           actual_post_time?: string | null
           advertiser_id?: string | null
           advertiser_wallet_address?: string | null
+          agreed_post_time?: string | null
           bidding_history?: Json | null
           bids_today_count?: number | null
           brief_id?: string | null
@@ -401,12 +500,22 @@ export type Database = {
           content_items?: Json | null
           created_at?: string | null
           creative_content?: Json | null
+          draft_feedback?: string | null
+          draft_media_file_id?: string | null
+          draft_media_type?: string | null
+          draft_submitted_at?: string | null
+          draft_text?: string | null
+          draft_version?: number | null
           escrow_wallet_id?: string | null
           expires_at?: string | null
+          funded_at?: string | null
           id?: string
           last_activity_at?: string | null
           last_bid_at?: string | null
+          last_checked_at?: string | null
           min_duration_hours?: number | null
+          monitoring_checks?: number | null
+          monitoring_end_at?: string | null
           negotiation_status?: string | null
           origin?: string | null
           package_description?: string | null
@@ -416,14 +525,19 @@ export type Database = {
           payment_tx_hash?: string | null
           payout_at?: string | null
           payout_tx_hash?: string | null
+          posted_at?: string | null
+          posted_message_id?: number | null
           price_amount?: number
           price_currency?: string | null
+          proposed_post_time?: string | null
           refund_at?: string | null
           refund_tx_hash?: string | null
           rejection_reason?: string | null
           requested_post_time?: string | null
           status?: Database["public"]["Enums"]["deal_status"] | null
+          status_history?: Json | null
           status_updated_at?: string | null
+          time_proposed_by?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -453,6 +567,60 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      late_payments: {
+        Row: {
+          amount: number | null
+          campaign_id: string | null
+          currency: string | null
+          deal_id: string | null
+          detected_at: string | null
+          id: string
+          memo: string
+          notes: string | null
+          refund_status: string | null
+          tx_hash: string | null
+        }
+        Insert: {
+          amount?: number | null
+          campaign_id?: string | null
+          currency?: string | null
+          deal_id?: string | null
+          detected_at?: string | null
+          id?: string
+          memo: string
+          notes?: string | null
+          refund_status?: string | null
+          tx_hash?: string | null
+        }
+        Update: {
+          amount?: number | null
+          campaign_id?: string | null
+          currency?: string | null
+          deal_id?: string | null
+          detected_at?: string | null
+          id?: string
+          memo?: string
+          notes?: string | null
+          refund_status?: string | null
+          tx_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "late_payments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "late_payments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
         ]
@@ -636,6 +804,45 @@ export type Database = {
           },
         ]
       }
+      user_contexts: {
+        Row: {
+          context_type: string | null
+          deal_id: string | null
+          extra_data: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          context_type?: string | null
+          deal_id?: string | null
+          extra_data?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          context_type?: string | null
+          deal_id?: string | null
+          extra_data?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_contexts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_contexts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null
@@ -708,7 +915,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      allocate_campaign_slot: {
+        Args: { p_campaign_id: string; p_per_channel_budget: number }
+        Returns: {
+          advertiser_id: string
+          brief: string
+          currency: string
+          escrow_allocated: number
+          escrow_deposited: number
+          escrow_released: number
+          id: string
+          media_urls: string[]
+          per_channel_budget: number
+          slots: number
+          slots_filled: number
+          status: string
+          title: string
+          total_budget: number
+        }[]
+      }
     }
     Enums: {
       deal_status:
@@ -716,8 +941,14 @@ export type Database = {
         | "submitted"
         | "negotiating"
         | "funded"
+        | "draft_pending"
+        | "draft_submitted"
+        | "changes_requested"
         | "approved"
+        | "scheduling"
+        | "scheduled"
         | "posted"
+        | "failed_to_post"
         | "monitoring"
         | "released"
         | "cancelled"
@@ -857,8 +1088,14 @@ export const Constants = {
         "submitted",
         "negotiating",
         "funded",
+        "draft_pending",
+        "draft_submitted",
+        "changes_requested",
         "approved",
+        "scheduling",
+        "scheduled",
         "posted",
+        "failed_to_post",
         "monitoring",
         "released",
         "cancelled",

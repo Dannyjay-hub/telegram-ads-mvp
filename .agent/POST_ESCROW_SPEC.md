@@ -12,122 +12,112 @@ This document defines the complete workflow after funds have been escrowed, from
 
 ---
 
-## Money Flow
+## Finalized Decisions
 
-```
-Advertiser's Wallet
-       │
-       ▼ (payment with memo)
-Platform Escrow Wallet (MASTER_WALLET_ADDRESS)
-       │
-       ▼ (when deal completed & verified)
-Channel Owner's Wallet
-```
+| Aspect | Decision |
+|--------|----------|
+| Draft creation | Bot (channel owner sends content to bot) |
+| Draft preview | Bot shows preview before submission |
+| Media storage | `file_id` from Telegram (all files go through bot) |
+| Chat/messages | Bot via deep link (`t.me/Bot?start=chat_{dealId}`) |
+| Time selection | Mini App (date/time picker UI) |
+| Time negotiation | Advertiser proposes first, loop until agreement |
+| Action buttons | Both Mini App dashboard AND Bot inline buttons |
+| Timeouts | 12h for contest demo |
+| Admin verification | At every state transition |
 
 ---
 
-## The Unified Post-Escrow Flow
+## Unified Post-Escrow Flow
 
 ### Entry Points (All Converge Here)
 1. **Open Campaign:** Channel accepts → Deal auto-created with `status: 'funded'`
 2. **Closed Campaign:** Advertiser accepts channel application → Deal created
 3. **Direct Deal:** Advertiser buys channel package → Deal created after payment
 
-### Step-by-Step Flow
+### State Machine
 
 ```
-1. FUNDS ESCROWED
-   Deal status: 'funded'
-        ↓
-        
-2. BRIEF ALREADY AVAILABLE
-   (From campaign or package description)
-   Advertiser can add additional notes
-        ↓ [Timeout: 3 days with no activity → auto-refund]
-        
-3. CHANNEL OWNER DRAFTS POST
-   - Uses brief as guide
-   - Can be text, media, or story format
-   - Submits for advertiser review
-   Deal status: 'draft_submitted' (new status needed)
-        ↓ [Timeout: 2 days with no review → auto-approve]
-        
-4. ADVERTISER REVIEWS DRAFT
-   Options:
-   a) APPROVE → proceed to scheduling
-   b) REQUEST CHANGES → add comment, back to step 3
-   Deal status: 'in_review' / 'changes_requested'
-        ↓
-        
-5. SCHEDULE NEGOTIATION
-   - Advertiser proposes time
-   - Channel owner accepts or counter-proposes
-   - Loop until agreement
-   Deal status: 'scheduling'
-        ↓
-        
-6. POST SCHEDULED
-   - Time locked in
-   - Bot prepared to auto-post
-   - Channel owner informed of requirements (24h minimum)
-   Deal status: 'scheduled'
-        ↓
-        
-7. AUTO-POST EXECUTED
-   - Bot posts to channel at agreed time
-   - Post ID/URL captured
-   - Monitoring period begins
-   Deal status: 'posted'
-        ↓ [Monitoring: 24 hours minimum]
-        
-8. MONITORING PERIOD
-   - Bot checks post still exists
-   - Detect deletion or significant edits
-   - If deleted: immediate notification + escalation
-   Deal status: 'monitoring'
-        ↓
-        
-9. VERIFICATION & RELEASE
-   a) SUCCESS: Post stayed up 24h+ unchanged
-      - Funds released to channel owner
-      - Deal status: 'released'
-      
-   b) FAILURE: Post deleted/edited
-      - Funds refunded to advertiser
-      - Warning issued to channel
-      - Deal status: 'refunded'
+funded → draft_pending → draft_submitted → approved → scheduling → scheduled → posted → monitoring → released
+                ↓              ↓              ↓           ↓
+           (timeout)    changes_requested  (timeout)  failed_to_post
+                ↓              ↓              ↓           ↓
+           refunded     (back to draft)   refunded    [reschedule/refund]
 ```
+
+---
+
+## Step-by-Step Flow
+
+### 1. FUNDS ESCROWED
+- Deal status: `funded`
+- `funded_at` timestamp recorded
+- Channel owner notified via bot
+
+### 2. DRAFT CREATION (All in Bot)
+- Channel owner clicks [Create Draft] in bot notification
+- Opens deep link: `t.me/Bot?start=draft_{dealId}`
+- Bot prompts: "Send your post content (text or photo with caption)"
+- Channel owner sends message to bot
+- Bot shows preview with [Submit] [Edit] buttons
+- Deal status: `draft_pending` → `draft_submitted`
+
+### 3. DRAFT REVIEW
+- Advertiser receives bot notification with draft preview
+- Options: [Approve] [Request Changes]
+- If changes requested:
+  - Advertiser types feedback
+  - Channel owner notified
+  - Loop back to draft creation
+- Deal status: `draft_submitted` → `changes_requested` → `approved`
+
+### 4. SCHEDULE NEGOTIATION (Time Picker in Mini App)
+- Advertiser proposes time in mini app date picker
+- Channel owner receives notification: [Accept] [Counter]
+- Counter opens mini app date picker
+- Loop until one accepts
+- Deal status: `scheduling` → `scheduled`
+
+### 5. AUTO-POST
+- Bot posts at `agreed_post_time`
+- Verifies bot is still admin first
+- Captures `posted_message_id`
+- Deal status: `scheduled` → `posted` → `monitoring`
+- Notifies both parties
+
+### 6. MONITORING
+- Check at: 1h, 6h, 12h, 24h after posting
+- If post deleted early → immediate refund + warning
+- If 24h passes successfully → release funds
+- Deal status: `monitoring` → `released` or `refunded`
 
 ---
 
 ## Communication System
 
-### Two Modes of Communication
+### Pattern: Deep Link to Bot
+Mini app has 💬 icon on each deal. Click opens:
+```
+t.me/YourBot?start=chat_{dealId}
+```
 
-#### 1. Structured Milestones (Required)
-All key actions happen through structured forms:
-- Brief submission
-- Draft submission
-- Review approval/rejection
-- Time proposals
-- Final acceptance
+Bot receives context, prompts: "Type your message for @partner"
 
-#### 2. Direct Chat (Optional)
-For nuanced discussion between parties:
-- Messages tagged with channel username
-- Advertiser sees grouped conversations:
-  ```
-  📬 Messages
-  ├── @cryptonews   "Draft ready"
-  ├── @techinsider  "What time works?"
-  └── @memecentral  "Approved ✓"
-  ```
-- All messages logged for dispute resolution
+Messages forwarded between parties, stored in `deal_messages` table.
 
-### Message Routing
-- Messages go through the bot (not direct DMs)
-- Each deal has a unique conversation thread
-- History preserved for audit
+### Bot Notification Templates
+
+| Event | Recipient | Message |
+|-------|-----------|---------|
+| Deal funded | Channel Owner | "💰 New deal from @advertiser! [Create Draft]" |
+| Draft submitted | Advertiser | "📝 @channel submitted a draft. [View] [Approve] [Changes]" |
+| Changes requested | Channel Owner | "✏️ @advertiser: 'Make logo bigger' [Revise Draft]" |
+| Draft approved | Channel Owner | "✅ Approved! Advertiser will propose posting time." |
+| Time proposed | Channel Owner | "⏰ Proposed: Feb 8, 10 AM [Accept] [Counter]" |
+| Time accepted | Both | "🎯 Scheduled for Feb 8, 10 AM. Auto-post enabled." |
+| Post live | Both | "📢 POST LIVE! 24h monitoring started. Don't delete!" |
+| Post deleted | Both | "⚠️ POST DELETED! Refund initiated to @advertiser." |
+| Deal complete | Both | "✅ Complete! $X released to @channel." |
 
 ---
 
@@ -135,179 +125,73 @@ For nuanced discussion between parties:
 
 | Stage | Timeout | Auto-Action |
 |-------|---------|-------------|
-| No draft submitted | 3 days | Refund to advertiser |
-| No review response | 2 days | Auto-approve draft |
-| No schedule agreement | 3 days | Escalate / refund option |
-| Post deleted | Immediate | Refund + warning |
-| Monitoring complete | 24 hours | Auto-release funds |
+| No draft submitted | 12 hours | Refund to advertiser |
+| No review response | 12 hours | Auto-approve draft |
+| Missed post window | 1 hour after scheduled | Status: `failed_to_post` |
+| Post stays up | 24 hours | Auto-release funds |
 
 ---
 
-## Post Duration Options
+## Security: Admin Verification
 
-Default minimum is 24 hours, but campaigns can specify:
-- 24 hours (default)
-- 48 hours
-- 1 week
-- Permanent
+Check at these points:
+1. ✅ Before submitting draft
+2. ✅ Before approving draft
+3. ✅ Before accepting time
+4. ✅ Before auto-posting
+5. ✅ Before fund release
 
-Stored in `min_duration_hours` on deals table.
-
----
-
-## Security Requirements
-
-### Admin Verification Points
-At EVERY critical action, verify the acting user still has Telegram admin rights:
-
-1. ✅ Before accepting draft review request
-2. ✅ Before agreeing to schedule
-3. ✅ Before auto-posting
-4. ✅ Before fund withdrawal
-
-### Verification Method
 ```typescript
-const adminStatus = await telegram.getChatMember(channelId, userId);
-if (!adminStatus.can_post_messages) {
-    throw new Error('User no longer has posting permissions');
+const member = await bot.api.getChatMember(channelId, userId);
+if (!['administrator', 'creator'].includes(member.status)) {
+    throw new Error('User no longer has admin permissions');
 }
 ```
 
-### Withdrawal Permissions
-- **Phase 1:** Only channel owner can withdraw
-- **Phase 2:** PR managers with `can_manage_finance: true` can withdraw
-
 ---
 
-## Post Deletion Detection
+## Database Changes
 
-### Detection Method
-```typescript
-async function checkPostExists(channelId: number, messageId: number): Promise<boolean> {
-    try {
-        const message = await bot.api.copyMessage(channelId, channelId, messageId, { disable_notification: true });
-        await bot.api.deleteMessage(channelId, message.message_id); // Delete the copy
-        return true; // Original exists
-    } catch (e) {
-        return false; // Post was deleted
-    }
-}
-```
-
-### Monitoring Schedule
-- Check at: 1h, 6h, 12h, 24h after posting
-- If any check fails → immediate notification
-
----
-
-## Edited Post Detection
-
-### Light Check (Feasible)
-- Store original text/caption hash
-- Compare on each monitoring check
-- Flag if hash differs
-
-### Heavy Check (Post-MVP)
-- Store full message content
-- Deep diff on each check
-- Allow minor edits (typos), flag major changes
-
----
-
-## Database Changes Needed
-
-### New Deal Statuses
-Add to `deal_status` enum:
-- `draft_submitted`
-- `in_review`
-- `changes_requested`
-- `scheduling`
-- `scheduled`
-
-### New Columns on Deals
+### New Columns on deals
 ```sql
--- Draft management
-draft_content TEXT;
-draft_submitted_at TIMESTAMPTZ;
-draft_feedback TEXT; -- Advertiser comments
-
--- Scheduling
-proposed_post_time TIMESTAMPTZ;
-agreed_post_time TIMESTAMPTZ;
-time_proposed_by TEXT; -- 'advertiser' or 'channel'
-
--- Monitoring
-posted_message_id BIGINT;
-posted_at TIMESTAMPTZ;
-monitoring_checks INTEGER DEFAULT 0;
-last_checked_at TIMESTAMPTZ;
-post_content_hash TEXT;
+draft_text TEXT
+draft_media_file_id TEXT
+draft_media_type TEXT
+draft_version INTEGER DEFAULT 0
+draft_submitted_at TIMESTAMPTZ
+draft_feedback TEXT
+proposed_post_time TIMESTAMPTZ
+time_proposed_by TEXT
+agreed_post_time TIMESTAMPTZ
+posted_message_id BIGINT
+posted_at TIMESTAMPTZ
+funded_at TIMESTAMPTZ
 ```
 
-### New Table: deal_messages
+### New deal_status values
 ```sql
-CREATE TABLE deal_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    deal_id UUID REFERENCES deals(id),
-    sender_id UUID REFERENCES users(id),
-    sender_role TEXT, -- 'advertiser' or 'channel_owner'
-    message TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+'draft_pending', 'draft_submitted', 'changes_requested', 
+'scheduling', 'scheduled', 'failed_to_post'
 ```
 
----
-
-## UI Components Needed
-
-### Advertiser Views
-1. **Deal Detail Page** - Shows current status, actions available
-2. **Draft Review Modal** - View submitted draft, approve/comment
-3. **Time Picker** - Propose post time
-4. **Message Thread** - Chat with channel owner
-
-### Channel Owner Views
-1. **Deal Detail Page** - Shows current status, actions available
-2. **Draft Composer** - Write post based on brief
-3. **Schedule Confirmation** - Accept/counter time proposals
-4. **Earnings Page** - Track pending and completed deals
+### New Tables
+- `deal_messages` - Chat history
+- `user_contexts` - Bot state tracking
 
 ---
 
-## Bot Notifications
+## UI Locations
 
-| Event | Recipient | Message |
-|-------|-----------|---------|
-| Deal funded | Channel Owner | "New deal from @advertiser! Review brief and submit draft." |
-| Draft submitted | Advertiser | "@channel submitted a draft. Review it now." |
-| Draft approved | Channel Owner | "Draft approved! Propose a posting time." |
-| Changes requested | Channel Owner | "@advertiser requested changes: [comment]" |
-| Time agreed | Both | "Post scheduled for [time]. Will auto-publish." |
-| Post live | Both | "Post is now live! 24h monitoring started." |
-| Post deleted | Both | "⚠️ Post was deleted. Deal cancelled." |
-| Deal completed | Both | "✅ Deal complete! Funds released to channel." |
-
----
-
-## Implementation Priority
-
-### Phase 1: Core Flow
-1. Draft submission endpoint
-2. Draft review UI (approve/comment)
-3. Simple time picker (no negotiation yet)
-4. Manual posting (channel owner posts, confirms)
-
-### Phase 2: Automation
-1. Auto-posting via bot
-2. Post monitoring
-3. Deletion detection
-4. Auto-release after 24h
-
-### Phase 3: Polish
-1. Direct chat between parties
-2. Time negotiation (counter-offers)
-3. Edited post detection
-4. PR manager withdrawal
+| Action | Mini App | Bot |
+|--------|----------|-----|
+| View deals list | ✅ | - |
+| View deal status | ✅ | ✅ |
+| Create draft | - | ✅ |
+| View draft | - | ✅ (forwards message) |
+| Approve/Reject | ✅ (buttons) | ✅ (inline buttons) |
+| Chat messages | - | ✅ |
+| Set post time | ✅ (date picker) | - |
+| Accept/Counter time | ✅ | ✅ |
 
 ---
 

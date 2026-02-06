@@ -211,4 +211,105 @@ app.post('/:id/approve', async (c) => {
     }
 });
 
+// ============================================
+// POST-ESCROW SCHEDULING ENDPOINTS
+// ============================================
+
+import { SchedulingService } from '../services/SchedulingService';
+import { DraftService } from '../services/DraftService';
+
+const schedulingService = new SchedulingService();
+const draftService = new DraftService();
+
+// POST /deals/:id/propose-time - Propose a posting time
+app.post('/:id/propose-time', async (c) => {
+    try {
+        const id = c.req.param('id');
+        const body = await c.req.json();
+        const { proposedTime } = body;
+
+        const telegramIdHeader = c.req.header('X-Telegram-ID');
+        if (!telegramIdHeader) {
+            return c.json({ error: 'Not authenticated' }, 401);
+        }
+
+        const user = await userRepo.findByTelegramId(parseInt(telegramIdHeader));
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        // Get deal to determine if user is advertiser or channel owner
+        const deal = await dealRepo.findById(id);
+        if (!deal) {
+            return c.json({ error: 'Deal not found' }, 404);
+        }
+
+        const isAdvertiser = deal.advertiserId === user.id;
+        const proposedBy = isAdvertiser ? 'advertiser' : 'channel_owner';
+
+        await schedulingService.proposeTime(
+            id,
+            new Date(proposedTime),
+            proposedBy
+        );
+
+        return c.json({ success: true, proposedBy });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 400);
+    }
+});
+
+// POST /deals/:id/accept-time - Accept the proposed time
+app.post('/:id/accept-time', async (c) => {
+    try {
+        const id = c.req.param('id');
+
+        const telegramIdHeader = c.req.header('X-Telegram-ID');
+        if (!telegramIdHeader) {
+            return c.json({ error: 'Not authenticated' }, 401);
+        }
+
+        const agreedTime = await schedulingService.acceptTime(id);
+
+        return c.json({ success: true, agreedTime: agreedTime.toISOString() });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 400);
+    }
+});
+
+// GET /deals/:id/scheduling - Get scheduling status
+app.get('/:id/scheduling', async (c) => {
+    try {
+        const id = c.req.param('id');
+
+        const proposal = await schedulingService.getProposal(id);
+        const deal = await dealRepo.findById(id);
+
+        return c.json({
+            status: deal?.status,
+            proposal: proposal ? {
+                proposedTime: proposal.proposedTime.toISOString(),
+                proposedBy: proposal.proposedBy
+            } : null,
+            agreedTime: (deal as any)?.agreed_post_time || null
+        });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// POST /deals/:id/initialize-draft - Transition funded deal to draft_pending
+app.post('/:id/initialize-draft', async (c) => {
+    try {
+        const id = c.req.param('id');
+
+        await draftService.initializeDraftWorkflow(id);
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 400);
+    }
+});
+
 export default app;
+

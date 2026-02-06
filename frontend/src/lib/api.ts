@@ -32,7 +32,12 @@ export const getHeaders = (): Record<string, string> => {
     return headers;
 };
 
-export type DealStatus = 'draft' | 'submitted' | 'negotiating' | 'funded' | 'approved' | 'posted' | 'monitoring' | 'released' | 'cancelled' | 'disputed';
+export type DealStatus =
+    | 'draft' | 'submitted' | 'negotiating' | 'funded'
+    | 'draft_pending' | 'draft_submitted' | 'changes_requested'
+    | 'approved' | 'scheduling' | 'scheduled'
+    | 'posted' | 'failed_to_post' | 'monitoring'
+    | 'released' | 'cancelled' | 'disputed' | 'refunded' | 'pending_refund';
 
 export interface Channel {
     id: string;
@@ -74,6 +79,19 @@ export interface Deal {
     packageTitle?: string;
     packageDescription?: string;
     createdAt: string; // created_at
+    // Post-escrow fields
+    draftSubmittedAt?: string;
+    proposedPostTime?: string;
+    timeProposedBy?: 'advertiser' | 'channel_owner';
+    agreedPostTime?: string;
+    postedAt?: string;
+    monitoringEndAt?: string;
+    advertiser?: {
+        id: string;
+        telegramId: number;
+        firstName?: string;
+        username?: string;
+    };
 }
 
 // Auth API
@@ -251,3 +269,64 @@ export async function deleteChannel(id: string) {
     }
     return response.json();
 }
+
+// ============================================
+// POST-ESCROW SCHEDULING API
+// ============================================
+
+export interface SchedulingStatus {
+    status: string;
+    proposal: {
+        proposedTime: string;
+        proposedBy: 'advertiser' | 'channel_owner';
+    } | null;
+    agreedTime: string | null;
+}
+
+export async function proposePostTime(dealId: string, time: Date): Promise<{ success: boolean; proposedBy: string }> {
+    const response = await fetch(`${API_URL}/deals/${dealId}/propose-time`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ proposedTime: time.toISOString() })
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to propose time');
+    }
+    return response.json();
+}
+
+export async function acceptPostTime(dealId: string): Promise<{ success: boolean; agreedTime: string }> {
+    const response = await fetch(`${API_URL}/deals/${dealId}/accept-time`, {
+        method: 'POST',
+        headers: getHeaders()
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to accept time');
+    }
+    return response.json();
+}
+
+export async function getSchedulingStatus(dealId: string): Promise<SchedulingStatus> {
+    const response = await fetch(`${API_URL}/deals/${dealId}/scheduling`, {
+        headers: getHeaders()
+    });
+    if (!response.ok) {
+        throw new Error('Failed to get scheduling status');
+    }
+    return response.json();
+}
+
+export async function initializeDraftWorkflow(dealId: string): Promise<{ success: boolean }> {
+    const response = await fetch(`${API_URL}/deals/${dealId}/initialize-draft`, {
+        method: 'POST',
+        headers: getHeaders()
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to initialize draft');
+    }
+    return response.json();
+}
+

@@ -1,10 +1,13 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, AlertCircle } from 'lucide-react'
-import { API_URL, getHeaders } from '@/lib/api'
+import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, AlertCircle, Eye, Calendar, CheckCircle, AlertTriangle } from 'lucide-react'
+import { API_URL, getHeaders, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
+import { openTelegramLink } from '@/lib/telegram'
+import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
+import { TimePickerModal } from './TimePickerModal'
 
 // Deal with channel data
 interface DealWithChannel {
@@ -21,6 +24,11 @@ interface DealWithChannel {
         username?: string
         photoUrl?: string
     }
+    // Post-escrow fields
+    proposedPostTime?: string
+    timeProposedBy?: 'advertiser' | 'channel_owner'
+    agreedPostTime?: string
+    monitoringEndAt?: string
 }
 
 // Status badge config
@@ -28,11 +36,17 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
     draft: { label: 'Draft', color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
     pending: { label: 'Awaiting Payment', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
     funded: { label: 'Payment Received', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-    approved: { label: 'Approved', color: 'text-green-400', bgColor: 'bg-green-500/20' },
+    draft_pending: { label: 'Creating Draft', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
+    draft_submitted: { label: 'Review Draft', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+    changes_requested: { label: 'Revising', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+    approved: { label: 'Set Schedule', color: 'text-green-400', bgColor: 'bg-green-500/20' },
+    scheduling: { label: 'Setting Time', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+    scheduled: { label: 'Scheduled', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20' },
     rejected: { label: 'Rejected', color: 'text-red-400', bgColor: 'bg-red-500/20' },
     in_progress: { label: 'In Progress', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
-    posted: { label: 'Posted', color: 'text-teal-400', bgColor: 'bg-teal-500/20' },
-    monitoring: { label: 'Monitoring', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+    posted: { label: 'Ad is Live', color: 'text-teal-400', bgColor: 'bg-teal-500/20' },
+    failed_to_post: { label: 'Post Failed', color: 'text-red-400', bgColor: 'bg-red-500/20' },
+    monitoring: { label: 'Monitoring (24h)', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
     released: { label: 'Completed', color: 'text-green-400', bgColor: 'bg-green-500/20' },
     cancelled: { label: 'Cancelled', color: 'text-red-400', bgColor: 'bg-red-500/20' },
     refunded: { label: 'Refunded', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
@@ -75,12 +89,14 @@ export function PartnershipsList() {
     const [deals, setDeals] = useState<DealWithChannel[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active')
+    const [lastFetchedAt, setLastFetchedAt] = useState<Date>(new Date())
+    const [timePickerDealId, setTimePickerDealId] = useState<string | null>(null)
+    const [schedulingProposal, setSchedulingProposal] = useState<{
+        proposedTime: string;
+        proposedBy: 'advertiser' | 'channel_owner';
+    } | null>(null)
 
-    useEffect(() => {
-        loadDeals()
-    }, [])
-
-    const loadDeals = async () => {
+    const loadDeals = useCallback(async () => {
         try {
             const response = await fetch(`${API_URL}/deals/my`, {
                 headers: getHeaders()
@@ -88,29 +104,90 @@ export function PartnershipsList() {
             if (response.ok) {
                 const data = await response.json()
                 setDeals(data)
+                setLastFetchedAt(new Date())
             }
         } catch (error) {
             console.error('Failed to load deals:', error)
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    // Initial load
+    useEffect(() => {
+        loadDeals()
+    }, [loadDeals])
+
+    // Focus-based refetch (when user returns from bot)
+    useEffect(() => {
+        const handleFocus = () => loadDeals()
+        window.addEventListener('focus', handleFocus)
+        // Telegram WebApp viewport changes (covers mini app reactivation)
+        const tg = (window as any).Telegram?.WebApp
+        if (tg?.onEvent) {
+            tg.onEvent('viewportChanged', handleFocus)
+        }
+        return () => {
+            window.removeEventListener('focus', handleFocus)
+            if (tg?.offEvent) {
+                tg.offEvent('viewportChanged', handleFocus)
+            }
+        }
+    }, [loadDeals])
+
+    // Polling for active transition states
+    useEffect(() => {
+        const activeTransitionStates = ['draft_pending', 'scheduling', 'draft_submitted', 'changes_requested']
+        const hasActiveDeals = deals.some(d => activeTransitionStates.includes(d.status))
+
+        if (hasActiveDeals) {
+            const interval = setInterval(loadDeals, 3000)
+            return () => clearInterval(interval)
+        }
+    }, [deals, loadDeals])
 
     const openBot = () => {
         haptic.light()
-        const url = 'https://t.me/DanielAdsMVP_bot'
-        if ((window as any).Telegram?.WebApp?.openTelegramLink) {
-            (window as any).Telegram.WebApp.openTelegramLink(url)
-        } else {
-            window.open(url, '_blank')
+        openTelegramLink('https://t.me/DanielAdsMVP_bot')
+    }
+
+    // Deep link to bot for specific actions
+    const openBotDeepLink = (path: string) => {
+        haptic.light()
+        openTelegramLink(`https://t.me/DanielAdsMVP_bot?start=${path}`)
+    }
+
+    // Open time picker with existing proposal if any
+    const openTimePicker = async (dealId: string) => {
+        try {
+            const status = await getSchedulingStatus(dealId)
+            setSchedulingProposal(status.proposal)
+            setTimePickerDealId(dealId)
+        } catch (error) {
+            console.error('Failed to get scheduling status:', error)
+            setTimePickerDealId(dealId)
         }
+    }
+
+    // Handle time proposal
+    const handleProposeTime = async (time: Date) => {
+        if (!timePickerDealId) return
+        await proposePostTime(timePickerDealId, time)
+        await loadDeals()
+    }
+
+    // Handle time acceptance
+    const handleAcceptTime = async () => {
+        if (!timePickerDealId) return
+        await acceptPostTime(timePickerDealId)
+        await loadDeals()
     }
 
     // Filter out drafts entirely - they're unpaid and shouldn't appear anywhere
     const visibleDeals = deals.filter(d => d.status !== 'draft')
 
     // Active: requires attention or in progress
-    const activeStatuses = ['pending', 'funded', 'approved', 'in_progress', 'disputed', 'monitoring']
+    const activeStatuses = ['pending', 'funded', 'draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
     const activeDeals = visibleDeals.filter(d => activeStatuses.includes(d.status))
     const inactiveDeals = visibleDeals.filter(d => !activeStatuses.includes(d.status))
 
@@ -165,70 +242,223 @@ export function PartnershipsList() {
                 <div className="space-y-3">
                     {displayDeals.map(deal => (
                         <GlassCard key={deal.id} className="p-4">
-                            <div className="flex items-start gap-3">
-                                {/* Channel Avatar */}
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
-                                    {deal.channel?.photoUrl ? (
-                                        <img src={deal.channel.photoUrl} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                        deal.channel?.title?.charAt(0) || '?'
-                                    )}
-                                </div>
-
-                                {/* Details */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <h3 className="font-semibold truncate">
-                                            {deal.channel?.title || 'Unknown Channel'}
-                                        </h3>
-                                        <StatusBadge status={deal.status} />
-                                    </div>
-
-                                    {deal.channel?.username && (
-                                        <p className="text-xs text-muted-foreground">@{deal.channel.username}</p>
-                                    )}
-
-                                    {/* Price and Memo */}
-                                    <div className="flex items-center gap-4 mt-2 text-sm">
-                                        <span className="flex items-center gap-1 text-green-400">
-                                            <DollarSign className="w-3 h-3" />
-                                            {deal.priceAmount} {deal.priceCurrency}
-                                        </span>
-
-                                        {deal.paymentMemo && (
-                                            <CopyMemo memo={deal.paymentMemo} />
+                            <div className="flex flex-col gap-3">
+                                {/* Header */}
+                                <div className="flex items-start gap-3">
+                                    {/* Channel Avatar */}
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
+                                        {deal.channel?.photoUrl ? (
+                                            <img src={deal.channel.photoUrl} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            deal.channel?.title?.charAt(0) || '?'
                                         )}
                                     </div>
 
-                                    {/* Status hint */}
-                                    {deal.status === 'pending' && (
-                                        <p className="text-xs text-yellow-400 mt-2 flex items-center gap-1">
-                                            <AlertCircle className="w-3 h-3" />
-                                            Waiting for your payment
-                                        </p>
-                                    )}
-                                    {deal.status === 'funded' && (
-                                        <p className="text-xs text-blue-400 mt-2 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            Waiting for channel owner approval
-                                        </p>
-                                    )}
+                                    {/* Details */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h3 className="font-semibold truncate">
+                                                {deal.channel?.title || 'Unknown Channel'}
+                                            </h3>
+                                            <StatusBadge status={deal.status} />
+                                        </div>
+
+                                        {deal.channel?.username && (
+                                            <p className="text-xs text-muted-foreground">@{deal.channel.username}</p>
+                                        )}
+
+                                        {/* Price and Memo */}
+                                        <div className="flex items-center gap-4 mt-2 text-sm">
+                                            <span className="flex items-center gap-1 text-green-400">
+                                                <DollarSign className="w-3 h-3" />
+                                                {deal.priceAmount} {deal.priceCurrency}
+                                            </span>
+
+                                            {deal.paymentMemo && (
+                                                <CopyMemo memo={deal.paymentMemo} />
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Bot button */}
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={openBot}
-                                    className="shrink-0"
-                                >
-                                    <MessageCircle className="w-4 h-4" />
-                                </Button>
+                                {/* Status-specific UI */}
+                                {deal.status === 'pending' && (
+                                    <p className="text-xs text-yellow-400 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" />
+                                        Waiting for your payment
+                                    </p>
+                                )}
+
+                                {deal.status === 'funded' && (
+                                    <p className="text-xs text-blue-400 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        Waiting for channel owner approval
+                                    </p>
+                                )}
+
+                                {deal.status === 'draft_pending' && (
+                                    <p className="text-xs text-blue-400 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        Channel owner is creating draft
+                                    </p>
+                                )}
+
+                                {deal.status === 'changes_requested' && (
+                                    <p className="text-xs text-orange-400 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        Channel owner is revising draft
+                                    </p>
+                                )}
+
+                                {/* Draft Submitted: Review button */}
+                                {deal.status === 'draft_submitted' && (
+                                    <div className="pt-2 border-t border-white/10">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="w-full bg-purple-600 hover:bg-purple-700"
+                                            onClick={() => openBotDeepLink(`review_${deal.id}`)}
+                                        >
+                                            <Eye className="w-4 h-4 mr-1" />
+                                            Review Draft
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {/* Approved: Propose time button */}
+                                {deal.status === 'approved' && (
+                                    <div className="pt-2 border-t border-white/10">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="w-full bg-green-600 hover:bg-green-700"
+                                            onClick={() => openTimePicker(deal.id)}
+                                        >
+                                            <Calendar className="w-4 h-4 mr-1" />
+                                            Propose Post Time
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {/* Scheduling: Accept or Counter */}
+                                {deal.status === 'scheduling' && (
+                                    <div className="pt-2 border-t border-white/10 space-y-2">
+                                        {deal.proposedPostTime && deal.timeProposedBy !== 'advertiser' ? (
+                                            <>
+                                                <div className="text-sm text-cyan-400">
+                                                    Channel owner proposed: {displayTime(deal.proposedPostTime)}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        className="flex-1 bg-green-600 hover:bg-green-700"
+                                                        onClick={() => openTimePicker(deal.id)}
+                                                    >
+                                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                                        Accept
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1"
+                                                        onClick={() => openTimePicker(deal.id)}
+                                                    >
+                                                        <Calendar className="w-4 h-4 mr-1" />
+                                                        Counter
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                <Clock className="w-4 h-4" />
+                                                Waiting for channel owner to accept your time
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Scheduled: Show countdown */}
+                                {deal.status === 'scheduled' && deal.agreedPostTime && (
+                                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm">
+                                        <p className="text-indigo-400 flex items-center gap-1">
+                                            <Calendar className="w-4 h-4" />
+                                            Scheduled for {displayTime(deal.agreedPostTime)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Posting {formatCountdown(deal.agreedPostTime)}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Posted: Shows ad is live */}
+                                {deal.status === 'posted' && (
+                                    <div className="flex items-center gap-1 text-teal-400 text-sm">
+                                        <CheckCircle className="w-4 h-4" />
+                                        <span>Ad is live on channel</span>
+                                    </div>
+                                )}
+
+                                {/* Monitoring: Info message */}
+                                {deal.status === 'monitoring' && (
+                                    <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-sm">
+                                        <p className="text-cyan-400 flex items-center gap-1">
+                                            <Clock className="w-4 h-4" />
+                                            Being monitored for 24h
+                                        </p>
+                                        {deal.monitoringEndAt && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Funds release: {displayTime(deal.monitoringEndAt)}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Failed to Post */}
+                                {deal.status === 'failed_to_post' && (
+                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        Post failed - contact support
+                                    </div>
+                                )}
+
+                                {/* Disputed warning */}
+                                {deal.status === 'disputed' && (
+                                    <div className="flex items-center gap-2 text-orange-400 bg-orange-500/10 rounded p-2 text-sm">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        <span>This deal is disputed</span>
+                                    </div>
+                                )}
+
+                                {/* Last updated + Chat button */}
+                                <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs text-muted-foreground">
+                                    <span>Updated {formatRelativeTime(lastFetchedAt)}</span>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={openBot}
+                                        className="text-blue-400 h-6 px-2"
+                                    >
+                                        <MessageCircle className="w-3 h-3 mr-1" />
+                                        Chat
+                                    </Button>
+                                </div>
                             </div>
                         </GlassCard>
                     ))}
                 </div>
             )}
+
+            {/* Time Picker Modal */}
+            <TimePickerModal
+                open={timePickerDealId !== null}
+                onClose={() => setTimePickerDealId(null)}
+                dealId={timePickerDealId || ''}
+                existingProposal={schedulingProposal}
+                userRole="advertiser"
+                onPropose={handleProposeTime}
+                onAccept={handleAcceptTime}
+            />
         </div>
     )
 }

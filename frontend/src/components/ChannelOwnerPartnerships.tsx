@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2 } from 'lucide-react'
-import { API_URL, getHeaders } from '@/lib/api'
+import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye } from 'lucide-react'
+import { API_URL, getHeaders, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
+import { openTelegramLink } from '@/lib/telegram'
+import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
+import { TimePickerModal } from './TimePickerModal'
 
 // Deal with advertiser data
 interface DealWithDetails {
@@ -25,17 +28,28 @@ interface DealWithDetails {
         firstName?: string
         username?: string
     }
+    // Post-escrow fields
+    proposedPostTime?: string
+    timeProposedBy?: 'advertiser' | 'channel_owner'
+    agreedPostTime?: string
+    monitoringEndAt?: string
 }
 
 // Status badge config
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
     pending: { label: 'Awaiting Payment', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
     funded: { label: 'Pending Approval', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+    draft_pending: { label: 'Create Draft', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
+    draft_submitted: { label: 'Under Review', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+    changes_requested: { label: 'Changes Needed', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
     approved: { label: 'Approved', color: 'text-green-400', bgColor: 'bg-green-500/20' },
+    scheduling: { label: 'Setting Time', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+    scheduled: { label: 'Scheduled', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20' },
     rejected: { label: 'Rejected', color: 'text-red-400', bgColor: 'bg-red-500/20' },
     in_progress: { label: 'In Progress', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
-    posted: { label: 'Posted', color: 'text-teal-400', bgColor: 'bg-teal-500/20' },
-    monitoring: { label: 'Monitoring', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+    posted: { label: 'Ad is Live', color: 'text-teal-400', bgColor: 'bg-teal-500/20' },
+    failed_to_post: { label: 'Post Failed', color: 'text-red-400', bgColor: 'bg-red-500/20' },
+    monitoring: { label: 'Monitoring (24h)', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
     released: { label: 'Completed', color: 'text-green-400', bgColor: 'bg-green-500/20' },
     cancelled: { label: 'Cancelled', color: 'text-red-400', bgColor: 'bg-red-500/20' },
     refunded: { label: 'Refunded', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
@@ -60,12 +74,14 @@ export function ChannelOwnerPartnerships() {
     const [activeTab, setActiveTab] = useState<TabType>('pending')
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [processingAction, setProcessingAction] = useState<'accept' | 'reject' | null>(null)
+    const [lastFetchedAt, setLastFetchedAt] = useState<Date>(new Date())
+    const [timePickerDealId, setTimePickerDealId] = useState<string | null>(null)
+    const [schedulingProposal, setSchedulingProposal] = useState<{
+        proposedTime: string;
+        proposedBy: 'advertiser' | 'channel_owner';
+    } | null>(null)
 
-    useEffect(() => {
-        loadDeals()
-    }, [])
-
-    const loadDeals = async () => {
+    const loadDeals = useCallback(async () => {
         try {
             const response = await fetch(`${API_URL}/deals/channel-owner`, {
                 headers: getHeaders()
@@ -73,13 +89,47 @@ export function ChannelOwnerPartnerships() {
             if (response.ok) {
                 const data = await response.json()
                 setDeals(data)
+                setLastFetchedAt(new Date())
             }
         } catch (error) {
             console.error('Failed to load deals:', error)
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    // Initial load
+    useEffect(() => {
+        loadDeals()
+    }, [loadDeals])
+
+    // Focus-based refetch (when user returns from bot)
+    useEffect(() => {
+        const handleFocus = () => loadDeals()
+        window.addEventListener('focus', handleFocus)
+        // Telegram WebApp viewport changes (covers mini app reactivation)
+        const tg = (window as any).Telegram?.WebApp
+        if (tg?.onEvent) {
+            tg.onEvent('viewportChanged', handleFocus)
+        }
+        return () => {
+            window.removeEventListener('focus', handleFocus)
+            if (tg?.offEvent) {
+                tg.offEvent('viewportChanged', handleFocus)
+            }
+        }
+    }, [loadDeals])
+
+    // Polling for active transition states
+    useEffect(() => {
+        const activeTransitionStates = ['draft_pending', 'scheduling', 'draft_submitted']
+        const hasActiveDeals = deals.some(d => activeTransitionStates.includes(d.status))
+
+        if (hasActiveDeals) {
+            const interval = setInterval(loadDeals, 3000)
+            return () => clearInterval(interval)
+        }
+    }, [deals, loadDeals])
 
     const handleApprove = async (dealId: string, reject: boolean) => {
         setProcessingId(dealId)
@@ -119,17 +169,50 @@ export function ChannelOwnerPartnerships() {
 
     const openBot = () => {
         haptic.light()
-        const url = 'https://t.me/DanielAdsMVP_bot'
-        if ((window as any).Telegram?.WebApp?.openTelegramLink) {
-            (window as any).Telegram.WebApp.openTelegramLink(url)
-        } else {
-            window.open(url, '_blank')
+        openTelegramLink('https://t.me/DanielAdsMVP_bot')
+    }
+
+    // Deep link to bot for specific actions
+    const openBotDeepLink = (path: string) => {
+        haptic.light()
+        openTelegramLink(`https://t.me/DanielAdsMVP_bot?start=${path}`)
+    }
+
+    // Open time picker with existing proposal if any
+    const openTimePicker = async (dealId: string) => {
+        try {
+            const status = await getSchedulingStatus(dealId)
+            setSchedulingProposal(status.proposal)
+            setTimePickerDealId(dealId)
+        } catch (error) {
+            console.error('Failed to get scheduling status:', error)
+            setTimePickerDealId(dealId)
         }
     }
 
-    // Categorize deals
-    const pendingStatuses = ['funded'] // Needs approval
-    const activeStatuses = ['approved', 'in_progress', 'posted', 'monitoring', 'disputed'] // In progress + disputes
+    // Handle time proposal
+    const handleProposeTime = async (time: Date) => {
+        if (!timePickerDealId) return
+        await proposePostTime(timePickerDealId, time)
+        await loadDeals()
+    }
+
+    // Handle time acceptance
+    const handleAcceptTime = async () => {
+        if (!timePickerDealId) return
+        await acceptPostTime(timePickerDealId)
+        await loadDeals()
+    }
+
+    // Open support for failed posts
+    const openSupport = () => {
+        haptic.light()
+        window.open('https://t.me/DanielAdsMVP_bot', '_blank')
+    }
+
+    // Categorize deals - including new post-escrow statuses
+    const pendingStatuses = ['funded', 'draft_pending', 'changes_requested'] // Needs action from channel owner
+    const activeStatuses = ['draft_submitted', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress'] // In progress
 
     const pendingDeals = deals.filter(d => pendingStatuses.includes(d.status))
     const activeDeals = deals.filter(d => activeStatuses.includes(d.status))
@@ -237,8 +320,9 @@ export function ChannelOwnerPartnerships() {
                                     </span>
                                 </div>
 
-                                {/* Actions based on tab */}
-                                {activeTab === 'pending' && (
+                                {/* Actions based on status */}
+                                {/* Funded: Accept/Reject */}
+                                {deal.status === 'funded' && (
                                     <div className="flex gap-2 pt-2 border-t border-white/10">
                                         <Button
                                             variant="default"
@@ -271,6 +355,113 @@ export function ChannelOwnerPartnerships() {
                                     </div>
                                 )}
 
+                                {/* Draft Pending: Create Draft button */}
+                                {(deal.status === 'draft_pending' || deal.status === 'changes_requested') && (
+                                    <div className="flex gap-2 pt-2 border-t border-white/10">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                            onClick={() => openBotDeepLink(`draft_${deal.id}`)}
+                                        >
+                                            <Send className="w-4 h-4 mr-1" />
+                                            {deal.status === 'changes_requested' ? 'Edit Draft' : 'Create Draft'}
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {/* Draft Submitted: Waiting message */}
+                                {deal.status === 'draft_submitted' && (
+                                    <div className="flex items-center gap-2 pt-2 border-t border-white/10 text-purple-400 text-sm">
+                                        <Eye className="w-4 h-4" />
+                                        <span>Waiting for advertiser review</span>
+                                    </div>
+                                )}
+
+                                {/* Scheduling: Accept or Counter */}
+                                {deal.status === 'scheduling' && (
+                                    <div className="pt-2 border-t border-white/10 space-y-2">
+                                        {deal.proposedPostTime && deal.timeProposedBy !== 'channel_owner' ? (
+                                            <>
+                                                <div className="text-sm text-cyan-400">
+                                                    Advertiser proposed: {displayTime(deal.proposedPostTime)}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        className="flex-1 bg-green-600 hover:bg-green-700"
+                                                        onClick={() => openTimePicker(deal.id)}
+                                                    >
+                                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                                        Accept
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1"
+                                                        onClick={() => openTimePicker(deal.id)}
+                                                    >
+                                                        <Calendar className="w-4 h-4 mr-1" />
+                                                        Counter
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                <Clock className="w-4 h-4" />
+                                                Waiting for advertiser to accept your proposal
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Scheduled: Show countdown */}
+                                {deal.status === 'scheduled' && deal.agreedPostTime && (
+                                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm">
+                                        <p className="text-indigo-400 flex items-center gap-1">
+                                            <Calendar className="w-4 h-4" />
+                                            Scheduled for {displayTime(deal.agreedPostTime)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Posting {formatCountdown(deal.agreedPostTime)}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Monitoring: Warning message */}
+                                {deal.status === 'monitoring' && (
+                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm">
+                                        <p className="text-yellow-400 flex items-center gap-1">
+                                            <AlertTriangle className="w-4 h-4" />
+                                            Post is LIVE - Don't delete for 24h
+                                        </p>
+                                        {deal.monitoringEndAt && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Ends: {displayTime(deal.monitoringEndAt)}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Failed to Post: Report issue */}
+                                {deal.status === 'failed_to_post' && (
+                                    <div className="pt-2 border-t border-white/10 space-y-2">
+                                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                                            <AlertTriangle className="w-4 h-4" />
+                                            Post failed - contact support
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full border-red-500/50 text-red-400"
+                                            onClick={openSupport}
+                                        >
+                                            Report Issue
+                                        </Button>
+                                    </div>
+                                )}
+
                                 {/* Disputed warning */}
                                 {deal.status === 'disputed' && (
                                     <div className="flex items-center gap-2 text-red-400 bg-red-500/10 rounded p-2 text-sm">
@@ -279,33 +470,43 @@ export function ChannelOwnerPartnerships() {
                                     </div>
                                 )}
 
-                                {/* Active deals get bot button */}
-                                {activeTab === 'active' && (
-                                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                            <Clock className="w-3 h-3" />
-                                            {deal.status === 'approved' && 'Waiting for post'}
-                                            {deal.status === 'in_progress' && 'Creating content'}
-                                            {deal.status === 'posted' && 'Ad is live'}
-                                            {deal.status === 'monitoring' && 'Being monitored'}
-                                            {deal.status === 'disputed' && 'Needs attention'}
-                                        </div>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={openBot}
-                                            className="text-blue-400"
-                                        >
-                                            <MessageCircle className="w-4 h-4 mr-1" />
-                                            Message
-                                        </Button>
+                                {/* Posted: Shows ad is live */}
+                                {deal.status === 'posted' && (
+                                    <div className="flex items-center gap-1 text-teal-400 text-sm pt-2 border-t border-white/10">
+                                        <CheckCircle className="w-4 h-4" />
+                                        <span>Ad is live on channel</span>
                                     </div>
                                 )}
+
+                                {/* Last updated indicator */}
+                                <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+                                    <span>Updated {formatRelativeTime(lastFetchedAt)}</span>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={openBot}
+                                        className="text-blue-400 h-6 px-2"
+                                    >
+                                        <MessageCircle className="w-3 h-3 mr-1" />
+                                        Chat
+                                    </Button>
+                                </div>
                             </div>
                         </GlassCard>
                     ))}
                 </div>
             )}
+
+            {/* Time Picker Modal */}
+            <TimePickerModal
+                open={timePickerDealId !== null}
+                onClose={() => setTimePickerDealId(null)}
+                dealId={timePickerDealId || ''}
+                existingProposal={schedulingProposal}
+                userRole="channel_owner"
+                onPropose={handleProposeTime}
+                onAccept={handleAcceptTime}
+            />
         </div>
     )
 }
