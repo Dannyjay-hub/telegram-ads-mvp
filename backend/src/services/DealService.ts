@@ -100,13 +100,11 @@ export class DealService {
                 .eq('id', deal.channelId)
                 .single();
 
-            // Fetch channel owner via channel_admins (role = 'owner')
-            const { data: ownerAdmin } = await supabase
+            // Fetch ALL channel admins (owner + PR managers)
+            const { data: admins } = await supabase
                 .from('channel_admins')
                 .select('users(telegram_id)')
-                .eq('channel_id', deal.channelId)
-                .eq('role', 'owner')
-                .single();
+                .eq('channel_id', deal.channelId);
 
             // Fetch advertiser info
             const { data: advertiser } = await supabase
@@ -115,24 +113,27 @@ export class DealService {
                 .eq('id', deal.advertiserId)
                 .single();
 
-            const ownerTelegramId = (ownerAdmin as any)?.users?.telegram_id;
             const channelTitle = channel?.title || 'Your channel';
 
-            if (ownerTelegramId) {
-                // Build items summary for notification
+            // Notify ALL channel admins about new deal request
+            if (admins?.length) {
                 const itemsSummary = deal.contentItems
                     ?.map((item: any) => `• ${item.quantity}x ${item.title}`)
                     .join('\n') || '';
 
-                // Notify channel owner about new deal request
-                await notifyNewDealRequest(
-                    ownerTelegramId,
-                    channelTitle,
-                    deal.id,
-                    deal.priceAmount,
-                    itemsSummary + (deal.briefText ? `\n\n📝 Brief: "${deal.briefText}"` : '')
-                );
-                console.log(`[DealService] ✅ Notified channel owner ${ownerTelegramId} about new deal`);
+                for (const admin of admins) {
+                    const telegramId = (admin as any)?.users?.telegram_id;
+                    if (telegramId) {
+                        await notifyNewDealRequest(
+                            telegramId,
+                            channelTitle,
+                            deal.id,
+                            deal.priceAmount,
+                            itemsSummary + (deal.briefText ? `\n\n📝 Brief: "${deal.briefText}"` : '')
+                        );
+                    }
+                }
+                console.log(`[DealService] ✅ Notified ${admins.length} channel admin(s) about new deal`);
             }
 
             if (advertiser && advertiser.telegram_id) {

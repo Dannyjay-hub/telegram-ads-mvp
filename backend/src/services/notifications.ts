@@ -39,24 +39,34 @@ export async function notifyUser(userId: string, message: string) {
 }
 
 /**
- * Helper to notify a channel owner about a new deal request.
+ * Helper to notify ALL channel admins (owner + PR managers) about a new deal request.
  */
-export async function notifyChannelOwner(channelId: string, dealId: string, brief: string) {
-    // 1. Find the owner of the channel
-    const { data: adminData, error } = await (supabase
+export async function notifyChannelAdmins(channelId: string, dealId: string, message: string) {
+    // Find ALL admins of the channel (owner + PR managers)
+    const { data: admins, error } = await supabase
         .from('channel_admins')
-        .select('user_id')
-        .eq('channel_id', channelId)
-        .eq('is_owner', true) // Assuming one owner for MVP
-        .single() as any);
+        .select('user_id, users(telegram_id)')
+        .eq('channel_id', channelId);
 
-    if (error || !adminData) {
-        // Fallback: If no admin map exists yet (since we just created channels without admins in Phase 1)
-        // We might want to look up the channel -> find who registered it? 
-        // For MVP, if we don't have an owner map, we can't notify.
-        console.warn(`[NOTIFY] No owner found for channel ${channelId}`);
+    if (error || !admins?.length) {
+        console.warn(`[NOTIFY] No admins found for channel ${channelId}`);
         return;
     }
 
-    await notifyUser(adminData.user_id, `📢 *New Deal Request!*\n\n"${brief}"\n\nReply with /accept_${dealId} or /reject_${dealId}`);
+    // Notify each admin
+    for (const admin of admins) {
+        const telegramId = (admin as any).users?.telegram_id;
+        if (telegramId) {
+            await sendNotification(telegramId, message);
+        }
+    }
+
+    console.log(`[NOTIFY] Sent notification to ${admins.length} channel admin(s)`);
+}
+
+/**
+ * @deprecated Use notifyChannelAdmins instead
+ */
+export async function notifyChannelOwner(channelId: string, dealId: string, brief: string) {
+    await notifyChannelAdmins(channelId, dealId, `📢 *New Deal Request!*\n\n"${brief}"\n\nReply with /accept_${dealId} or /reject_${dealId}`);
 }
