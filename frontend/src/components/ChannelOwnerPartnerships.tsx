@@ -381,20 +381,15 @@ export function ChannelOwnerPartnerships() {
                                     </div>
                                 )}
 
-                                {/* Scheduling: Accept or Counter */}
+                                {/* Scheduling: Channel owner waits for advertiser to propose first */}
                                 {deal.status === 'scheduling' && (
                                     <div className="pt-2 border-t border-white/10 space-y-2">
                                         {!deal.proposedPostTime ? (
-                                            /* No time proposed yet - show propose button */
-                                            <Button
-                                                variant="default"
-                                                size="sm"
-                                                className="w-full bg-green-600 hover:bg-green-700"
-                                                onClick={() => openTimePicker(deal.id)}
-                                            >
-                                                <Calendar className="w-4 h-4 mr-1" />
-                                                Propose Post Time
-                                            </Button>
+                                            /* No time proposed yet - waiting for advertiser */
+                                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                <Clock className="w-4 h-4" />
+                                                Waiting for advertiser to propose a time
+                                            </div>
                                         ) : deal.timeProposedBy !== 'channel_owner' ? (
                                             <>
                                                 <div className="text-sm text-cyan-400">
@@ -424,7 +419,7 @@ export function ChannelOwnerPartnerships() {
                                         ) : (
                                             <div className="text-sm text-muted-foreground flex items-center gap-1">
                                                 <Clock className="w-4 h-4" />
-                                                Waiting for advertiser to accept your proposal
+                                                Waiting for advertiser to accept your counter
                                             </div>
                                         )}
                                     </div>
