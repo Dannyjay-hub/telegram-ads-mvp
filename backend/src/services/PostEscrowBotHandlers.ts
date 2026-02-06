@@ -302,14 +302,17 @@ async function handleDraftTextReceived(
     // Save draft
     await draftService.saveDraft(dealId, { draftText: text });
 
-    // Show preview with submit button
+    // Send raw content first (easy to copy)
+    await ctx.reply(text);
+
+    // Show preview info with submit button
     const keyboard = new InlineKeyboard()
         .text('✅ Submit for Review', `submit_draft_${dealId}`)
         .row()
         .text('✏️ Edit (send new text)', `revise_draft_${dealId}`);
 
     await ctx.reply(
-        `📋 **Draft Preview**\n\n${text}\n\n---\n_This is how it will appear in the channel._`,
+        `📋 **Draft saved!** Copy the message above if you need to edit.\n\nReady to submit?`,
         { parse_mode: 'Markdown', reply_markup: keyboard }
     );
 }
@@ -333,17 +336,21 @@ async function handleDraftPhotoReceived(
         draftMediaType: 'photo'
     });
 
-    // Show preview
+    // Send photo with caption (easy to forward/copy)
+    await ctx.replyWithPhoto(fileId, {
+        caption: caption || undefined
+    });
+
+    // Show prompt with submit button
     const keyboard = new InlineKeyboard()
         .text('✅ Submit for Review', `submit_draft_${dealId}`)
         .row()
         .text('✏️ Edit (send new)', `revise_draft_${dealId}`);
 
-    await ctx.replyWithPhoto(fileId, {
-        caption: `📋 **Draft Preview**\n\n${caption || '(No caption)'}\n\n---\n_This is how it will appear in the channel._`,
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
+    await ctx.reply(
+        `📋 **Draft saved!** The photo above is your draft.\n\nReady to submit?`,
+        { parse_mode: 'Markdown', reply_markup: keyboard }
+    );
 }
 
 async function handleSubmitDraft(
