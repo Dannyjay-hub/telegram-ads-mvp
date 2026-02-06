@@ -176,6 +176,11 @@ campaigns.patch('/:id/draft', async (c) => {
         if (body.draftStep !== undefined) updates.draftStep = body.draftStep;
         if (body.expiresInDays !== undefined) updates.expiresInDays = body.expiresInDays;
 
+        // If no changes, just return existing campaign as success
+        if (Object.keys(updates).length === 0) {
+            return c.json({ campaign: existing, message: 'Draft saved (no changes)' });
+        }
+
         const campaign = await campaignService.updateCampaign(campaignId, updates);
 
         return c.json({ campaign, message: 'Draft updated' });
