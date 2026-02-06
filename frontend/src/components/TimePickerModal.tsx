@@ -29,7 +29,7 @@ export function TimePickerModal({
     const [selectedTime, setSelectedTime] = useState<string>(
         toDateTimeLocal(getMinScheduleTime())
     );
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<'accept' | 'propose' | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     if (!open) return null;
@@ -53,7 +53,7 @@ export function TimePickerModal({
             return;
         }
 
-        setIsSubmitting(true);
+        setIsSubmitting('propose');
         haptic.light();
 
         try {
@@ -64,13 +64,13 @@ export function TimePickerModal({
             setError(e.message || 'Failed to propose time');
             haptic.error();
         } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(null);
         }
     };
 
     const handleAccept = async () => {
         if (!onAccept) return;
-        setIsSubmitting(true);
+        setIsSubmitting('accept');
         haptic.light();
 
         try {
@@ -81,7 +81,7 @@ export function TimePickerModal({
             setError(e.message || 'Failed to accept time');
             haptic.error();
         } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(null);
         }
     };
 
@@ -136,7 +136,7 @@ export function TimePickerModal({
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <p className="text-xs text-muted-foreground mt-2">
-                        Your local time • Must be 1h-30d from now
+                        Your local time • Must be 1 hour - 30 days from now
                     </p>
                 </div>
 
@@ -153,18 +153,18 @@ export function TimePickerModal({
                     {isCounterPartyProposal && onAccept && (
                         <Button
                             onClick={handleAccept}
-                            disabled={isSubmitting}
+                            disabled={!!isSubmitting}
                             className="flex-1 bg-green-600 hover:bg-green-700"
                         >
-                            {isSubmitting ? 'Accepting...' : 'Accept This Time'}
+                            {isSubmitting === 'accept' ? 'Accepting...' : 'Accept This Time'}
                         </Button>
                     )}
                     <Button
                         onClick={handlePropose}
-                        disabled={isSubmitting}
+                        disabled={!!isSubmitting}
                         className={`flex-1 ${isCounterPartyProposal ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'}`}
                     >
-                        {isSubmitting ? 'Submitting...' : isCounterPartyProposal ? 'Suggest Different Time' : 'Propose This Time'}
+                        {isSubmitting === 'propose' ? 'Submitting...' : isCounterPartyProposal ? 'Suggest Different Time' : 'Propose This Time'}
                     </Button>
                 </div>
 
