@@ -183,7 +183,12 @@ export class SupabaseCampaignRepository {
             .select()
             .single();
 
-        if (error || !data) return null;
+        if (error) {
+            throw new Error(`Failed to update campaign: ${error.message}`);
+        }
+        if (!data) {
+            throw new Error('Campaign not found after update');
+        }
         return this.mapRowToCampaign(data);
     }
 
