@@ -404,7 +404,12 @@ async function handleSubmitDraft(
         }
     } catch (error: any) {
         console.error('[PostEscrowBotHandlers] Error submitting draft:', error);
-        await ctx.editMessageText(`❌ Failed to submit draft. Please try again.`);
+        // Use sendMessage as fallback - editMessageText fails on photo messages
+        try {
+            await ctx.editMessageText(`❌ Failed to submit draft. Please try again.`);
+        } catch {
+            await ctx.reply(`❌ Failed to submit draft. Please try again.`);
+        }
     }
 }
 

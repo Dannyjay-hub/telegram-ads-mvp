@@ -309,25 +309,40 @@ export class DraftService {
      * Append to status history JSONB array
      */
     private async appendStatusHistory(dealId: string, status: string): Promise<void> {
-        // Use raw SQL for JSONB append
-        const { error } = await supabase.rpc('update_deal_status', {
-            p_deal_id: dealId,
-            p_new_status: status
-        }).catch(() => {
-            // Fallback if function not available yet
-            return supabase
+        try {
+            // Try using the stored function first
+            const { error: rpcError } = await supabase.rpc('update_deal_status', {
+                p_deal_id: dealId,
+                p_new_status: status
+            });
+
+            if (!rpcError) {
+                return; // Success
+            }
+
+            console.log(`[DraftService] RPC not available, using fallback: ${rpcError.message}`);
+        } catch (e) {
+            console.log(`[DraftService] RPC call failed, using fallback`);
+        }
+
+        // Fallback: manually update the status_history
+        try {
+            const { data } = await supabase
                 .from('deals')
                 .select('status_history')
                 .eq('id', dealId)
-                .single()
-                .then(async ({ data }) => {
-                    const history = data?.status_history || [];
-                    history.push({ status, at: new Date().toISOString() });
-                    return supabase
-                        .from('deals')
-                        .update({ status_history: history })
-                        .eq('id', dealId);
-                });
-        });
+                .single();
+
+            const history = (data?.status_history as any[]) || [];
+            history.push({ status, at: new Date().toISOString() });
+
+            await supabase
+                .from('deals')
+                .update({ status_history: history })
+                .eq('id', dealId);
+        } catch (fallbackError) {
+            // Status history is non-critical, don't block on failure
+            console.warn(`[DraftService] Failed to update status history: ${fallbackError}`);
+        }
     }
 }
