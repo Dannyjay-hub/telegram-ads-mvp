@@ -264,32 +264,43 @@ export function CampaignWizard() {
                 ? `${API_URL}/campaigns/${campaignId}/draft`
                 : `${API_URL}/campaigns/draft`
 
-            const response = await fetch(url, {
-                method: isUpdate ? 'PATCH' : 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Telegram-ID': String(user.telegramId)
-                },
-                body: JSON.stringify({
-                    title: formData.title,
-                    brief: formData.brief,
-                    totalBudget: parseFloat(formData.perChannelBudget || '0') * formData.slots,
-                    currency: formData.currency,
-                    slots: formData.slots,
-                    campaignType: formData.campaignType,
-                    minSubscribers: parseInt(formData.minSubscribers) || 0,
-                    maxSubscribers: formData.maxSubscribers ? parseInt(formData.maxSubscribers) : null,
-                    requiredLanguages: formData.requiredLanguages,
-                    requiredCategories: formData.requiredCategories,
-                    minAvgViews: parseInt(formData.minAvgViews) || 0,
-                    draftStep: step, // Save current step for resume
-                    expiresInDays: parseInt(formData.expiresInDays) || 7
+            let response: Response
+            try {
+                response = await fetch(url, {
+                    method: isUpdate ? 'PATCH' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-ID': String(user.telegramId)
+                    },
+                    body: JSON.stringify({
+                        title: formData.title,
+                        brief: formData.brief,
+                        totalBudget: parseFloat(formData.perChannelBudget || '0') * formData.slots,
+                        currency: formData.currency,
+                        slots: formData.slots,
+                        campaignType: formData.campaignType,
+                        minSubscribers: parseInt(formData.minSubscribers) || 0,
+                        maxSubscribers: formData.maxSubscribers ? parseInt(formData.maxSubscribers) : null,
+                        requiredLanguages: formData.requiredLanguages,
+                        requiredCategories: formData.requiredCategories,
+                        minAvgViews: parseInt(formData.minAvgViews) || 0,
+                        draftStep: step, // Save current step for resume
+                        expiresInDays: parseInt(formData.expiresInDays) || 7
+                    })
                 })
-            })
+            } catch (fetchError: any) {
+                throw new Error(`Network error: ${fetchError.message || 'Failed to connect'}`)
+            }
 
             if (!response.ok) {
-                const errData = await response.json()
-                throw new Error(errData.error || 'Failed to save draft')
+                let errMsg = 'Failed to save draft'
+                try {
+                    const errData = await response.json()
+                    errMsg = errData.error || errMsg
+                } catch {
+                    errMsg = `Server error: ${response.status} ${response.statusText}`
+                }
+                throw new Error(errMsg)
             }
 
             // Clear localStorage draft after successful save
