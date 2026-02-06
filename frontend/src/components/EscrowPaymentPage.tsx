@@ -22,6 +22,7 @@ interface Campaign {
     escrowWalletAddress: string
     slots: number
     status: string
+    campaignType?: 'open' | 'closed'
 }
 
 export function EscrowPaymentPage() {
@@ -175,6 +176,25 @@ export function EscrowPaymentPage() {
                 <h2 className="text-xl font-bold mb-2">Error</h2>
                 <p className="text-muted-foreground mb-4">{error}</p>
                 <Button onClick={() => navigate(-1)}>Go Back</Button>
+            </div>
+        )
+    }
+
+    // Show verifying state with spinner and message
+    if (verifying) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+                <div className="relative mb-6">
+                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/30 border-t-primary" />
+                    <CheckCircle2 className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                </div>
+                <h2 className="text-xl font-bold mb-2">Verifying Payment</h2>
+                <p className="text-muted-foreground mb-4">
+                    Confirming your transaction on the blockchain...
+                </p>
+                <p className="text-sm text-muted-foreground/70">
+                    This usually takes 5-15 seconds
+                </p>
             </div>
         )
     }

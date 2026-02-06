@@ -745,13 +745,12 @@ export function CampaignWizard() {
                             </div>
                         </div>
 
-                        {formData.campaignType === 'open' && (
-                            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                                <p className="text-xs text-amber-200">
-                                    ⚡ You'll need to escrow {totalBudget} {formData.currency} to publish this campaign.
-                                </p>
-                            </div>
-                        )}
+                        {/* Escrow message for all campaign types */}
+                        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                            <p className="text-xs text-amber-200">
+                                ⚡ You'll need to escrow {totalBudget} {formData.currency} to publish this campaign.
+                            </p>
+                        </div>
 
                         {error && (
                             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
