@@ -209,6 +209,97 @@ export class SchedulingService {
         }
 
         console.log(`[SchedulingService] Time accepted for deal ${dealId}: ${agreedTime}`);
+
+        // Send notifications to all parties
+        if (bot && deal.channel_id) {
+            try {
+                const formattedTime = agreedTime.toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: 'Africa/Lagos'
+                });
+
+                // Get deal details for advertiser info
+                const { data: dealDetails } = await (supabase as any)
+                    .from('deals')
+                    .select('advertiser_id')
+                    .eq('id', dealId)
+                    .single();
+
+                // Get channel info
+                const { data: channel } = await supabase
+                    .from('channels')
+                    .select('title')
+                    .eq('id', deal.channel_id)
+                    .single();
+
+                const channelTitle = channel?.title || 'the channel';
+
+                // Notify advertiser
+                if (dealDetails?.advertiser_id) {
+                    const { data: advertiser } = await supabase
+                        .from('users')
+                        .select('telegram_id')
+                        .eq('id', dealDetails.advertiser_id)
+                        .single();
+
+                    if (advertiser?.telegram_id) {
+                        await bot.api.sendMessage(
+                            advertiser.telegram_id,
+                            `✅ **Time Confirmed!**\n\n` +
+                            `Your ad on **${channelTitle}** is scheduled for:\n` +
+                            `**${formattedTime}**\n\n` +
+                            `The post will go live automatically at this time.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [[
+                                        { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${dealId}` }
+                                    ]]
+                                }
+                            }
+                        );
+                        console.log(`[SchedulingService] ✅ Notified advertiser ${advertiser.telegram_id}`);
+                    }
+                }
+
+                // Notify all channel admins
+                const { data: admins } = await supabase
+                    .from('channel_admins')
+                    .select('users(telegram_id)')
+                    .eq('channel_id', deal.channel_id);
+
+                for (const admin of (admins || [])) {
+                    const telegramId = (admin as any)?.users?.telegram_id;
+                    if (telegramId) {
+                        await bot.api.sendMessage(
+                            telegramId,
+                            `✅ **Posting Time Confirmed!**\n\n` +
+                            `**${channelTitle}** is scheduled to post at:\n` +
+                            `**${formattedTime}**\n\n` +
+                            `The ad will be published automatically.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [[
+                                        { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }
+                                    ]]
+                                }
+                            }
+                        );
+                        console.log(`[SchedulingService] ✅ Notified admin ${telegramId}`);
+                    }
+                }
+            } catch (notifyError) {
+                console.error('[SchedulingService] Error sending accept notifications:', notifyError);
+                // Don't fail the accept - notifications are not critical
+            }
+        }
+
         return agreedTime;
     }
 
