@@ -53,6 +53,19 @@ interface AccountTxNotification {
 }
 
 /**
+ * Health check endpoint - verify webhook route is accessible
+ * Test with: curl https://your-backend.com/webhooks/ton
+ */
+app.get('/ton', (c) => {
+    console.log('[Webhook] Health check received');
+    return c.json({
+        status: 'ok',
+        message: 'Webhook endpoint is accessible',
+        timestamp: new Date().toISOString()
+    });
+});
+
+/**
  * Webhook endpoint for TonAPI account-tx notifications
  * TonAPI sends: { account_id, lt, tx_hash }
  * We need to fetch full transaction details to get memo/comment
