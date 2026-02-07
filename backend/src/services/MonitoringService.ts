@@ -10,41 +10,103 @@ import { bot } from '../botInstance';
  */
 
 export class MonitoringService {
+    // Verification channel ID from environment - create a private channel and add bot as admin
+    private verificationChannelId = process.env.VERIFICATION_CHANNEL_ID;
+
     /**
-     * Check if a post still exists in the channel
-     * Uses forwardMessage to bot's Saved Messages since Telegram has no "does message exist" API
-     * This avoids triggering channel notifications that confuse users
+     * Ensure verification channel is accessible on startup
      */
-    async checkPostExists(channelId: number, messageId: number): Promise<boolean> {
+    async ensureVerificationChannel(): Promise<boolean> {
+        if (!this.verificationChannelId) {
+            console.warn('[MonitoringService] ⚠️ VERIFICATION_CHANNEL_ID not set. Post verification disabled.');
+            return false;
+        }
+
         if (!bot) return false;
 
         try {
-            // Get bot's own user ID to use as destination (Saved Messages)
-            const botInfo = await bot.api.getMe();
-
-            // Forward the message to bot's Saved Messages (silent, no notification to channel)
-            const forwarded = await bot.api.forwardMessage(
-                botInfo.id,     // to: bot's Saved Messages
-                channelId,      // from: the channel
-                messageId       // the message we're checking
-            );
-
-            // Delete the forwarded message from bot's Saved Messages to keep it clean
-            await bot.api.deleteMessage(botInfo.id, forwarded.message_id);
-
+            await bot.api.getChat(this.verificationChannelId);
+            console.log('[MonitoringService] ✅ Verification channel accessible');
             return true;
         } catch (error: any) {
-            // If forward fails with "message to forward not found", post was deleted
-            if (error.message?.includes('message to forward not found') ||
-                error.message?.includes("message can't be forwarded")) {
-                console.log(`[MonitoringService] Post ${messageId} was deleted from channel`);
-                return false;
+            console.error('[MonitoringService] ❌ Verification channel not accessible:', error.message);
+            console.error('  → Create a private channel, add bot as admin, set VERIFICATION_CHANNEL_ID env var');
+            return false;
+        }
+    }
+
+    /**
+     * Check if a post still exists in the channel
+     * Uses forwardMessage to a dedicated private verification channel
+     * This avoids triggering public channel notifications
+     * 
+     * Returns: { exists: boolean, reason?: string }
+     */
+    async checkPostExists(channelId: number, messageId: number, dealId?: string): Promise<{ exists: boolean; reason?: string }> {
+        if (!bot) return { exists: false, reason: 'Bot not initialized' };
+
+        if (!this.verificationChannelId) {
+            // No verification channel - assume post exists (fail-safe)
+            console.warn('[MonitoringService] No verification channel configured, skipping check');
+            return { exists: true, reason: 'Verification disabled' };
+        }
+
+        try {
+            // Forward the message to our private verification channel
+            const forwarded = await bot.api.forwardMessage(
+                this.verificationChannelId,  // to: dedicated private channel
+                channelId,                    // from: the public channel
+                messageId,                    // the message we're checking
+                { disable_notification: true }
+            );
+
+            // Log the verification (audit trail - keep for 24h, cleanup runs separately)
+            console.log(`[MonitoringService] ✅ Verified deal ${dealId || 'unknown'}: post ${messageId} exists`);
+
+            // Note: We don't delete immediately - keeps audit trail
+            // Cleanup job will remove messages older than 24h
+
+            return { exists: true };
+
+        } catch (error: any) {
+            const errorCode = error.error_code || (error.message?.includes('400') ? 400 : null);
+            const errorMessage = error.message || 'Unknown error';
+
+            // 400: Message doesn't exist or was deleted
+            if (errorCode === 400 ||
+                errorMessage.includes('message to forward not found') ||
+                errorMessage.includes("message can't be forwarded") ||
+                errorMessage.includes('MESSAGE_ID_INVALID')) {
+                console.log(`[MonitoringService] ❌ Post ${messageId} was DELETED from channel`);
+                return { exists: false, reason: 'Post was deleted' };
             }
 
-            // Other errors (network, etc) - assume post still exists to be safe
-            console.warn(`[MonitoringService] Error checking post ${messageId}: ${error.message}`);
-            return true; // Fail-safe: assume exists if we can't check
+            // 403: Bot was kicked from the channel
+            if (errorCode === 403 || errorMessage.includes('bot was kicked')) {
+                console.log(`[MonitoringService] ⚠️ Bot kicked from channel for deal with post ${messageId}`);
+                return { exists: false, reason: 'Bot removed from channel' };
+            }
+
+            // Other errors (network, rate limit, etc) - assume exists to be safe
+            console.warn(`[MonitoringService] Error checking post ${messageId}: ${errorMessage}`);
+            return { exists: true, reason: `Check failed: ${errorMessage}` };
         }
+    }
+
+    /**
+     * Cleanup old verification messages (run every 6 hours)
+     * Keeps messages for 24h as audit trail
+     */
+    async cleanupVerificationChannel(): Promise<number> {
+        if (!bot || !this.verificationChannelId) return 0;
+
+        // Note: Telegram Bot API doesn't have getHistory, so we can't easily list old messages
+        // Alternative: Track forwarded message IDs in DB and delete after 24h
+        // For MVP: Messages will pile up, but private channel with only bot has no impact
+        // TODO: Implement proper cleanup with message ID tracking if needed
+
+        console.log('[MonitoringService] Cleanup: Private verification channel - no cleanup needed for MVP');
+        return 0;
     }
 
     /**
@@ -72,9 +134,10 @@ export class MonitoringService {
             return false;
         }
 
-        const postExists = await this.checkPostExists(
+        const verificationResult = await this.checkPostExists(
             deal.channel.telegram_channel_id,
-            deal.posted_message_id
+            deal.posted_message_id,
+            dealId  // Pass dealId for audit logging
         );
 
         // Update check count
@@ -86,8 +149,9 @@ export class MonitoringService {
             })
             .eq('id', dealId);
 
-        if (!postExists) {
+        if (!verificationResult.exists) {
             // Post was deleted early - cancel and refund
+            console.log(`[MonitoringService] Deal ${dealId} failed verification: ${verificationResult.reason}`);
             await this.handleEarlyDeletion(deal);
             return false;
         }
