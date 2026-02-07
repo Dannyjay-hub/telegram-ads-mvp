@@ -330,7 +330,7 @@ export class CampaignService {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '📱 View in App', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }]
+                                [{ text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${deal.id}` }]
                             ]
                         }
                     }
@@ -351,7 +351,7 @@ export class CampaignService {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '📝 Create Draft', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }]
+                                [{ text: '📝 Create Draft', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${deal.id}` }]
                             ]
                         }
                     }
