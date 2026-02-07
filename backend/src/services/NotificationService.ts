@@ -5,10 +5,49 @@ import { bot } from '../botInstance';
  * 
  * All methods are fail-safe - they log errors but don't throw,
  * so main operations continue even if notifications fail.
+ * 
+ * DEDUPLICATION: All notifications are tracked to prevent duplicates
+ * within a 30-second window (prevents double-clicks, race conditions)
  */
 
 // Mini App URL - update this if bot username or app short name changes
 const MINI_APP_URL = 'https://t.me/DanielAdsMVP_bot/marketplace';
+
+// ========== NOTIFICATION DEDUPLICATION ==========
+// Prevents duplicate notifications within a time window
+
+// Cache of recently sent notifications: key -> timestamp
+const recentNotifications = new Map<string, number>();
+const DEDUP_WINDOW_MS = 30_000; // 30 seconds
+
+/**
+ * Check if a notification was recently sent (and mark as sent if not)
+ * Returns true if notification was already sent, false if it's new
+ * Export so other services can use this for deduplication
+ */
+export function isDuplicate(userId: number | string, notificationType: string, uniqueId?: string): boolean {
+    const key = `${userId}:${notificationType}:${uniqueId || ''}`;
+    const now = Date.now();
+
+    // Clean up old entries (older than dedup window)
+    for (const [k, timestamp] of recentNotifications.entries()) {
+        if (now - timestamp > DEDUP_WINDOW_MS) {
+            recentNotifications.delete(k);
+        }
+    }
+
+    // Check if this notification was recently sent
+    if (recentNotifications.has(key)) {
+        console.log(`[NotificationService] ⏹️ Duplicate notification blocked: ${key}`);
+        return true;
+    }
+
+    // Mark as sent
+    recentNotifications.set(key, now);
+    return false;
+}
+
+// ===============================================
 
 /**
  * Notify a user that they've been added as a PR manager for a channel
@@ -230,6 +269,11 @@ export async function notifyDealStatusChange(
     if (!bot) {
         console.warn('[NotificationService] Bot not configured, skipping deal status notification');
         return false;
+    }
+
+    // Check for duplicate notification
+    if (isDuplicate(recipientTelegramId, `deal_status_${newStatus}`, dealId)) {
+        return false; // Already sent this notification recently
     }
 
     const statusMessages: Record<string, { emoji: string; title: string; body: string }> = {
