@@ -285,14 +285,14 @@ export class CampaignService {
             return { success: false, error: 'Campaign full or insufficient escrow' };
         }
 
-        // Create deal (auto-approved for open campaigns)
+        // Create deal with draft_pending status (channel needs to draft post first)
         const deal = await dealRepository.create({
             advertiserId: campaign.advertiserId,
             channelId: channel.id,
             priceAmount: campaign.perChannelBudget,
             priceCurrency: campaign.currency,
             briefText: campaign.brief,
-            status: 'approved', // Auto-approved
+            status: 'draft_pending', // Requires channel owner to draft post
             campaignId: campaign.id
         });
 
@@ -302,7 +302,66 @@ export class CampaignService {
 
         console.log(`[CampaignService] Open campaign deal created: ${deal.id}`);
 
-        // TODO: Send notifications
+        // Send notifications
+        try {
+            const { bot } = await import('../botInstance');
+            const { supabase } = await import('../db');
+
+            // Get advertiser info
+            const advertiser = await userRepository.findById(campaign.advertiserId);
+
+            // Get channel owner info from channel_admins table
+            const { data: ownerData } = await supabase
+                .from('channel_admins')
+                .select('users(telegram_id, first_name)')
+                .eq('channel_id', channel.id)
+                .eq('is_owner', true)
+                .single();
+
+            // Notify advertiser: Channel joined their campaign
+            if (advertiser?.telegramId && bot) {
+                await bot.api.sendMessage(
+                    advertiser.telegramId,
+                    `✅ **New Channel Joined!**\n\n` +
+                    `**${channel.title}** has joined your campaign.\n` +
+                    `They will now draft a post based on your brief.\n\n` +
+                    `You'll be notified when the draft is ready for review.`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '📱 View in App', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }]
+                            ]
+                        }
+                    }
+                );
+                console.log(`[CampaignService] ✅ Notified advertiser ${advertiser.telegramId}`);
+            }
+
+            // Notify channel owner: Create draft post
+            const ownerTelegramId = (ownerData?.users as any)?.telegram_id;
+            if (ownerTelegramId && bot) {
+                await bot.api.sendMessage(
+                    ownerTelegramId,
+                    `📝 **Create Draft Post**\n\n` +
+                    `You've joined a campaign! Please draft a post based on the brief:\n\n` +
+                    `"${campaign.brief || 'No brief provided'}"\n\n` +
+                    `**Next step:** Open the app and create your draft post.`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '📝 Create Draft', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }]
+                            ]
+                        }
+                    }
+                );
+                console.log(`[CampaignService] ✅ Notified channel owner ${ownerTelegramId}`);
+            }
+        } catch (notifyError) {
+            console.error('[CampaignService] Failed to send notifications:', notifyError);
+            // Don't fail the apply - notifications are not critical
+        }
 
         return {
             success: true,
