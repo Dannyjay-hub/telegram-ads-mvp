@@ -68,6 +68,12 @@ function AppContent() {
         // Channel owner viewing a deal request - go to channel partnerships
         const dealId = startParam.replace('owner_deal_', '');
         navigate(`/channels/partnerships?deal=${dealId}`);
+      } else if (startParam.startsWith('schedule_')) {
+        // Scheduling/time proposal - check who the user is and route accordingly
+        // For now, route to partnerships as deals are managed there
+        const dealId = startParam.replace('schedule_', '');
+        // The partnerships page will detect the deal and show appropriate view
+        navigate(`/partnerships?deal=${dealId}`);
       } else if (startParam.startsWith('deal_')) {
         // Advertiser viewing their deal - go to partnerships
         const dealId = startParam.replace('deal_', '');

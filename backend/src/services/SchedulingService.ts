@@ -78,7 +78,7 @@ export class SchedulingService {
                                     parse_mode: 'Markdown',
                                     reply_markup: {
                                         inline_keyboard: [[
-                                            { text: '📱 View in App', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }
+                                            { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }
                                         ]]
                                     }
                                 }
@@ -117,7 +117,7 @@ export class SchedulingService {
                                     parse_mode: 'Markdown',
                                     reply_markup: {
                                         inline_keyboard: [[
-                                            { text: '📱 View in App', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }
+                                            { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${dealId}` }
                                         ]]
                                     }
                                 }
