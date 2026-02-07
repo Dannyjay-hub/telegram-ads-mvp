@@ -12,6 +12,11 @@ const channelRepository = new SupabaseChannelRepository();
 // Master hot wallet address for escrow payments (same as in DealService)
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || 'EQA...your-wallet...';
 
+// Simple in-memory deduplication cache to prevent duplicate draft creation
+// Key: `${advertiserId}:${title}`, Value: timestamp of last request
+const recentDraftRequests = new Map<string, number>();
+const DEDUP_WINDOW_MS = 5000; // 5 second window to prevent duplicates
+
 const campaigns = new Hono();
 
 // ============================================
@@ -98,6 +103,35 @@ campaigns.post('/draft', async (c) => {
         const user = await userRepository.findByTelegramId(parseInt(telegramId));
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
+        }
+
+        // Deduplication check - prevent duplicate drafts from double-clicks or retries
+        const dedupKey = `${user.id}:${body.title || 'Untitled'}`;
+        const lastRequest = recentDraftRequests.get(dedupKey);
+        const now = Date.now();
+
+        if (lastRequest && (now - lastRequest) < DEDUP_WINDOW_MS) {
+            console.log(`[Campaigns] Duplicate draft request detected for ${dedupKey}, ignoring`);
+            // Return success but don't create duplicate - fetch existing draft instead
+            const existingDrafts = await campaignService.getAdvertiserCampaigns(user.id);
+            const matchingDraft = existingDrafts.find(
+                c => c.status === 'draft' && c.title === (body.title || 'Untitled Draft')
+            );
+            if (matchingDraft) {
+                return c.json({ campaign: matchingDraft, message: 'Draft saved (dedup)' }, 201);
+            }
+        }
+
+        // Record this request
+        recentDraftRequests.set(dedupKey, now);
+
+        // Clean up old entries periodically
+        if (recentDraftRequests.size > 100) {
+            for (const [key, timestamp] of recentDraftRequests.entries()) {
+                if (now - timestamp > DEDUP_WINDOW_MS * 2) {
+                    recentDraftRequests.delete(key);
+                }
+            }
         }
 
         // Draft doesn't need payment memo - that's generated when publishing

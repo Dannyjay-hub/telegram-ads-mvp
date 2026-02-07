@@ -42,7 +42,6 @@ interface CampaignFormData {
     maxSubscribers: string
     requiredLanguages: string[]
     requiredCategories: string[]
-    minAvgViews: string
     // Type
     campaignType: 'open' | 'closed'
     expiresInDays: string
@@ -59,7 +58,6 @@ const DEFAULT_FORM_DATA: CampaignFormData = {
     maxSubscribers: '',
     requiredLanguages: [],
     requiredCategories: [],
-    minAvgViews: '',
     campaignType: 'open',
     expiresInDays: '7'
 }
@@ -98,7 +96,6 @@ export function CampaignWizard() {
                 requiredCategories: resumeDraft.requiredCategories || [],
                 minSubscribers: resumeDraft.minSubscribers ? String(resumeDraft.minSubscribers) : '',
                 maxSubscribers: resumeDraft.maxSubscribers ? String(resumeDraft.maxSubscribers) : '',
-                minAvgViews: resumeDraft.minAvgViews ? String(resumeDraft.minAvgViews) : '',
                 campaignType: resumeDraft.campaignType || 'open',
                 expiresInDays: resumeDraft.expiresInDays ? String(resumeDraft.expiresInDays) : '7'
             })
@@ -207,7 +204,6 @@ export function CampaignWizard() {
                 maxSubscribers: formData.maxSubscribers ? Math.max(0, parseInt(formData.maxSubscribers)) : null,
                 requiredLanguages: formData.requiredLanguages.length > 0 ? formData.requiredLanguages : null,
                 requiredCategories: formData.requiredCategories.length > 0 ? formData.requiredCategories : null,
-                minAvgViews: formData.minAvgViews ? Math.max(0, parseInt(formData.minAvgViews)) : 0,
                 expiresAt
             }
 
@@ -288,7 +284,6 @@ export function CampaignWizard() {
                         maxSubscribers: formData.maxSubscribers ? parseInt(formData.maxSubscribers) : null,
                         requiredLanguages: formData.requiredLanguages,
                         requiredCategories: formData.requiredCategories,
-                        minAvgViews: parseInt(formData.minAvgViews) || 0,
                         draftStep: step,
                         expiresInDays: parseInt(formData.expiresInDays) || 7
                     })
@@ -307,7 +302,7 @@ export function CampaignWizard() {
 
                 // Success! Clear draft and navigate
                 localStorage.removeItem(DRAFT_KEY)
-                navigate('/advertiser', { state: { draftSaved: true } })
+                navigate('/campaigns', { state: { draftSaved: true } })
                 setSavingDraft(false)
                 return // Exit function on success
 
@@ -547,17 +542,6 @@ export function CampaignWizard() {
                                 Min subscribers must be less than or equal to max subscribers
                             </div>
                         )}
-
-                        <div>
-                            <label className="text-sm font-medium mb-1.5 block">Min Avg Views</label>
-                            <Input
-                                type="number"
-                                min="0"
-                                placeholder="e.g., 5000"
-                                value={formData.minAvgViews}
-                                onChange={e => handleNumericInput(e.target.value, 'minAvgViews')}
-                            />
-                        </div>
 
                         <div>
                             <label className="text-sm font-medium mb-2 flex items-center gap-2">

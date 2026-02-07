@@ -157,9 +157,35 @@ export class CampaignService {
             };
         }
 
-        // Check language
+        // Check language (normalize to handle 'en' vs 'English' mismatch)
         if (campaign.requiredLanguages && campaign.requiredLanguages.length > 0) {
-            if (!channel.language || !campaign.requiredLanguages.includes(channel.language)) {
+            const normalizeLanguage = (lang: string): string => {
+                const lower = lang.toLowerCase().trim();
+                const map: Record<string, string> = {
+                    'en': 'english', 'eng': 'english',
+                    'ru': 'russian', 'rus': 'russian',
+                    'es': 'spanish', 'spa': 'spanish',
+                    'pt': 'portuguese', 'por': 'portuguese',
+                    'zh': 'chinese', 'chi': 'chinese', 'cn': 'chinese',
+                    'ar': 'arabic', 'ara': 'arabic',
+                    'hi': 'hindi', 'hin': 'hindi',
+                    'fr': 'french', 'fra': 'french',
+                    'de': 'german', 'deu': 'german', 'ger': 'german',
+                    'ja': 'japanese', 'jpn': 'japanese', 'jp': 'japanese',
+                    'ko': 'korean', 'kor': 'korean', 'kr': 'korean',
+                    'id': 'indonesian', 'ind': 'indonesian',
+                    'tr': 'turkish', 'tur': 'turkish',
+                    'it': 'italian', 'ita': 'italian'
+                };
+                return map[lower] || lower;
+            };
+
+            const channelLang = normalizeLanguage(channel.language || '');
+            const meetsLanguage = campaign.requiredLanguages.some(
+                reqLang => normalizeLanguage(reqLang) === channelLang
+            );
+
+            if (!meetsLanguage) {
                 return {
                     eligible: false,
                     reason: `Language must be one of: ${campaign.requiredLanguages.join(', ')}`
