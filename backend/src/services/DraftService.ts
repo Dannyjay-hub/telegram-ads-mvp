@@ -85,8 +85,26 @@ export class DraftService {
 
     /**
      * Save draft to database (doesn't submit yet)
+     * Only allows saving if deal is in draft_pending or changes_requested status
      */
     async saveDraft(dealId: string, draft: DraftData): Promise<void> {
+        // First check if draft is still editable (hasn't been submitted by someone else)
+        const { data: currentDeal } = await supabase
+            .from('deals')
+            .select('status')
+            .eq('id', dealId)
+            .single();
+
+        if (!currentDeal) {
+            throw new Error('Deal not found');
+        }
+
+        // Only allow drafting if status allows it
+        const editableStatuses = ['draft_pending', 'changes_requested'];
+        if (!editableStatuses.includes(currentDeal.status)) {
+            throw new Error(`Draft already submitted for review. Current status: ${currentDeal.status}`);
+        }
+
         const { error } = await supabase
             .from('deals')
             .update({
@@ -96,7 +114,8 @@ export class DraftService {
                 draft_version: supabase.rpc ? undefined : 1, // Will increment in submit
                 updated_at: new Date().toISOString()
             })
-            .eq('id', dealId);
+            .eq('id', dealId)
+            .in('status', editableStatuses); // Only update if still in editable status
 
         if (error) {
             console.error('[DraftService] Error saving draft:', error);
@@ -108,10 +127,28 @@ export class DraftService {
 
     /**
      * Submit draft for advertiser review
+     * Only allows submitting if deal is in draft_pending or changes_requested status
      */
     async submitDraft(dealId: string): Promise<void> {
-        // First increment version and update status
-        const { error } = await supabase
+        // First check if draft can still be submitted (hasn't been submitted by someone else)
+        const { data: currentDeal } = await supabase
+            .from('deals')
+            .select('status')
+            .eq('id', dealId)
+            .single();
+
+        if (!currentDeal) {
+            throw new Error('Deal not found');
+        }
+
+        // Only allow submitting if status allows it
+        const submittableStatuses = ['draft_pending', 'changes_requested'];
+        if (!submittableStatuses.includes(currentDeal.status)) {
+            throw new Error(`Draft already submitted for review by another admin. Current status: ${currentDeal.status}`);
+        }
+
+        // Update status with condition to prevent race
+        const { error, count } = await supabase
             .from('deals')
             .update({
                 status: 'draft_submitted',
@@ -119,11 +156,18 @@ export class DraftService {
                 draft_feedback: null, // Clear previous feedback
                 status_updated_at: new Date().toISOString()
             })
-            .eq('id', dealId);
+            .eq('id', dealId)
+            .in('status', submittableStatuses as any) // Only update if still submittable
+            .select();
 
         if (error) {
             console.error('[DraftService] Error submitting draft:', error);
             throw error;
+        }
+
+        // If no rows were updated, someone else beat us to it
+        if (count === 0) {
+            throw new Error('Draft already submitted by another admin');
         }
 
         // Update status history
