@@ -25,11 +25,22 @@ export class SchedulingService {
         // Get deal + channel info first for notification
         const { data: deal } = await (supabase as any)
             .from('deals')
-            .select('channel_id')
+            .select('channel_id, agreed_post_time, status')
             .eq('id', dealId)
             .single();
 
-        const { error } = await (supabase as any)
+        // Check if time is already agreed - no more proposals allowed
+        if (deal?.agreed_post_time) {
+            throw new Error('Posting time already agreed. No more changes allowed.');
+        }
+
+        // Check if deal is in a valid status for scheduling
+        if (deal?.status === 'scheduled' || deal?.status === 'posted') {
+            throw new Error(`Cannot propose time. Deal is already ${deal.status}.`);
+        }
+
+        // Use optimistic locking - only update if agreed_post_time is still null
+        const { error, count } = await (supabase as any)
             .from('deals')
             .update({
                 proposed_post_time: proposedTime.toISOString(),
@@ -37,11 +48,18 @@ export class SchedulingService {
                 status: 'scheduling',
                 status_updated_at: new Date().toISOString()
             })
-            .eq('id', dealId);
+            .eq('id', dealId)
+            .is('agreed_post_time', null) // Only update if not already agreed
+            .select();
 
         if (error) {
             console.error('[SchedulingService] Error proposing time:', error);
             throw error;
+        }
+
+        // If no rows updated, time was agreed by someone else
+        if (count === 0) {
+            throw new Error('Posting time was already agreed by another admin.');
         }
 
         console.log(`[SchedulingService] Time proposed for deal ${dealId}: ${proposedTime}`);
@@ -146,7 +164,7 @@ export class SchedulingService {
         // Get current proposal
         const { data: deal, error: fetchError } = await (supabase as any)
             .from('deals')
-            .select('proposed_post_time, channel_id')
+            .select('proposed_post_time, channel_id, agreed_post_time, status')
             .eq('id', dealId)
             .single();
 
@@ -154,11 +172,21 @@ export class SchedulingService {
             throw new Error('No time proposal found');
         }
 
+        // Check if time is already agreed - no double accepts
+        if (deal.agreed_post_time) {
+            throw new Error('Posting time already accepted. Check the app for details.');
+        }
+
+        // Check if deal is in valid status
+        if (deal.status === 'scheduled' || deal.status === 'posted') {
+            throw new Error(`Deal is already ${deal.status}.`);
+        }
+
         const agreedTime = new Date(deal.proposed_post_time);
         const monitoringEnd = new Date(agreedTime.getTime() + 6 * 60 * 60 * 1000); // +6h (testing)
 
-        // Lock the time
-        const { error } = await (supabase as any)
+        // Lock the time - use optimistic locking
+        const { error, count } = await (supabase as any)
             .from('deals')
             .update({
                 agreed_post_time: agreedTime.toISOString(),
@@ -166,11 +194,18 @@ export class SchedulingService {
                 status: 'scheduled',
                 status_updated_at: new Date().toISOString()
             })
-            .eq('id', dealId);
+            .eq('id', dealId)
+            .is('agreed_post_time', null) // Only update if not already agreed
+            .select();
 
         if (error) {
             console.error('[SchedulingService] Error accepting time:', error);
             throw error;
+        }
+
+        // If no rows updated, someone else already accepted
+        if (count === 0) {
+            throw new Error('Posting time was already accepted by another admin.');
         }
 
         console.log(`[SchedulingService] Time accepted for deal ${dealId}: ${agreedTime}`);
