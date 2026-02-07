@@ -130,6 +130,85 @@ export class DraftService {
         await this.appendStatusHistory(dealId, 'draft_submitted');
 
         console.log(`[DraftService] Draft submitted for deal ${dealId}`);
+
+        // Send notifications to ALL stakeholders
+        try {
+            // Get deal with channel info
+            const { data: deal } = await supabase
+                .from('deals')
+                .select('channel_id, advertiser_id, draft_text')
+                .eq('id', dealId)
+                .single();
+
+            if (!deal) return;
+
+            // Get channel info
+            const { data: channel } = await supabase
+                .from('channels')
+                .select('title')
+                .eq('id', deal.channel_id)
+                .single();
+
+            // Get ALL channel admins (owner + PR managers)
+            const { data: admins } = await supabase
+                .from('channel_admins')
+                .select('users(telegram_id, first_name)')
+                .eq('channel_id', deal.channel_id);
+
+            // Get advertiser
+            const { data: advertiser } = await supabase
+                .from('users')
+                .select('telegram_id')
+                .eq('id', deal.advertiser_id)
+                .single();
+
+            // Notify advertiser: Draft is ready for review
+            if (advertiser?.telegram_id && bot) {
+                await bot.api.sendMessage(
+                    advertiser.telegram_id,
+                    `📝 **Draft Ready for Review**\n\n` +
+                    `**${channel?.title || 'Channel'}** has submitted a draft:\n\n` +
+                    `"${deal.draft_text?.substring(0, 200) || 'No text'}${deal.draft_text && deal.draft_text.length > 200 ? '...' : ''}"\n\n` +
+                    `Open the app to approve or request changes.`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '📱 Review Draft', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }]
+                            ]
+                        }
+                    }
+                );
+                console.log(`[DraftService] ✅ Notified advertiser ${advertiser.telegram_id}`);
+            }
+
+            // Notify ALL channel admins: Draft submitted for review
+            if (admins && admins.length > 0 && bot) {
+                for (const admin of admins) {
+                    const telegramId = (admin.users as any)?.telegram_id;
+                    if (!telegramId) continue;
+
+                    await bot.api.sendMessage(
+                        telegramId,
+                        `✅ **Draft Submitted**\n\n` +
+                        `Your draft for **${channel?.title || 'the channel'}** has been sent to the advertiser for review.\n\n` +
+                        `You'll be notified when they respond.`,
+                        {
+                            parse_mode: 'Markdown',
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{ text: '📱 View in App', url: 'https://t.me/DanielAdsMVP_bot/marketplace' }]
+                                ]
+                            }
+                        }
+                    );
+                    console.log(`[DraftService] ✅ Notified admin ${telegramId}`);
+                }
+            }
+        } catch (notifyError) {
+            console.error('[DraftService] Failed to send notifications:', notifyError);
+            // Don't fail the operation - notifications are not critical
+        }
     }
 
     /**
