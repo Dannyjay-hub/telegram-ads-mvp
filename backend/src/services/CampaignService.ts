@@ -39,8 +39,10 @@ export class CampaignService {
             throw new Error('Advertiser not found');
         }
 
-        // Validate budget and slots
-        if (data.totalBudget <= 0) {
+        // Validate budget and slots - only for publishing (drafts can have 0 budget)
+        // Drafts are identified by NOT having a paymentMemo (payment memo is set when submitting for payment)
+        const isDraft = !data.paymentMemo;
+        if (!isDraft && data.totalBudget <= 0) {
             throw new Error('Total budget must be greater than 0');
         }
 

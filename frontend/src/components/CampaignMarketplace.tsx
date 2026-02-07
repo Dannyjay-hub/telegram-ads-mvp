@@ -78,7 +78,7 @@ export function CampaignMarketplace() {
     const getTimeLeft = (expiresAt?: string) => {
         if (!expiresAt) return null
         const diff = new Date(expiresAt).getTime() - Date.now()
-        if (diff <= 0) return 'Ending soon'
+        if (diff <= 0) return 'Expired'
         const days = Math.floor(diff / (1000 * 60 * 60 * 24))
         if (days > 0) return `${days}d left`
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))

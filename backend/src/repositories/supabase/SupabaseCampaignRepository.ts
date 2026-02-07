@@ -207,8 +207,11 @@ export class SupabaseCampaignRepository {
 
     /**
      * Get active campaigns visible in marketplace (with advertiser info)
+     * Excludes expired campaigns even if status is still 'active'
      */
     async findActiveCampaigns(): Promise<(Campaign & { advertiser?: { firstName: string } })[]> {
+        const now = new Date().toISOString();
+
         const { data, error } = await supabase
             .from('campaigns')
             .select(`
@@ -221,7 +224,16 @@ export class SupabaseCampaignRepository {
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(`Failed to fetch active campaigns: ${error.message}`);
-        return (data || []).map(row => ({
+
+        // Filter out expired campaigns
+        const activeData = (data || []).filter(row => {
+            if (row.expires_at && new Date(row.expires_at) < new Date()) {
+                return false;
+            }
+            return true;
+        });
+
+        return activeData.map(row => ({
             ...this.mapRowToCampaign(row),
             advertiser: (row as any).users ? {
                 firstName: (row as any).users.first_name

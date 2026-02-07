@@ -140,7 +140,14 @@ export function CampaignsList() {
             ) : (
                 <div className="space-y-3">
                     {campaigns.map(campaign => {
-                        const statusConfig = STATUS_CONFIG[campaign.status] || STATUS_CONFIG.draft
+                        // Calculate effective status (account for expired campaigns still marked as 'active')
+                        let effectiveStatus = campaign.status
+                        if (campaign.status === 'active' && campaign.expiresAt) {
+                            if (new Date(campaign.expiresAt) < new Date()) {
+                                effectiveStatus = 'expired'
+                            }
+                        }
+                        const statusConfig = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.draft
                         const timeLeft = getTimeLeft(campaign.expiresAt)
 
                         return (

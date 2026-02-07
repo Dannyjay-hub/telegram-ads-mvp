@@ -87,20 +87,24 @@ export class SchedulingService {
                     }
                     console.log(`[SchedulingService] Notified channel admins of time proposal`);
                 } else {
-                    // Notify advertiser - need to get advertiser telegram_id
+                    // Notify advertiser - get advertiser_id directly from deal
                     const { data: dealDetails } = await (supabase as any)
                         .from('deals')
-                        .select('campaigns(advertiser_id)')
+                        .select('advertiser_id')
                         .eq('id', dealId)
                         .single();
 
-                    const advertiserId = dealDetails?.campaigns?.advertiser_id;
+                    const advertiserId = dealDetails?.advertiser_id;
+                    console.log(`[SchedulingService] Counter proposal - looking up advertiser ${advertiserId}`);
+
                     if (advertiserId) {
                         const { data: user } = await supabase
                             .from('users')
                             .select('telegram_id')
                             .eq('id', advertiserId)
                             .single();
+
+                        console.log(`[SchedulingService] Found advertiser user:`, user);
 
                         if (user?.telegram_id) {
                             await bot.api.sendMessage(
@@ -118,7 +122,12 @@ export class SchedulingService {
                                     }
                                 }
                             );
+                            console.log(`[SchedulingService] ✅ Sent counter notification to advertiser ${user.telegram_id}`);
+                        } else {
+                            console.warn(`[SchedulingService] Advertiser has no telegram_id`);
                         }
+                    } else {
+                        console.warn(`[SchedulingService] Deal has no advertiser_id`);
                     }
                     console.log(`[SchedulingService] Notified advertiser of counter proposal`);
                 }

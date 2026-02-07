@@ -127,7 +127,7 @@ export class MonitoringService {
     private async releaseFunds(deal: any): Promise<void> {
         console.log(`[MonitoringService] ✅ Releasing funds for deal ${deal.id}`);
 
-        // Update deal status
+        // Update deal status first
         await (supabase as any)
             .from('deals')
             .update({
@@ -136,8 +136,56 @@ export class MonitoringService {
             })
             .eq('id', deal.id);
 
-        // TODO: Actually transfer funds from escrow to channel owner wallet
-        // For MVP, we mark it and handle payout separately
+        // Fetch full deal info for payout including amount and currency
+        const { data: fullDeal, error: dealError } = await (supabase as any)
+            .from('deals')
+            .select(`
+                id, amount, currency, channel_id, channel_owner_wallet
+            `)
+            .eq('id', deal.id)
+            .single();
+
+        if (dealError || !fullDeal) {
+            console.error(`[MonitoringService] Could not fetch deal for payout:`, dealError);
+            return;
+        }
+
+        // Try to get wallet: first from deal, then from channel owner's TonConnect
+        let ownerWalletAddress = fullDeal.channel_owner_wallet;
+
+        if (!ownerWalletAddress) {
+            // Fallback: get from channel owner's connected wallet
+            const { data: ownerData } = await (supabase as any)
+                .from('channel_admins')
+                .select('users(ton_wallet_address)')
+                .eq('channel_id', fullDeal.channel_id)
+                .eq('is_owner', true)
+                .single();
+
+            ownerWalletAddress = ownerData?.users?.ton_wallet_address;
+        }
+
+        if (ownerWalletAddress && fullDeal.amount > 0) {
+            // Import the payout service dynamically to avoid circular deps
+            const { tonPayoutService } = await import('./TonPayoutService');
+
+            console.log(`[MonitoringService] Queueing payout: ${fullDeal.amount} ${fullDeal.currency} to ${ownerWalletAddress}`);
+
+            try {
+                await tonPayoutService.queuePayout(
+                    deal.id,
+                    ownerWalletAddress,
+                    fullDeal.amount,
+                    fullDeal.currency || 'TON'
+                );
+                console.log(`[MonitoringService] Payout queued successfully`);
+            } catch (payoutError) {
+                console.error(`[MonitoringService] Failed to queue payout:`, payoutError);
+                // Don't fail the release - payout can be retried
+            }
+        } else {
+            console.warn(`[MonitoringService] No wallet address or 0 amount for deal ${deal.id}`);
+        }
 
         // Notify both parties
         if (bot) {
