@@ -153,14 +153,17 @@ export function ChannelViewPage() {
                     const adminRes = await fetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() })
                     if (adminRes.ok) {
                         const adminData = await adminRes.json()
+                        // Use String comparison to handle number vs string type mismatch
+                        const userTelegramIdStr = String(user.telegramId)
                         // Check if user is the owner
-                        const userIsOwner = adminData.owner?.telegram_id === user.telegramId
+                        const userIsOwner = String(adminData.owner?.telegram_id) === userTelegramIdStr
                         // Check if user is a PR manager
                         const userIsPRManager = (adminData.pr_managers || []).some(
-                            (pm: any) => pm.telegram_id === user.telegramId
+                            (pm: any) => String(pm.telegram_id) === userTelegramIdStr
                         )
-                        // Owner OR PR Manager can access settings
+                        // Owner OR PR Manager should NOT see the buy flow
                         setIsOwner(userIsOwner || userIsPRManager)
+                        console.log('[ChannelViewPage] Owner check:', { userTelegramIdStr, ownerTelegramId: adminData.owner?.telegram_id, userIsOwner, userIsPRManager })
                     }
                 } catch {
                     setIsOwner(false)

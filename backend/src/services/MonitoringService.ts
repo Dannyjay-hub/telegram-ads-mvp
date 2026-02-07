@@ -12,21 +12,38 @@ import { bot } from '../botInstance';
 export class MonitoringService {
     /**
      * Check if a post still exists in the channel
-     * Uses the copyMessage hack since Telegram has no "does message exist" API
+     * Uses forwardMessage to bot's Saved Messages since Telegram has no "does message exist" API
+     * This avoids triggering channel notifications that confuse users
      */
     async checkPostExists(channelId: number, messageId: number): Promise<boolean> {
         if (!bot) return false;
 
         try {
-            // Try to copy the message to itself
-            const copy = await bot.api.copyMessage(channelId, channelId, messageId);
-            // If successful, delete the copy immediately
-            await bot.api.deleteMessage(channelId, copy.message_id);
+            // Get bot's own user ID to use as destination (Saved Messages)
+            const botInfo = await bot.api.getMe();
+
+            // Forward the message to bot's Saved Messages (silent, no notification to channel)
+            const forwarded = await bot.api.forwardMessage(
+                botInfo.id,     // to: bot's Saved Messages
+                channelId,      // from: the channel
+                messageId       // the message we're checking
+            );
+
+            // Delete the forwarded message from bot's Saved Messages to keep it clean
+            await bot.api.deleteMessage(botInfo.id, forwarded.message_id);
+
             return true;
         } catch (error: any) {
-            // If copy fails, the original message was deleted
-            console.log(`[MonitoringService] Post ${messageId} no longer exists: ${error.message}`);
-            return false;
+            // If forward fails with "message to forward not found", post was deleted
+            if (error.message?.includes('message to forward not found') ||
+                error.message?.includes("message can't be forwarded")) {
+                console.log(`[MonitoringService] Post ${messageId} was deleted from channel`);
+                return false;
+            }
+
+            // Other errors (network, etc) - assume post still exists to be safe
+            console.warn(`[MonitoringService] Error checking post ${messageId}: ${error.message}`);
+            return true; // Fail-safe: assume exists if we can't check
         }
     }
 
