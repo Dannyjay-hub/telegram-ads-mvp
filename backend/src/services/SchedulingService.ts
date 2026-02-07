@@ -55,7 +55,8 @@ export class SchedulingService {
                     day: 'numeric',
                     hour: 'numeric',
                     minute: '2-digit',
-                    hour12: true
+                    hour12: true,
+                    timeZone: 'Africa/Lagos' // Use user's timezone (UTC+1) instead of server UTC
                 });
 
                 if (proposedBy === 'advertiser') {
