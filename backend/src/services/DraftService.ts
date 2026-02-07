@@ -257,19 +257,43 @@ export class DraftService {
 
     /**
      * Advertiser approves the draft
+     * Only allows if status is draft_submitted
      */
     async approveDraft(dealId: string): Promise<void> {
-        const { error } = await supabase
+        // First check if we can approve (only if draft is submitted)
+        const { data: currentDeal } = await supabase
+            .from('deals')
+            .select('status')
+            .eq('id', dealId)
+            .single();
+
+        if (!currentDeal) {
+            throw new Error('Deal not found');
+        }
+
+        // Only allow approving if draft was submitted
+        if (currentDeal.status !== 'draft_submitted') {
+            throw new Error(`Cannot approve draft. Current status: ${currentDeal.status}`);
+        }
+
+        const { error, count } = await supabase
             .from('deals')
             .update({
                 status: 'scheduling',
                 status_updated_at: new Date().toISOString()
             })
-            .eq('id', dealId);
+            .eq('id', dealId)
+            .eq('status', 'draft_submitted') // Only update if still draft_submitted
+            .select();
 
         if (error) {
             console.error('[DraftService] Error approving draft:', error);
             throw error;
+        }
+
+        // If no rows were updated, status already changed
+        if (count === 0) {
+            throw new Error('Draft already approved or status changed');
         }
 
         await this.appendStatusHistory(dealId, 'approved');
@@ -280,20 +304,44 @@ export class DraftService {
 
     /**
      * Advertiser requests changes to the draft
+     * Only allows if status is draft_submitted
      */
     async requestChanges(dealId: string, feedback: string): Promise<void> {
-        const { error } = await supabase
+        // First check if we can request changes (only if draft is submitted)
+        const { data: currentDeal } = await supabase
+            .from('deals')
+            .select('status')
+            .eq('id', dealId)
+            .single();
+
+        if (!currentDeal) {
+            throw new Error('Deal not found');
+        }
+
+        // Only allow requesting changes if draft was submitted
+        if (currentDeal.status !== 'draft_submitted') {
+            throw new Error(`Cannot request changes. Current status: ${currentDeal.status}`);
+        }
+
+        const { error, count } = await supabase
             .from('deals')
             .update({
                 status: 'changes_requested',
                 draft_feedback: feedback,
                 status_updated_at: new Date().toISOString()
             })
-            .eq('id', dealId);
+            .eq('id', dealId)
+            .eq('status', 'draft_submitted') // Only update if still draft_submitted
+            .select();
 
         if (error) {
             console.error('[DraftService] Error requesting changes:', error);
             throw error;
+        }
+
+        // If no rows were updated, status already changed
+        if (count === 0) {
+            throw new Error('Changes already requested or draft status changed');
         }
 
         await this.appendStatusHistory(dealId, 'changes_requested');
