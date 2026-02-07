@@ -283,11 +283,18 @@ export interface SchedulingStatus {
     agreedTime: string | null;
 }
 
-export async function proposePostTime(dealId: string, time: Date): Promise<{ success: boolean; proposedBy: string }> {
+export async function proposePostTime(
+    dealId: string,
+    time: Date,
+    actingAs: 'advertiser' | 'channel_owner'
+): Promise<{ success: boolean; proposedBy: string }> {
     const response = await fetch(`${API_URL}/deals/${dealId}/propose-time`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ proposedTime: time.toISOString() })
+        body: JSON.stringify({
+            proposedTime: time.toISOString(),
+            actingAs // Explicit role to handle dual-role users
+        })
     });
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));

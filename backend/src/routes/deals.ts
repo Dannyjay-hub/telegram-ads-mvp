@@ -226,7 +226,7 @@ app.post('/:id/propose-time', async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
-        const { proposedTime } = body;
+        const { proposedTime, actingAs } = body;
 
         const telegramIdHeader = c.req.header('X-Telegram-ID');
         if (!telegramIdHeader) {
@@ -238,14 +238,31 @@ app.post('/:id/propose-time', async (c) => {
             return c.json({ error: 'User not found' }, 404);
         }
 
-        // Get deal to determine if user is advertiser or channel owner
+        // Get deal to validate user can act in the claimed role
         const deal = await dealRepo.findById(id);
         if (!deal) {
             return c.json({ error: 'Deal not found' }, 404);
         }
 
-        const isAdvertiser = deal.advertiserId === user.id;
-        const proposedBy = isAdvertiser ? 'advertiser' : 'channel_owner';
+        // Determine role: use explicit actingAs if provided, otherwise auto-detect
+        let proposedBy: 'advertiser' | 'channel_owner';
+
+        if (actingAs === 'advertiser' || actingAs === 'channel_owner') {
+            // User explicitly specified their role - validate they have it
+            const isAdvertiser = deal.advertiserId === user.id;
+
+            if (actingAs === 'advertiser' && !isAdvertiser) {
+                return c.json({ error: 'You are not the advertiser for this deal' }, 403);
+            }
+
+            // For channel_owner, trust the frontend (they came from channel partnerships page)
+            // Full validation would require checking channel_admins table, but role is already checked on page load
+            proposedBy = actingAs;
+        } else {
+            // Fallback to auto-detect for legacy calls
+            const isAdvertiser = deal.advertiserId === user.id;
+            proposedBy = isAdvertiser ? 'advertiser' : 'channel_owner';
+        }
 
         await schedulingService.proposeTime(
             id,

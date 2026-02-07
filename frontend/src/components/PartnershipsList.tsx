@@ -174,7 +174,7 @@ export function PartnershipsList() {
     // Handle time proposal
     const handleProposeTime = async (time: Date) => {
         if (!timePickerDealId) return
-        await proposePostTime(timePickerDealId, time)
+        await proposePostTime(timePickerDealId, time, 'advertiser')
         await loadDeals()
     }
 
