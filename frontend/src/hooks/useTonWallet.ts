@@ -1,7 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTonConnectUI, useTonAddress, useIsConnectionRestored } from '@tonconnect/ui-react';
 import { type JettonToken, isNativeToken, toSmallestUnit } from '@/lib/jettons';
 import { beginCell, Address } from '@ton/core';
+import { API_URL } from '@/lib/api';
+import { useTelegram } from '@/providers/TelegramProvider';
 
 /**
  * Hook for TON wallet connection and transactions
@@ -13,9 +15,40 @@ export function useTonWallet() {
     const userFriendlyAddress = useTonAddress();
     const rawAddress = useTonAddress(false);
     const connectionRestored = useIsConnectionRestored();
+    const { user } = useTelegram();
+    const lastSyncedAddress = useRef<string | null>(null);
 
     const isConnected = !!userFriendlyAddress && connectionRestored;
     const isLoading = !connectionRestored;
+
+    // Sync wallet address to backend when connected
+    // This enables payouts to channel owners
+    useEffect(() => {
+        if (!isConnected || !userFriendlyAddress || !user?.telegramId) return;
+        if (lastSyncedAddress.current === userFriendlyAddress) return; // Already synced
+
+        const syncWallet = async () => {
+            try {
+                const response = await fetch(`${API_URL}/auth/wallet`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Id': String(user.telegramId)
+                    },
+                    body: JSON.stringify({ walletAddress: userFriendlyAddress })
+                });
+
+                if (response.ok) {
+                    lastSyncedAddress.current = userFriendlyAddress;
+                    console.log('[TonWallet] ✅ Wallet synced to backend');
+                }
+            } catch (error) {
+                console.error('[TonWallet] Failed to sync wallet:', error);
+            }
+        };
+
+        syncWallet();
+    }, [isConnected, userFriendlyAddress, user?.telegramId]);
 
     /**
      * Open wallet connection modal
