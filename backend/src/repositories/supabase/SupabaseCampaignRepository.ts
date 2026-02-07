@@ -38,7 +38,8 @@ export class SupabaseCampaignRepository {
             escrowWalletAddress: row.escrow_wallet_address,
             escrowDeposited: parseFloat(row.escrow_deposited || 0),
             escrowAllocated: parseFloat(row.escrow_allocated || 0),
-            escrowAvailable: parseFloat(row.escrow_available || 0),
+            // Compute available from deposited - allocated (don't rely on DB column)
+            escrowAvailable: parseFloat(row.escrow_deposited || 0) - parseFloat(row.escrow_allocated || 0),
             escrowFunded: row.escrow_funded,
             fundedAt: row.funded_at ? new Date(row.funded_at) : undefined,
             // Draft
