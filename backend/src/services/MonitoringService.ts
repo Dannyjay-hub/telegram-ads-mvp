@@ -139,14 +139,18 @@ export class MonitoringService {
      * @returns Array of ISO timestamp strings
      */
     generateRandomCheckTimes(postedAt: Date, monitoringDurationHours: number): string[] {
-        // Determine number of checks based on duration
-        let numRandomChecks: number;
-        if (monitoringDurationHours <= 6) {
-            numRandomChecks = 3;  // Testing: 3 random checks
-        } else {
-            // Production: 6-10 random checks (random within range for extra unpredictability)
-            numRandomChecks = 6 + Math.floor(Math.random() * 5);  // 6-10
-        }
+        // Scale checks based on duration: roughly 1 check per 3 hours
+        // With random variance (±1) for unpredictability
+        // Minimum 3 checks for any duration
+        const baseChecks = Math.max(3, Math.floor(monitoringDurationHours / 3));
+        const variance = Math.floor(Math.random() * 3) - 1;  // -1, 0, or +1
+        const numRandomChecks = Math.max(3, baseChecks + variance);
+
+        // Examples:
+        // 6h  → base 2, min 3 → 3 checks
+        // 12h → base 4 ± 1 → 3-5 checks  
+        // 20h → base 6 ± 1 → 5-7 checks
+        // 24h → base 8 ± 1 → 7-9 checks
 
         const startTime = postedAt.getTime();
         const endTime = startTime + (monitoringDurationHours * 60 * 60 * 1000);
@@ -475,7 +479,7 @@ export class MonitoringService {
      * Get monitoring duration from environment (default 6h for testing, 24h for production)
      */
     getMonitoringDurationHours(): number {
-        const hours = parseInt(process.env.MONITORING_DURATION_HOURS || '6', 10);
-        return isNaN(hours) ? 6 : hours;
+        const hours = parseInt(process.env.MONITORING_DURATION_HOURS || '24', 10);
+        return isNaN(hours) ? 24 : hours;
     }
 }
