@@ -202,6 +202,8 @@ function AppContent() {
 
 export default function App() {
   return (
+    // restoreConnection=false prevents 404 errors when TonConnect's stored session expires  
+    // Users will need to reconnect wallet on each session, but this is more reliable
     <TonConnectUIProvider manifestUrl={MANIFEST_URL}>
       <BrowserRouter>
         <TelegramProvider>
