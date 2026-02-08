@@ -4,9 +4,15 @@ import { bot } from '../botInstance';
 /**
  * MonitoringService - Monitors posted content for 24 hours
  * 
- * Checks at 1h, 6h, 12h, 24h intervals to verify post still exists.
+ * SECURITY: Uses RANDOM check times to prevent timing attacks.
+ * Instead of predictable 1h, 6h, 12h, 24h checks, generates random
+ * check times within the monitoring period.
+ * 
+ * - 24h production: 6-10 random checks + final check at end
+ * - 6h testing: 3 random checks + final check at end
+ * 
  * If deleted early, deal is cancelled and funds refunded.
- * If 24h passes, funds are released to channel owner.
+ * If monitoring period passes, funds are released to channel owner.
  */
 
 export class MonitoringService {
@@ -45,52 +51,156 @@ export class MonitoringService {
     async checkPostExists(channelId: number, messageId: number, dealId?: string): Promise<{ exists: boolean; reason?: string }> {
         if (!bot) return { exists: false, reason: 'Bot not initialized' };
 
-        if (!this.verificationChannelId) {
-            // No verification channel - assume post exists (fail-safe)
-            console.warn('[MonitoringService] No verification channel configured, skipping check');
-            return { exists: true, reason: 'Verification disabled' };
+        // Try verification channel first, fallback to copyMessage if not configured
+        if (this.verificationChannelId) {
+            return this.checkPostExistsViaVerificationChannel(channelId, messageId, dealId);
+        } else {
+            console.warn('[MonitoringService] No verification channel - using copyMessage fallback (may cause phantom notifications)');
+            return this.checkPostExistsViaCopyMessage(channelId, messageId, dealId);
         }
+    }
 
+    /**
+     * Primary verification method: forward to private verification channel
+     */
+    private async checkPostExistsViaVerificationChannel(
+        channelId: number,
+        messageId: number,
+        dealId?: string
+    ): Promise<{ exists: boolean; reason?: string }> {
         try {
-            // Forward the message to our private verification channel
-            const forwarded = await bot.api.forwardMessage(
-                this.verificationChannelId,  // to: dedicated private channel
-                channelId,                    // from: the public channel
-                messageId,                    // the message we're checking
+            await bot!.api.forwardMessage(
+                this.verificationChannelId!,
+                channelId,
+                messageId,
                 { disable_notification: true }
             );
-
-            // Log the verification (audit trail - keep for 24h, cleanup runs separately)
             console.log(`[MonitoringService] ✅ Verified deal ${dealId || 'unknown'}: post ${messageId} exists`);
-
-            // Note: We don't delete immediately - keeps audit trail
-            // Cleanup job will remove messages older than 24h
-
             return { exists: true };
-
         } catch (error: any) {
-            const errorCode = error.error_code || (error.message?.includes('400') ? 400 : null);
-            const errorMessage = error.message || 'Unknown error';
-
-            // 400: Message doesn't exist or was deleted
-            if (errorCode === 400 ||
-                errorMessage.includes('message to forward not found') ||
-                errorMessage.includes("message can't be forwarded") ||
-                errorMessage.includes('MESSAGE_ID_INVALID')) {
-                console.log(`[MonitoringService] ❌ Post ${messageId} was DELETED from channel`);
-                return { exists: false, reason: 'Post was deleted' };
-            }
-
-            // 403: Bot was kicked from the channel
-            if (errorCode === 403 || errorMessage.includes('bot was kicked')) {
-                console.log(`[MonitoringService] ⚠️ Bot kicked from channel for deal with post ${messageId}`);
-                return { exists: false, reason: 'Bot removed from channel' };
-            }
-
-            // Other errors (network, rate limit, etc) - assume exists to be safe
-            console.warn(`[MonitoringService] Error checking post ${messageId}: ${errorMessage}`);
-            return { exists: true, reason: `Check failed: ${errorMessage}` };
+            return this.handleVerificationError(error, messageId);
         }
+    }
+
+    /**
+     * Fallback verification: copyMessage (causes phantom notifications but works)
+     * Used when VERIFICATION_CHANNEL_ID is not configured
+     */
+    private async checkPostExistsViaCopyMessage(
+        channelId: number,
+        messageId: number,
+        dealId?: string
+    ): Promise<{ exists: boolean; reason?: string }> {
+        try {
+            // Copy message to same channel then immediately delete
+            const copy = await bot!.api.copyMessage(channelId, channelId, messageId);
+            await bot!.api.deleteMessage(channelId, copy.message_id);
+            console.log(`[MonitoringService] ✅ Verified deal ${dealId || 'unknown'}: post ${messageId} exists (via copyMessage)`);
+            return { exists: true };
+        } catch (error: any) {
+            return this.handleVerificationError(error, messageId);
+        }
+    }
+
+    /**
+     * Handle verification errors - determine if post was deleted or other issue
+     */
+    private handleVerificationError(error: any, messageId: number): { exists: boolean; reason?: string } {
+        const errorCode = error.error_code || (error.message?.includes('400') ? 400 : null);
+        const errorMessage = error.message || 'Unknown error';
+
+        // 400: Message doesn't exist or was deleted
+        if (errorCode === 400 ||
+            errorMessage.includes('message to forward not found') ||
+            errorMessage.includes("message can't be forwarded") ||
+            errorMessage.includes('message to copy not found') ||
+            errorMessage.includes('MESSAGE_ID_INVALID')) {
+            console.log(`[MonitoringService] ❌ Post ${messageId} was DELETED from channel`);
+            return { exists: false, reason: 'Post was deleted' };
+        }
+
+        // 403: Bot was kicked from the channel
+        if (errorCode === 403 || errorMessage.includes('bot was kicked')) {
+            console.log(`[MonitoringService] ⚠️ Bot kicked from channel for deal with post ${messageId}`);
+            return { exists: false, reason: 'Bot removed from channel' };
+        }
+
+        // Other errors - assume exists to be safe
+        console.warn(`[MonitoringService] Error checking post ${messageId}: ${errorMessage}`);
+        return { exists: true, reason: `Check failed: ${errorMessage}` };
+    }
+
+    /**
+     * Generate random check times for a monitoring period
+     * SECURITY: Prevents timing attacks by making checks unpredictable
+     * 
+     * @param monitoringDurationHours - How long to monitor (6 for testing, 24 for production)
+     * @param numChecks - Number of random checks (3 for 6h, 6-10 for 24h)
+     * @returns Array of ISO timestamp strings
+     */
+    generateRandomCheckTimes(postedAt: Date, monitoringDurationHours: number): string[] {
+        // Determine number of checks based on duration
+        let numRandomChecks: number;
+        if (monitoringDurationHours <= 6) {
+            numRandomChecks = 3;  // Testing: 3 random checks
+        } else {
+            // Production: 6-10 random checks (random within range for extra unpredictability)
+            numRandomChecks = 6 + Math.floor(Math.random() * 5);  // 6-10
+        }
+
+        const startTime = postedAt.getTime();
+        const endTime = startTime + (monitoringDurationHours * 60 * 60 * 1000);
+
+        // Generate random times, leaving buffer at start (15 min) and before end (30 min)
+        const minBuffer = 15 * 60 * 1000;  // 15 min after post
+        const maxBuffer = 30 * 60 * 1000;  // 30 min before end (for final check)
+        const randomWindow = endTime - startTime - minBuffer - maxBuffer;
+
+        const checkTimes: number[] = [];
+
+        for (let i = 0; i < numRandomChecks; i++) {
+            // Generate random time within window
+            const randomOffset = Math.floor(Math.random() * randomWindow);
+            const checkTime = startTime + minBuffer + randomOffset;
+            checkTimes.push(checkTime);
+        }
+
+        // Sort and remove duplicates (within 5 min of each other)
+        checkTimes.sort((a, b) => a - b);
+        const uniqueCheckTimes: number[] = [];
+        for (const time of checkTimes) {
+            if (uniqueCheckTimes.length === 0 ||
+                time - uniqueCheckTimes[uniqueCheckTimes.length - 1] > 5 * 60 * 1000) {
+                uniqueCheckTimes.push(time);
+            }
+        }
+
+        // Always add final check at monitoring end
+        uniqueCheckTimes.push(endTime);
+
+        return uniqueCheckTimes.map(t => new Date(t).toISOString());
+    }
+
+    /**
+     * Schedule random checks for a deal when it enters 'posted' status
+     * Call this when posting content to the channel
+     */
+    async scheduleChecksForDeal(dealId: string, postedAt: Date, monitoringDurationHours: number = 6): Promise<void> {
+        const checkTimes = this.generateRandomCheckTimes(postedAt, monitoringDurationHours);
+        const scheduledChecks = checkTimes.map(time => ({ time, completed: false }));
+
+        const nextCheckAt = checkTimes.length > 0 ? checkTimes[0] : null;
+
+        await (supabase as any)
+            .from('deals')
+            .update({
+                scheduled_checks: scheduledChecks,
+                next_check_at: nextCheckAt,
+                monitoring_end_at: new Date(postedAt.getTime() + monitoringDurationHours * 60 * 60 * 1000).toISOString()
+            })
+            .eq('id', dealId);
+
+        console.log(`[MonitoringService] Scheduled ${checkTimes.length} random checks for deal ${dealId}`);
     }
 
     /**
@@ -302,43 +412,70 @@ export class MonitoringService {
     }
 
     /**
-     * Process all deals that need monitoring
-     * Called by background job
+     * Process all deals that need monitoring (using random scheduled checks)
+     * Called by background job - runs every minute
      */
     async processMonitoringDeals(): Promise<void> {
+        const now = new Date().toISOString();
+
+        // Find deals where next_check_at has passed
         const { data: deals, error } = await (supabase as any)
             .from('deals')
-            .select('id')
-            .eq('status', 'posted');
+            .select('id, scheduled_checks, next_check_at')
+            .eq('status', 'posted')
+            .lte('next_check_at', now)
+            .not('next_check_at', 'is', null);
 
         if (error || !deals?.length) {
             return;
         }
 
-        console.log(`[MonitoringService] Checking ${deals.length} deals...`);
+        console.log(`[MonitoringService] ${deals.length} deals due for check...`);
 
         for (const deal of deals) {
-            await this.checkDeal(deal.id);
+            // Verify the post
+            const stillExists = await this.checkDeal(deal.id);
+
+            if (stillExists) {
+                // Update scheduled_checks and find next check time
+                await this.markCheckCompleted(deal.id, deal.scheduled_checks, now);
+            }
+            // If deleted, handleEarlyDeletion was already called in checkDeal
         }
     }
 
     /**
-     * Calculate next check time based on posted_at
-     * Checks at 1h, 6h, 12h, 24h
+     * Mark current check as completed and update next_check_at
      */
-    shouldCheckNow(postedAt: Date, lastCheckedAt: Date | null, checksCount: number): boolean {
-        const now = new Date();
-        const hoursSincePost = (now.getTime() - postedAt.getTime()) / (1000 * 60 * 60);
+    private async markCheckCompleted(dealId: string, scheduledChecks: any[], currentTime: string): Promise<void> {
+        if (!scheduledChecks || !Array.isArray(scheduledChecks)) return;
 
-        // Check intervals: 1h, 6h, 12h, 24h
-        const checkpoints = [1, 6, 12, 24];
-
-        for (let i = 0; i < checkpoints.length; i++) {
-            if (hoursSincePost >= checkpoints[i] && checksCount <= i) {
-                return true;
+        // Mark all checks up to current time as completed
+        const updatedChecks = scheduledChecks.map((check: any) => {
+            if (!check.completed && new Date(check.time) <= new Date(currentTime)) {
+                return { ...check, completed: true };
             }
-        }
+            return check;
+        });
 
-        return false;
+        // Find next incomplete check
+        const nextCheck = updatedChecks.find((check: any) => !check.completed);
+        const nextCheckAt = nextCheck ? nextCheck.time : null;
+
+        await (supabase as any)
+            .from('deals')
+            .update({
+                scheduled_checks: updatedChecks,
+                next_check_at: nextCheckAt
+            })
+            .eq('id', dealId);
+    }
+
+    /**
+     * Get monitoring duration from environment (default 6h for testing, 24h for production)
+     */
+    getMonitoringDurationHours(): number {
+        const hours = parseInt(process.env.MONITORING_DURATION_HOURS || '6', 10);
+        return isNaN(hours) ? 6 : hours;
     }
 }

@@ -1,6 +1,7 @@
 import { supabase } from '../db';
 import { bot } from '../botInstance';
 import { DraftService } from './DraftService';
+import { MonitoringService } from './MonitoringService';
 
 /**
  * AutoPostService - Posts approved content at scheduled times
@@ -10,9 +11,11 @@ import { DraftService } from './DraftService';
 
 export class AutoPostService {
     private draftService: DraftService;
+    private monitoringService: MonitoringService;
 
     constructor() {
         this.draftService = new DraftService();
+        this.monitoringService = new MonitoringService();
     }
 
     /**
@@ -63,16 +66,22 @@ export class AutoPostService {
             }
 
             // Update deal status
+            const postedAt = new Date();
+            const monitoringHours = this.monitoringService.getMonitoringDurationHours();
+
             await (supabase as any)
                 .from('deals')
                 .update({
                     status: 'posted',
                     posted_message_id: messageId,
-                    posted_at: new Date().toISOString(),
-                    monitoring_end_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-                    status_updated_at: new Date().toISOString()
+                    posted_at: postedAt.toISOString(),
+                    monitoring_end_at: new Date(postedAt.getTime() + monitoringHours * 60 * 60 * 1000).toISOString(),
+                    status_updated_at: postedAt.toISOString()
                 })
                 .eq('id', dealId);
+
+            // Schedule random monitoring checks (anti-gaming security)
+            await this.monitoringService.scheduleChecksForDeal(dealId, postedAt, monitoringHours);
 
             console.log(`[AutoPostService] ✅ Posted deal ${dealId}, message ID: ${messageId}`);
 
