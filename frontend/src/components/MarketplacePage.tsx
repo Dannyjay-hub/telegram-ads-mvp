@@ -26,12 +26,13 @@ export function MarketplacePage() {
         }
     }
 
-    // Filter channels by selected category
+    // Filter channels by selected category (handles both string and array category formats)
     const filteredChannels = selectedCategory === 'All'
         ? channels
-        : channels.filter(c =>
-            c.category?.toLowerCase() === selectedCategory.toLowerCase()
-        )
+        : channels.filter(c => {
+            const categories = Array.isArray(c.category) ? c.category : (c.category ? [c.category] : [])
+            return categories.some(cat => cat.toLowerCase() === selectedCategory.toLowerCase())
+        })
 
     return (
         <div className="pb-20">

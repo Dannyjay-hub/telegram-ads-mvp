@@ -61,9 +61,11 @@ export function ChannelViewPage() {
     // If user came from a deep link (no location.state), always go to dashboard
     const origin = (location.state as any)?.from || null
 
+    // Load channel when id changes OR when user becomes available
+    // The user dependency is critical for owner/PR manager detection via deep links
     useEffect(() => {
         if (id) loadChannel()
-    }, [id])
+    }, [id, user?.telegramId])  // Re-run when user becomes available
 
     // Payment countdown timer effect - uses timestamp for accurate time when app is backgrounded
     useEffect(() => {
@@ -550,15 +552,21 @@ export function ChannelViewPage() {
                     </h3>
                     {channel.category && (
                         <div className="mb-3">
-                            <span className="text-xs text-muted-foreground">Category: </span>
-                            <span className="bg-primary/20 text-primary text-xs px-2 py-1 rounded">{channel.category}</span>
+                            <span className="text-xs text-muted-foreground mr-2">Category: </span>
+                            <div className="inline-flex flex-wrap gap-1">
+                                {(Array.isArray(channel.category) ? channel.category : [channel.category]).map((cat: string) => (
+                                    <span key={cat} className="bg-primary/20 text-primary text-xs px-2 py-1 rounded">{cat}</span>
+                                ))}
+                            </div>
                         </div>
                     )}
                     {(channel as any).language && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <Globe className="w-4 h-4 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">Language: </span>
-                            <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">{(channel as any).language}</span>
+                            {(Array.isArray((channel as any).language) ? (channel as any).language : [(channel as any).language]).map((lang: string) => (
+                                <span key={lang} className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">{lang}</span>
+                            ))}
                         </div>
                     )}
                 </GlassCard>

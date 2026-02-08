@@ -34,10 +34,10 @@ export function ChannelWizard() {
     const [showPackageForm, setShowPackageForm] = useState(false)
     const [editingPackageIdx, setEditingPackageIdx] = useState<number | null>(null) // Track which package is being edited
 
-    // Listing Details
+    // Listing Details - now arrays for multi-select
     const [description, setDescription] = useState('')
-    const [category, setCategory] = useState('')
-    const [language, setLanguage] = useState('')
+    const [categories, setCategories] = useState<string[]>([])
+    const [languages, setLanguages] = useState<string[]>([])
 
     // Channel error state
     const [channelError, setChannelError] = useState<string | null>(null)
@@ -71,8 +71,9 @@ export function ChannelWizard() {
                 setChannelId(channel.telegramChannelId?.toString() || '')
                 setRateCard(channel.rateCard || [])
                 setDescription(channel.description || '')
-                setCategory(channel.category || '')
-                setLanguage(channel.language || '')
+                // Handle both legacy string and new array format
+                setCategories(Array.isArray(channel.category) ? channel.category : (channel.category ? [channel.category] : []))
+                setLanguages(Array.isArray(channel.language) ? channel.language : (channel.language ? [channel.language] : []))
                 setVerifiedStats({
                     title: channel.title,
                     username: channel.username?.replace('@', ''),
@@ -205,13 +206,13 @@ export function ChannelWizard() {
                     setLoading(false);
                     return;
                 }
-                if (!category) {
-                    showAlert('Please select a category');
+                if (categories.length === 0) {
+                    showAlert('Please select at least one category');
                     setLoading(false);
                     return;
                 }
-                if (!language) {
-                    showAlert('Please select a language');
+                if (languages.length === 0) {
+                    showAlert('Please select at least one language');
                     setLoading(false);
                     return;
                 }
@@ -291,8 +292,8 @@ export function ChannelWizard() {
                 title: verifiedStats?.title,
                 username: verifiedStats?.username,
                 description: description,
-                category: category,
-                language: language,
+                category: categories,  // Now array
+                language: languages,  // Now array
                 // base_price_amount removed - using rate card packages only
                 pricing: null,
                 rateCard: rateCard,
@@ -518,57 +519,54 @@ export function ChannelWizard() {
                                             onChange={e => setDescription(e.target.value)}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <Label>Category <span className="text-red-400">*</span></Label>
-                                            <select
-                                                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                                                value={category}
-                                                onChange={e => setCategory(e.target.value)}
-                                            >
-                                                <option value="">Select category...</option>
-                                                <option value="Crypto">Crypto</option>
-                                                <option value="Tech">Tech</option>
-                                                <option value="News">News</option>
-                                                <option value="Entertainment">Entertainment</option>
-                                                <option value="Education">Education</option>
-                                                <option value="Gaming">Gaming</option>
-                                                <option value="Finance">Finance</option>
-                                                <option value="Lifestyle">Lifestyle</option>
-                                                <option value="Business">Business</option>
-                                                <option value="Sports">Sports</option>
-                                                <option value="Music">Music</option>
-                                                <option value="Art">Art</option>
-                                                <option value="Food">Food</option>
-                                                <option value="Travel">Travel</option>
-                                                <option value="Health">Health</option>
-                                                <option value="Other">Other</option>
-                                            </select>
+                                            <Label>Categories <span className="text-red-400">*</span> <span className="text-xs text-muted-foreground">(select multiple)</span></Label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['Crypto', 'Tech', 'News', 'Entertainment', 'Education', 'Gaming', 'Finance', 'Lifestyle', 'Business', 'Sports', 'Music', 'Art', 'Food', 'Travel', 'Health', 'Other'].map(cat => (
+                                                    <button
+                                                        key={cat}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (categories.includes(cat)) {
+                                                                setCategories(categories.filter(c => c !== cat))
+                                                            } else {
+                                                                setCategories([...categories, cat])
+                                                            }
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${categories.includes(cat)
+                                                                ? 'bg-blue-600 text-white border-blue-500'
+                                                                : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
+                                                            } border`}
+                                                    >
+                                                        {cat}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Language <span className="text-red-400">*</span></Label>
-                                            <select
-                                                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                                                value={language}
-                                                onChange={e => setLanguage(e.target.value)}
-                                            >
-                                                <option value="">Select language...</option>
-                                                <option value="English">English</option>
-                                                <option value="Russian">Russian</option>
-                                                <option value="Spanish">Spanish</option>
-                                                <option value="Portuguese">Portuguese</option>
-                                                <option value="Chinese">Chinese</option>
-                                                <option value="Arabic">Arabic</option>
-                                                <option value="Hindi">Hindi</option>
-                                                <option value="French">French</option>
-                                                <option value="German">German</option>
-                                                <option value="Japanese">Japanese</option>
-                                                <option value="Korean">Korean</option>
-                                                <option value="Indonesian">Indonesian</option>
-                                                <option value="Turkish">Turkish</option>
-                                                <option value="Italian">Italian</option>
-                                                <option value="Other">Other</option>
-                                            </select>
+                                            <Label>Languages <span className="text-red-400">*</span> <span className="text-xs text-muted-foreground">(select multiple)</span></Label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['English', 'Russian', 'Spanish', 'Portuguese', 'Chinese', 'Arabic', 'Hindi', 'French', 'German', 'Japanese', 'Korean', 'Indonesian', 'Turkish', 'Italian', 'Other'].map(lang => (
+                                                    <button
+                                                        key={lang}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (languages.includes(lang)) {
+                                                                setLanguages(languages.filter(l => l !== lang))
+                                                            } else {
+                                                                setLanguages([...languages, lang])
+                                                            }
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${languages.includes(lang)
+                                                                ? 'bg-blue-600 text-white border-blue-500'
+                                                                : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
+                                                            } border`}
+                                                    >
+                                                        {lang}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
