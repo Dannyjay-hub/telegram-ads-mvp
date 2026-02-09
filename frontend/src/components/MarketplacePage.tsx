@@ -14,7 +14,6 @@ import {
     CATEGORY_OPTIONS,
     LANGUAGE_OPTIONS,
     SUBSCRIBER_PRESETS,
-    PRICE_PRESETS,
 } from '@/hooks/useMarketplaceFilters'
 
 export function MarketplacePage() {
@@ -31,8 +30,6 @@ export function MarketplacePage() {
         toggleCategory,
         toggleLanguage,
         setSubscribers,
-        setPrice,
-        setRating,
         setSortBy,
         clearFilters,
     } = useMarketplaceFilters(channels)
@@ -74,106 +71,58 @@ export function MarketplacePage() {
         label: p.label,
         value: p.value ? `${p.value[0]}-${p.value[1]}` : null
     }))
-    const priceOptions = PRICE_PRESETS.map(p => ({
-        label: p.label,
-        value: p.value ? `${p.value[0]}-${p.value[1]}` : null
-    }))
-    const ratingOptions = [
-        { label: 'Any', value: 'any' },
-        { label: '4+⭐', value: '4' },
-        { label: '3+⭐', value: '3' },
-        { label: 'Unrated', value: '0' },
-    ]
 
-    // Helper to compare subscriber/price preset
+    // Helper to compare subscriber preset
     const getSubscriberKey = () => {
         if (!filters.subscribers) return null
         return `${filters.subscribers[0]}-${filters.subscribers[1]}`
     }
-    const getPriceKey = () => {
-        if (!filters.price) return null
-        return `${filters.price[0]}-${filters.price[1]}`
-    }
 
     return (
-        <div>
-            {/* Sticky Search + Filters Section */}
-            <div className="sticky top-[120px] z-40 bg-[--tg-theme-bg-color] -mx-4 px-4 pb-3 pt-1">
-                {/* Search Bar */}
-                <div className="mb-2">
-                    <SearchInput
-                        value={filters.search}
-                        onChange={updateSearch}
-                        placeholder="Search channels..."
-                    />
-                </div>
+        <div className="pb-20">
+            {/* Search Bar */}
+            <div className="mb-3">
+                <SearchInput
+                    value={filters.search}
+                    onChange={updateSearch}
+                    placeholder="Search channels..."
+                />
+            </div>
 
-                {/* Filter Dropdowns Row */}
-                <div className="flex gap-2 flex-wrap">
-                    {/* Categories - Multi-select */}
-                    <MultiSelectFilter
-                        label="Categories"
-                        value={filters.categories}
-                        options={categoryOptions}
-                        onToggle={toggleCategory}
-                    />
+            {/* Filter Dropdowns Row - Horizontal scroll */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-4 px-4 scrollbar-none">
+                {/* Categories - Multi-select */}
+                <MultiSelectFilter
+                    label="Categories"
+                    value={filters.categories}
+                    options={categoryOptions}
+                    onToggle={toggleCategory}
+                />
 
-                    {/* Subscribers - Single select */}
-                    <SelectFilter
-                        label="Subscribers"
-                        value={getSubscriberKey()}
-                        options={subscriberOptions.filter(o => o.value !== null) as { label: string; value: string }[]}
-                        onChange={(val) => {
-                            if (!val) {
-                                setSubscribers(null)
-                            } else {
-                                const preset = SUBSCRIBER_PRESETS.find(p =>
-                                    p.value && `${p.value[0]}-${p.value[1]}` === val
-                                )
-                                setSubscribers(preset?.value || null)
-                            }
-                        }}
-                    />
+                {/* Subscribers - Single select */}
+                <SelectFilter
+                    label="Subscribers"
+                    value={getSubscriberKey()}
+                    options={subscriberOptions.filter(o => o.value !== null) as { label: string; value: string }[]}
+                    onChange={(val) => {
+                        if (!val) {
+                            setSubscribers(null)
+                        } else {
+                            const preset = SUBSCRIBER_PRESETS.find(p =>
+                                p.value && `${p.value[0]}-${p.value[1]}` === val
+                            )
+                            setSubscribers(preset?.value || null)
+                        }
+                    }}
+                />
 
-                    {/* Price - Single select */}
-                    <SelectFilter
-                        label="Price"
-                        value={getPriceKey()}
-                        options={priceOptions.filter(o => o.value !== null) as { label: string; value: string }[]}
-                        onChange={(val) => {
-                            if (!val) {
-                                setPrice(null)
-                            } else {
-                                const preset = PRICE_PRESETS.find(p =>
-                                    p.value && `${p.value[0]}-${p.value[1]}` === val
-                                )
-                                setPrice(preset?.value || null)
-                            }
-                        }}
-                    />
-
-                    {/* Language - Multi-select */}
-                    <MultiSelectFilter
-                        label="Language"
-                        value={filters.languages}
-                        options={languageOptions}
-                        onToggle={toggleLanguage}
-                    />
-
-                    {/* Rating - Single select */}
-                    <SelectFilter
-                        label="Rating"
-                        value={filters.minRating === null ? 'any' : String(filters.minRating)}
-                        options={ratingOptions}
-                        onChange={(val) => {
-                            if (!val || val === 'any') {
-                                setRating(null)
-                            } else {
-                                setRating(parseInt(val, 10))
-                            }
-                        }}
-                    />
-                </div>
+                {/* Language - Multi-select */}
+                <MultiSelectFilter
+                    label="Language"
+                    value={filters.languages}
+                    options={languageOptions}
+                    onToggle={toggleLanguage}
+                />
             </div>
 
             {/* Results Count & Sort */}
