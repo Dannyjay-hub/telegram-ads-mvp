@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 
 // Filter components
 import { SearchInput } from '@/components/ui/search-input'
-import { FilterDropdown } from '@/components/marketplace/FilterDropdown'
+import { SelectFilter, MultiSelectFilter } from '@/components/marketplace/SelectFilter'
 import { SortDropdown } from '@/components/marketplace/SortDropdown'
 import {
     useMarketplaceFilters,
@@ -109,20 +109,18 @@ export function MarketplacePage() {
             {/* Filter Dropdowns Row */}
             <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-4 px-4 scrollbar-none">
                 {/* Categories - Multi-select */}
-                <FilterDropdown
+                <MultiSelectFilter
                     label="Categories"
                     value={filters.categories}
                     options={categoryOptions}
-                    multiSelect
-                    onChange={() => { }}
                     onToggle={toggleCategory}
                 />
 
                 {/* Subscribers - Single select */}
-                <FilterDropdown
+                <SelectFilter
                     label="Subscribers"
                     value={getSubscriberKey()}
-                    options={subscriberOptions}
+                    options={subscriberOptions.filter(o => o.value !== null) as { label: string; value: string }[]}
                     onChange={(val) => {
                         if (!val) {
                             setSubscribers(null)
@@ -136,10 +134,10 @@ export function MarketplacePage() {
                 />
 
                 {/* Price - Single select */}
-                <FilterDropdown
+                <SelectFilter
                     label="Price"
                     value={getPriceKey()}
-                    options={priceOptions}
+                    options={priceOptions.filter(o => o.value !== null) as { label: string; value: string }[]}
                     onChange={(val) => {
                         if (!val) {
                             setPrice(null)
@@ -153,17 +151,15 @@ export function MarketplacePage() {
                 />
 
                 {/* Language - Multi-select */}
-                <FilterDropdown
+                <MultiSelectFilter
                     label="Language"
                     value={filters.languages}
                     options={languageOptions}
-                    multiSelect
-                    onChange={() => { }}
                     onToggle={toggleLanguage}
                 />
 
                 {/* Rating - Single select */}
-                <FilterDropdown
+                <SelectFilter
                     label="Rating"
                     value={filters.minRating === null ? 'any' : String(filters.minRating)}
                     options={ratingOptions}
