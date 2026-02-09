@@ -1,9 +1,7 @@
-
 import { useSearchParams } from 'react-router-dom'
 import { Megaphone, Briefcase } from 'lucide-react'
 import { MarketplacePage } from './MarketplacePage'
 import { CampaignMarketplace } from './CampaignMarketplace'
-
 
 // CampaignsMarketplaceTab - uses the real CampaignMarketplace component
 function CampaignsMarketplaceTab() {
@@ -20,18 +18,14 @@ export function MarketplaceContainer() {
     }
 
     return (
-        <div className="pb-20 space-y-6">
-            {/* Header - back navigation handled by Telegram native BackButton */}
-            <div className="space-y-4">
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-                    Marketplace
-                </h1>
-
+        <div className="flex flex-col h-[calc(100vh-60px)]">
+            {/* Sticky Tabs - No "Marketplace" title */}
+            <div className="flex-shrink-0 bg-[--tg-theme-bg-color] pb-3">
                 {/* P2P Style Toggle */}
                 <div className="bg-black/20 p-1 rounded-xl flex relative">
-                    {/* Sliding Background (CSS-only for simplicity or Framer Motion later) */}
+                    {/* Sliding Background */}
                     <div
-                        className={`absolute top-1 bottom-1 rounded-lg bg-white/10 transition-all duration-300 ease-out`}
+                        className="absolute top-1 bottom-1 rounded-lg bg-white/10 transition-all duration-300 ease-out"
                         style={{
                             left: activeTab === 'channels' ? '0.25rem' : '50%',
                             width: 'calc(50% - 0.25rem)'
@@ -55,13 +49,11 @@ export function MarketplaceContainer() {
                 </div>
             </div>
 
-            {/* Content Area */}
-            <div className="min-h-[50vh]">
+            {/* Content Area - Scrollable */}
+            <div className="flex-1 overflow-y-auto min-h-0">
                 {activeTab === 'channels' ? (
-                    /* The existing Advertiser View (Find Channels) */
                     <MarketplacePage />
                 ) : (
-                    /* The new Channel Owner View (Find Campaigns) */
                     <CampaignsMarketplaceTab />
                 )}
             </div>
