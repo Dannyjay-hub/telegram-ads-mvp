@@ -34,6 +34,9 @@ try {
 const processedJettonTxHashes = new Set<string>();
 const MAX_PROCESSED_CACHE = 1000; // Prevent memory leak - prune old entries
 
+// Mutex: Track campaigns currently being processed to prevent race conditions
+const processingCampaigns = new Set<string>();
+
 /**
  * Check if two TON addresses are equal using @ton/core
  */
@@ -187,13 +190,20 @@ async function processTonTransfer(tx: any) {
  * Process campaign escrow payment
  */
 async function processCampaignPayment(memo: string, amount: number, txHash: string) {
-    try {
-        // Validate txHash - prevent null storage
-        if (!txHash) {
-            console.error('[Webhook] ❌ Missing transaction hash for campaign payment');
-            return;
-        }
+    // Validate txHash - prevent null storage
+    if (!txHash) {
+        console.error('[Webhook] ❌ Missing transaction hash for campaign payment');
+        return;
+    }
 
+    // ✅ Mutex: Prevent parallel processing of same campaign
+    if (processingCampaigns.has(memo)) {
+        console.log(`[Webhook] ℹ️ Campaign ${memo} already being processed, skipping`);
+        return;
+    }
+
+    processingCampaigns.add(memo);
+    try {
         const campaign = await campaignRepository.findByPaymentMemo(memo);
 
         if (!campaign) {
@@ -209,7 +219,6 @@ async function processCampaignPayment(memo: string, amount: number, txHash: stri
                 now: new Date().toISOString()
             });
             // For MVP: Log and continue - the user already paid
-            // In production: could trigger refund or manual review
         }
 
         // ✅ Idempotency check - don't process twice
@@ -225,8 +234,6 @@ async function processCampaignPayment(memo: string, amount: number, txHash: stri
                 received: amount,
                 campaignId: campaign.id
             });
-            // For MVP: Log and continue - manual review may be needed
-            // In production: could set status to 'partially_funded'
         }
 
         // ✅ Update campaign - activate it
@@ -235,6 +242,9 @@ async function processCampaignPayment(memo: string, amount: number, txHash: stri
         console.log(`[Webhook] ✅ Campaign funded: ${amount} TON for ${memo}`);
     } catch (error: any) {
         console.error('[Webhook] ❌ Error processing campaign payment:', error.message);
+    } finally {
+        // ✅ Always remove from processing set
+        processingCampaigns.delete(memo);
     }
 }
 
