@@ -17,7 +17,6 @@ frontend/.env
 
 # Node
 node_modules/
-npm-debug.log*
 
 # Build outputs
 dist/
@@ -37,6 +36,28 @@ Thumbs.db
 # Logs
 *.log
 logs/
+npm-debug.log*
 
 # Local config
 *.local
+
+# ========== PROJECT SPECIFIC ==========
+
+# Reference apps (internal only)
+references/
+
+# Agent/Engineering decisions (internal only)
+.agent/
+
+# Internal planning documents
+*.docx
+*.rtf
+Telegram*.txt
+workflow.txt
+
+# Files folder (RLS docs - can be in README instead)
+files/
+
+# Local testing/temp files
+*.tmp
+*.temp
