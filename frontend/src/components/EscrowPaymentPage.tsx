@@ -115,7 +115,7 @@ export function EscrowPaymentPage() {
 
         // Poll for campaign activation (webhook will update status to 'active')
         let pollCount = 0
-        const maxPolls = 30 // 60 seconds max (every 2 seconds)
+        const maxPolls = 45 // 45 seconds max (every 1 second)
 
         const interval = setInterval(async () => {
             pollCount++
@@ -133,12 +133,14 @@ export function EscrowPaymentPage() {
                 // - status changed to 'active' 
                 // - escrow was deposited
                 // - status is no longer 'draft'
+                console.log(`[EscrowPayment] Poll ${pollCount}: status=${data.status}, escrowDeposited=${data.escrowDeposited}`)
                 if (data.status === 'active' ||
                     data.escrowDeposited > 0 ||
                     (data.status && data.status !== 'draft')) {
                     clearInterval(interval)
                     setVerifying(false)
-                    navigate('/advertiser', {
+                    // Navigate to My Campaigns so user can see their campaign
+                    navigate('/campaigns', {
                         replace: true,
                         state: { paymentSuccess: true, campaignId: campaign.id }
                     })
@@ -152,13 +154,14 @@ export function EscrowPaymentPage() {
             if (pollCount >= maxPolls) {
                 clearInterval(interval)
                 setVerifying(false)
+                console.log('[EscrowPayment] Timeout - redirecting anyway')
                 // Still redirect to campaigns list - payment may still be processing
-                navigate('/advertiser', {
+                navigate('/campaigns', {
                     replace: true,
                     state: { paymentPending: true, campaignId: campaign?.id }
                 })
             }
-        }, 2000) // Poll every 2 seconds instead of 3
+        }, 1000) // Poll every 1 second for faster detection
     }
 
     if (loading && !campaign) {

@@ -193,6 +193,8 @@ export function CampaignWizard() {
 
             // Safe payload with proper null handling
             const payload = {
+                // If resuming a draft, pass the ID so backend updates instead of creates new
+                campaignId: campaignId || undefined,
                 title: formData.title.trim(),
                 brief: formData.brief.trim(),
                 contentType: formData.contentType,

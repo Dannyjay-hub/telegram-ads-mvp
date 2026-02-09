@@ -24,7 +24,8 @@ const campaigns = new Hono();
 // ============================================
 
 /**
- * Create a new campaign
+ * Create a new campaign or submit an existing draft for payment
+ * If body.campaignId is provided, updates the existing draft instead of creating new
  * POST /campaigns
  */
 campaigns.post('/', async (c) => {
@@ -49,27 +50,67 @@ campaigns.post('/', async (c) => {
         const PAYMENT_WINDOW_MINUTES = 15;
         const paymentExpiresAt = new Date(Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000);
 
-        const campaignData: CampaignInsert = {
-            advertiserId: user.id,
-            title: body.title,
-            brief: body.brief,
-            mediaUrls: body.mediaUrls,
-            totalBudget: body.totalBudget,
-            currency: body.currency || 'TON',
-            slots: body.slots,
-            campaignType: body.campaignType || 'open',
-            minSubscribers: body.minSubscribers || 0,
-            maxSubscribers: body.maxSubscribers,
-            requiredLanguages: body.requiredLanguages,
-            minAvgViews: body.minAvgViews || 0,
-            requiredCategories: body.requiredCategories,
-            startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
-            expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
-            paymentMemo, // Store for webhook verification
-            paymentExpiresAt // 15-minute payment window
-        };
+        // Check if this is updating an existing draft (resuming)
+        const existingCampaignId = body.campaignId;
+        let campaign;
 
-        const campaign = await campaignService.createCampaign(campaignData);
+        if (existingCampaignId) {
+            // Resuming a draft - update the existing campaign
+            const existing = await campaignService.getCampaign(existingCampaignId);
+            if (!existing) {
+                return c.json({ error: 'Draft campaign not found' }, 404);
+            }
+            if (existing.advertiserId !== user.id) {
+                return c.json({ error: 'Not authorized to update this campaign' }, 403);
+            }
+
+            // Update the existing draft with new data and payment info
+            const updateData: CampaignUpdate = {
+                title: body.title,
+                brief: body.brief,
+                mediaUrls: body.mediaUrls,
+                totalBudget: body.totalBudget,
+                currency: body.currency || 'TON',
+                slots: body.slots,
+                campaignType: body.campaignType || 'open',
+                minSubscribers: body.minSubscribers || 0,
+                maxSubscribers: body.maxSubscribers,
+                requiredLanguages: body.requiredLanguages,
+                minAvgViews: body.minAvgViews || 0,
+                requiredCategories: body.requiredCategories,
+                expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
+                paymentMemo, // New payment memo for this submission
+                paymentExpiresAt
+                // Status stays as 'draft' until payment is confirmed
+            };
+
+            campaign = await campaignService.updateCampaign(existingCampaignId, updateData);
+            console.log(`[Campaigns] Updated existing draft ${existingCampaignId} for submission`);
+        } else {
+            // New campaign - create fresh
+            const campaignData: CampaignInsert = {
+                advertiserId: user.id,
+                title: body.title,
+                brief: body.brief,
+                mediaUrls: body.mediaUrls,
+                totalBudget: body.totalBudget,
+                currency: body.currency || 'TON',
+                slots: body.slots,
+                campaignType: body.campaignType || 'open',
+                minSubscribers: body.minSubscribers || 0,
+                maxSubscribers: body.maxSubscribers,
+                requiredLanguages: body.requiredLanguages,
+                minAvgViews: body.minAvgViews || 0,
+                requiredCategories: body.requiredCategories,
+                startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
+                expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
+                paymentMemo, // Store for webhook verification
+                paymentExpiresAt // 15-minute payment window
+            };
+
+            campaign = await campaignService.createCampaign(campaignData);
+            console.log(`[Campaigns] Created new campaign ${campaign.id}`);
+        }
 
         // Return campaign with payment instructions including expiry
         return c.json({
