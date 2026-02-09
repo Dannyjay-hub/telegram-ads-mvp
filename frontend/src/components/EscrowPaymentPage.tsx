@@ -46,6 +46,15 @@ export function EscrowPaymentPage() {
     useEffect(() => {
         if (!campaign || !paymentInstructions) {
             setError("No campaign details found. Please create a new campaign.")
+            return
+        }
+
+        // Check if already expired on load
+        if (paymentInstructions.expiresAt) {
+            const remaining = new Date(paymentInstructions.expiresAt).getTime() - Date.now()
+            if (remaining <= 0) {
+                setError("Payment window expired. Please create a new campaign.")
+            }
         }
     }, [campaign, paymentInstructions])
 
@@ -76,8 +85,16 @@ export function EscrowPaymentPage() {
             setLoading(true)
             setError(null)
 
+            // Validate currency before payment
+            const normalizedCurrency = campaign.currency?.toUpperCase()
+            if (!normalizedCurrency || !['TON', 'USDT'].includes(normalizedCurrency)) {
+                setError('Unsupported currency. Only TON and USDT are accepted.')
+                setLoading(false)
+                return
+            }
+
             // Use correct token based on campaign currency
-            const paymentToken = campaign.currency === 'USDT' ? USDT_TOKEN : TON_TOKEN
+            const paymentToken = normalizedCurrency === 'USDT' ? USDT_TOKEN : TON_TOKEN
 
             await sendPayment(
                 paymentToken,
@@ -94,7 +111,9 @@ export function EscrowPaymentPage() {
             const errMsg = e.message?.toLowerCase() || ''
 
             if (errMsg.includes('rejected') || errMsg.includes('cancelled') || errMsg.includes('canceled')) {
-                // User cancelled, just reset loading - don't show error
+                // User cancelled - show brief feedback then clear
+                setError('Payment cancelled')
+                setTimeout(() => setError(null), 2000)
                 setLoading(false)
             } else if (errMsg.includes('not connected') || errMsg.includes('connect')) {
                 // Only show wallet error if genuinely not connected
@@ -129,14 +148,13 @@ export function EscrowPaymentPage() {
                 const data = await res.json()
 
                 // Check if campaign was funded and activated
-                // Check multiple conditions for success:
-                // - status changed to 'active' 
-                // - escrow was deposited
-                // - status is no longer 'draft'
-                console.log(`[EscrowPayment] Poll ${pollCount}: status=${data.status}, escrowDeposited=${data.escrowDeposited}`)
-                if (data.status === 'active' ||
-                    data.escrowDeposited > 0 ||
-                    (data.status && data.status !== 'draft')) {
+                // Use EXPLICIT success statuses to avoid matching error states
+                const SUCCESS_STATUSES = ['active', 'funded', 'confirmed', 'filled']
+                const isSuccess = SUCCESS_STATUSES.includes(data.status) || data.escrowDeposited > 0
+
+                console.log(`[EscrowPayment] Poll ${pollCount}: status=${data.status}, escrowDeposited=${data.escrowDeposited}, isSuccess=${isSuccess}`)
+
+                if (isSuccess) {
                     clearInterval(interval)
                     setVerifying(false)
                     // Navigate to My Campaigns so user can see their campaign
@@ -150,16 +168,19 @@ export function EscrowPaymentPage() {
                 console.error('Poll error:', e)
             }
 
-            // Timeout after max polls - still redirect
+            // Timeout after max polls - show message then redirect
             if (pollCount >= maxPolls) {
                 clearInterval(interval)
                 setVerifying(false)
-                console.log('[EscrowPayment] Timeout - redirecting anyway')
-                // Still redirect to campaigns list - payment may still be processing
-                navigate('/campaigns', {
-                    replace: true,
-                    state: { paymentPending: true, campaignId: campaign?.id }
-                })
+                console.log('[EscrowPayment] Timeout - showing message then redirecting')
+                // Show brief message before redirect
+                setError('Payment is processing. Redirecting to your campaigns...')
+                setTimeout(() => {
+                    navigate('/campaigns', {
+                        replace: true,
+                        state: { paymentPending: true, campaignId: campaign?.id }
+                    })
+                }, 2000)
             }
         }, 1000) // Poll every 1 second for faster detection
     }
