@@ -103,11 +103,11 @@ export function SelectFilter({
                     'absolute top-[calc(100%+8px)] left-0',
                     'min-w-[180px] max-w-[280px]',
                     'rounded-[12px] overflow-hidden',
-                    'bg-[--tg-theme-secondary-bg-color]/95 backdrop-blur-[25px]',
-                    'shadow-[0_4px_40px_rgba(0,0,0,0.2)]',
+                    'bg-[--tg-theme-secondary-bg-color] border border-[--tg-theme-hint-color]/20',
+                    'shadow-lg',
                     'transition-all duration-200 origin-top-left',
                     isOpen
-                        ? 'opacity-100 scale-100 z-50'
+                        ? 'opacity-100 scale-100 z-[100]'
                         : 'opacity-0 scale-[0.3] z-0 pointer-events-none'
                 )}
             >
@@ -245,11 +245,11 @@ export function MultiSelectFilter({
                     'absolute top-[calc(100%+8px)] left-0',
                     'min-w-[180px] max-w-[280px] max-h-[300px] overflow-y-auto',
                     'rounded-[12px]',
-                    'bg-[--tg-theme-secondary-bg-color]/95 backdrop-blur-[25px]',
-                    'shadow-[0_4px_40px_rgba(0,0,0,0.2)]',
+                    'bg-[--tg-theme-secondary-bg-color] border border-[--tg-theme-hint-color]/20',
+                    'shadow-lg',
                     'transition-all duration-200 origin-top-left',
                     isOpen
-                        ? 'opacity-100 scale-100 z-50'
+                        ? 'opacity-100 scale-100 z-[100]'
                         : 'opacity-0 scale-[0.3] z-0 pointer-events-none'
                 )}
             >

@@ -96,19 +96,20 @@ export function MarketplacePage() {
     }
 
     return (
-        <div className="pb-20">
-            {/* Search Bar */}
-            <div className="mb-3">
-                <SearchInput
-                    value={filters.search}
-                    onChange={updateSearch}
-                    placeholder="Search channels..."
-                />
-            </div>
+        <div>
+            {/* Sticky Search + Filters Section */}
+            <div className="sticky top-[120px] z-40 bg-[--tg-theme-bg-color] -mx-4 px-4 pb-3 pt-1">
+                {/* Search Bar */}
+                <div className="mb-2">
+                    <SearchInput
+                        value={filters.search}
+                        onChange={updateSearch}
+                        placeholder="Search channels..."
+                    />
+                </div>
 
-            {/* Filter Dropdowns Row - Sticky with proper overflow handling */}
-            <div className="sticky top-0 z-40 bg-[--tg-theme-bg-color] -mx-4 px-4 pb-2 pt-1">
-                <div className="flex gap-2 overflow-visible">
+                {/* Filter Dropdowns Row */}
+                <div className="flex gap-2 flex-wrap">
                     {/* Categories - Multi-select */}
                     <MultiSelectFilter
                         label="Categories"
