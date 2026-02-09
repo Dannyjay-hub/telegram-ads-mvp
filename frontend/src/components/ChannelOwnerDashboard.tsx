@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Megaphone, Briefcase, Handshake, MessageCircle, Tv } from 'lucide-react'
+import { Megaphone, Store, Handshake, Tv, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
 import { haptic } from '@/utils/haptic'
@@ -7,9 +7,10 @@ import { haptic } from '@/utils/haptic'
 export function ChannelOwnerDashboard() {
     const navigate = useNavigate()
 
-    const openBot = () => {
+    const openSupport = () => {
         haptic.light();
-        const url = 'https://t.me/DanielAdsMVP_bot';
+        // Open support bot conversation
+        const url = 'https://t.me/DanielAdsMVP_bot?start=support';
         if ((window as any).Telegram?.WebApp?.openTelegramLink) {
             (window as any).Telegram.WebApp.openTelegramLink(url);
         } else {
@@ -17,6 +18,9 @@ export function ChannelOwnerDashboard() {
         }
     }
 
+    // Aligned to match Advertiser layout:
+    // Row 1: Primary action | Secondary action
+    // Row 2: Social feature | Management feature
     const actions = [
         {
             label: "List Channel",
@@ -25,20 +29,20 @@ export function ChannelOwnerDashboard() {
             desc: "Monetize your Telegram channel"
         },
         {
-            label: "Advertiser Campaigns",
-            icon: <Briefcase className="w-8 h-8 text-cyan-400 mb-2" />,
+            label: "Campaign Marketplace",
+            icon: <Store className="w-8 h-8 text-green-400 mb-2" />,
             onClick: () => { haptic.light(); navigate('/marketplace?tab=campaigns', { state: { from: '/channel-owner' } }); },
-            desc: "Browse open offers"
+            desc: "Browse advertiser offers"
         },
         {
             label: "Partnerships",
             icon: <Handshake className="w-8 h-8 text-orange-400 mb-2" />,
             onClick: () => { haptic.light(); navigate('/channels/partnerships'); },
-            desc: "View direct deals"
+            desc: "Manage deals with advertisers"
         },
         {
             label: "My Channels",
-            icon: <Tv className="w-8 h-8 text-pink-400 mb-2" />,
+            icon: <Tv className="w-8 h-8 text-cyan-400 mb-2" />,
             onClick: () => { haptic.light(); navigate('/channels/my'); },
             desc: "Manage existing channels"
         }
@@ -46,25 +50,20 @@ export function ChannelOwnerDashboard() {
 
     return (
         <div className="pb-20 space-y-6">
-            {/* Header - WalletButton is now global in App.tsx */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-red-600">
-                        Channel Owner
-                    </h1>
-                    <p className="text-xs text-muted-foreground">Monetize your audience</p>
-                </div>
-
+            {/* Header - No title, just Support button on right */}
+            <div className="flex justify-end">
                 <Button
-                    onClick={openBot}
-                    size="icon"
-                    className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
+                    onClick={openSupport}
+                    size="sm"
+                    variant="ghost"
+                    className="text-[--tg-theme-hint-color] hover:text-[--tg-theme-text-color]"
                 >
-                    <MessageCircle className="w-4 h-4" />
+                    <HelpCircle className="w-4 h-4 mr-1.5" />
+                    Support
                 </Button>
             </div>
 
-            {/* Grid */}
+            {/* Grid - Same layout as Advertiser */}
             <div className="grid grid-cols-2 gap-4">
                 {actions.map((action, idx) => (
                     <GlassCard

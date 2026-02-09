@@ -90,7 +90,7 @@ function CopyMemo({ memo }: { memo: string }) {
 export function PartnershipsList() {
     const [deals, setDeals] = useState<DealWithChannel[]>([])
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active')
+    const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'completed'>('active')
     const [lastFetchedAt, setLastFetchedAt] = useState<Date>(new Date())
     const [timePickerDealId, setTimePickerDealId] = useState<string | null>(null)
     const [schedulingProposal, setSchedulingProposal] = useState<{
@@ -188,12 +188,18 @@ export function PartnershipsList() {
     // Filter out drafts entirely - they're unpaid and shouldn't appear anywhere
     const visibleDeals = deals.filter(d => d.status !== 'draft')
 
-    // Active: requires attention or in progress
-    const activeStatuses = ['pending', 'funded', 'draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
-    const activeDeals = visibleDeals.filter(d => activeStatuses.includes(d.status))
-    const inactiveDeals = visibleDeals.filter(d => !activeStatuses.includes(d.status))
+    // Pending: awaiting action from either party before work begins
+    const pendingStatuses = ['pending', 'funded', 'draft_pending', 'changes_requested', 'scheduling']
+    // Active: work in progress
+    const activeStatuses = ['draft_submitted', 'approved', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
+    // Completed: finished states
+    const completedStatuses = ['released', 'cancelled', 'refunded', 'pending_refund', 'completed']
 
-    const displayDeals = activeTab === 'active' ? activeDeals : inactiveDeals
+    const pendingDeals = visibleDeals.filter(d => pendingStatuses.includes(d.status))
+    const activeDeals = visibleDeals.filter(d => activeStatuses.includes(d.status))
+    const completedDeals = visibleDeals.filter(d => completedStatuses.includes(d.status))
+
+    const displayDeals = activeTab === 'pending' ? pendingDeals : activeTab === 'active' ? activeDeals : completedDeals
 
     if (loading) {
         return (
@@ -206,23 +212,31 @@ export function PartnershipsList() {
 
     return (
         <div className="space-y-4">
-            {/* Tabs */}
+            {/* Tabs - Pending | Active | Completed */}
             <div className="flex gap-2">
+                <Button
+                    variant={activeTab === 'pending' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => { haptic.light(); setActiveTab('pending') }}
+                    className="flex-1 text-xs px-2"
+                >
+                    Pending ({pendingDeals.length})
+                </Button>
                 <Button
                     variant={activeTab === 'active' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => { haptic.light(); setActiveTab('active') }}
-                    className="flex-1"
+                    className="flex-1 text-xs px-2"
                 >
                     Active ({activeDeals.length})
                 </Button>
                 <Button
-                    variant={activeTab === 'inactive' ? 'default' : 'ghost'}
+                    variant={activeTab === 'completed' ? 'default' : 'ghost'}
                     size="sm"
-                    onClick={() => { haptic.light(); setActiveTab('inactive') }}
-                    className="flex-1"
+                    onClick={() => { haptic.light(); setActiveTab('completed') }}
+                    className="flex-1 text-xs px-2"
                 >
-                    Completed ({inactiveDeals.length})
+                    Completed ({completedDeals.length})
                 </Button>
             </div>
 
@@ -231,12 +245,14 @@ export function PartnershipsList() {
                     <CardContent className="text-center py-10">
                         <Handshake className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
                         <p className="text-muted-foreground">
-                            {activeTab === 'active'
-                                ? 'No active partnerships yet'
-                                : 'No completed partnerships yet'}
+                            {activeTab === 'pending'
+                                ? 'No pending approvals'
+                                : activeTab === 'active'
+                                    ? 'No active partnerships yet'
+                                    : 'No completed partnerships yet'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                            Start by browsing channels in the Marketplace
+                            {activeTab === 'pending' ? 'Deals awaiting approval will appear here' : 'Browse channels or campaigns in the Marketplace'}
                         </p>
                     </CardContent>
                 </GlassCard>

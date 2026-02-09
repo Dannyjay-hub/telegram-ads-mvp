@@ -67,6 +67,7 @@ function getParentRoute(pathname: string): string | null {
 /**
  * Hook to control Telegram's native BackButton in the header
  * Uses explicit parent navigation instead of browser history for predictable UX
+ * Also respects location.state.from for dynamic origin tracking
  */
 export function useTelegramBackButton() {
     const location = useLocation();
@@ -77,21 +78,27 @@ export function useTelegramBackButton() {
         if (!WebApp?.BackButton) return;
 
         const BackButton = WebApp.BackButton;
-        const parentRoute = getParentRoute(location.pathname);
 
-        if (parentRoute === null) {
+        // First check if we have a dynamic origin from location.state
+        const dynamicOrigin = (location.state as any)?.from;
+
+        // Get static parent route
+        const staticParent = getParentRoute(location.pathname);
+
+        if (staticParent === null) {
             // Root page has no parent - hide back button (show X Close)
             BackButton.hide();
-        } else if (parentRoute === 'SKIP') {
+        } else if (staticParent === 'SKIP') {
             // Component handles its own back button - just show it, don't register handler
             BackButton.show();
         } else {
             // Has a parent - show back button
             BackButton.show();
 
-            // Handle back button click - go to explicit parent
+            // Handle back button click - prefer dynamic origin over static parent
             const handleBack = () => {
-                navigate(parentRoute, { replace: true });
+                const destination = dynamicOrigin || staticParent;
+                navigate(destination, { replace: true });
             };
 
             BackButton.onClick(handleBack);
@@ -101,7 +108,7 @@ export function useTelegramBackButton() {
                 BackButton.offClick(handleBack);
             };
         }
-    }, [location.pathname, navigate]);
+    }, [location.pathname, location.state, navigate]);
 }
 
 /**

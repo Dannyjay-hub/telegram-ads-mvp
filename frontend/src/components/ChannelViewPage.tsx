@@ -29,7 +29,9 @@ export function ChannelViewPage() {
 
     const [channel, setChannel] = useState<Channel | null>(null)
     const [loading, setLoading] = useState(true)
-    const [isOwner, setIsOwner] = useState(false)
+    // Initialize isOwner from location.state hint (passed from My Channels) to prevent flash
+    // This will be verified/corrected by the API call, but prevents initial wrong view
+    const [isOwner, setIsOwner] = useState((location.state as any)?.isOwner === true)
 
     // Advertiser buy flow state
     const [selectedPackages, setSelectedPackages] = useState<SelectedPackage[]>([])

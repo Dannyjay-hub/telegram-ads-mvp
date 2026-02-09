@@ -1,6 +1,5 @@
-
 import { useNavigate } from 'react-router-dom'
-import { Rocket, ListChecks, Store, Handshake, MessageCircle } from 'lucide-react'
+import { Rocket, ListChecks, Store, Handshake, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
 import { haptic } from '@/utils/haptic'
@@ -8,9 +7,10 @@ import { haptic } from '@/utils/haptic'
 export function AdvertiserDashboard() {
     const navigate = useNavigate()
 
-    const openBot = () => {
+    const openSupport = () => {
         haptic.light();
-        const url = 'https://t.me/DanielAdsMVP_bot';
+        // Open support bot conversation
+        const url = 'https://t.me/DanielAdsMVP_bot?start=support';
         if ((window as any).Telegram?.WebApp?.openTelegramLink) {
             (window as any).Telegram.WebApp.openTelegramLink(url);
         } else {
@@ -38,31 +38,26 @@ export function AdvertiserDashboard() {
             desc: "Find specific channels for ads"
         },
         {
-            label: "Active Partnerships",
+            label: "Partnerships",
             icon: <Handshake className="w-8 h-8 text-orange-400 mb-2" />,
             onClick: () => { haptic.light(); navigate('/partnerships'); },
-            desc: "View direct deals with owners"
+            desc: "Manage deals with channel owners"
         }
     ]
 
 
     return (
         <div className="pb-20 space-y-6">
-            {/* Header - WalletButton is now global in App.tsx */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-                        Advertiser
-                    </h1>
-                    <p className="text-xs text-muted-foreground">Manage your ad campaigns</p>
-                </div>
-
+            {/* Header - No title, just Support button on right */}
+            <div className="flex justify-end">
                 <Button
-                    onClick={openBot}
-                    size="icon"
-                    className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
+                    onClick={openSupport}
+                    size="sm"
+                    variant="ghost"
+                    className="text-[--tg-theme-hint-color] hover:text-[--tg-theme-text-color]"
                 >
-                    <MessageCircle className="w-4 h-4" />
+                    <HelpCircle className="w-4 h-4 mr-1.5" />
+                    Support
                 </Button>
             </div>
 
