@@ -194,6 +194,17 @@ async function processCampaignPayment(memo: string, amount: number, txHash: stri
             return;
         }
 
+        // ✅ Expiry check - server-side enforcement
+        if (campaign.paymentExpiresAt && new Date(campaign.paymentExpiresAt) < new Date()) {
+            console.warn('[Webhook] ⏰ Payment received after expiry window:', {
+                campaignId: campaign.id,
+                expiresAt: campaign.paymentExpiresAt,
+                now: new Date().toISOString()
+            });
+            // For MVP: Log and continue - the user already paid
+            // In production: could trigger refund or manual review
+        }
+
         // ✅ Idempotency check - don't process twice
         if (campaign.escrowDeposited && campaign.escrowDeposited > 0) {
             console.log(`[Webhook] ℹ️ Campaign ${memo} already funded, ignoring duplicate`);

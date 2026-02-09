@@ -43,6 +43,13 @@ campaigns.post('/', async (c) => {
             return c.json({ error: 'User not found' }, 404);
         }
 
+        // Validate currency - server-side enforcement
+        const ALLOWED_CURRENCIES = ['TON', 'USDT'];
+        const normalizedCurrency = (body.currency || 'TON').toUpperCase();
+        if (!ALLOWED_CURRENCIES.includes(normalizedCurrency)) {
+            return c.json({ error: `Unsupported currency. Allowed: ${ALLOWED_CURRENCIES.join(', ')}` }, 400);
+        }
+
         // Generate unique payment memo for escrow tracking
         const paymentMemo = `campaign_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
 
@@ -65,12 +72,12 @@ campaigns.post('/', async (c) => {
             }
 
             // Update the existing draft with new data and payment info
+            // Note: currency is NOT updated - it's immutable after creation
             const updateData: CampaignUpdate = {
                 title: body.title,
                 brief: body.brief,
                 mediaUrls: body.mediaUrls,
                 totalBudget: body.totalBudget,
-                currency: body.currency || 'TON',
                 slots: body.slots,
                 campaignType: body.campaignType || 'open',
                 minSubscribers: body.minSubscribers || 0,

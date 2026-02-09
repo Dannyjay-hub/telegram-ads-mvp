@@ -236,6 +236,7 @@ export interface CampaignUpdate {
     totalBudget?: number;
     slots?: number;
     status?: CampaignStatus;
+    campaignType?: 'open' | 'closed';
     minSubscribers?: number;
     maxSubscribers?: number;
     requiredLanguages?: string[];
@@ -247,4 +248,6 @@ export interface CampaignUpdate {
     slotsFilled?: number;
     draftStep?: number;
     expiresInDays?: number;
+    paymentMemo?: string;
+    paymentExpiresAt?: Date;
 }
