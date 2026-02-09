@@ -19,14 +19,20 @@ export function ChannelOwnerDashboard() {
     }
 
     // Aligned to match Advertiser layout:
-    // Row 1: Primary action | Secondary action
-    // Row 2: Social feature | Management feature
+    // Row 1: List Channel | My Channels
+    // Row 2: Campaign Marketplace | Partnerships
     const actions = [
         {
             label: "List Channel",
             icon: <Megaphone className="w-8 h-8 text-yellow-400 mb-2" />,
             onClick: () => { haptic.light(); navigate('/channels/new'); },
             desc: "Monetize your Telegram channel"
+        },
+        {
+            label: "My Channels",
+            icon: <Tv className="w-8 h-8 text-cyan-400 mb-2" />,
+            onClick: () => { haptic.light(); navigate('/channels/my'); },
+            desc: "Manage existing channels"
         },
         {
             label: "Campaign Marketplace",
@@ -39,12 +45,6 @@ export function ChannelOwnerDashboard() {
             icon: <Handshake className="w-8 h-8 text-orange-400 mb-2" />,
             onClick: () => { haptic.light(); navigate('/channels/partnerships'); },
             desc: "Manage deals with advertisers"
-        },
-        {
-            label: "My Channels",
-            icon: <Tv className="w-8 h-8 text-cyan-400 mb-2" />,
-            onClick: () => { haptic.light(); navigate('/channels/my'); },
-            desc: "Manage existing channels"
         }
     ]
 

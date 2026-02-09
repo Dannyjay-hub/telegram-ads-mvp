@@ -373,16 +373,58 @@ export class CampaignService {
     private async applyToClosedCampaign(campaign: Campaign, channel: Channel): Promise<ApplyResult> {
         console.log(`[CampaignService] Closed campaign apply: ${channel.id} → ${campaign.id}`);
 
-        // Create pending application (no slot allocation yet)
+        // Create pending application (no slot allocation yet - only on approval)
         const application = await this.campaignRepo.createApplication(campaign.id, channel.id);
 
-        console.log(`[CampaignService] Closed campaign application created: ${application.id}`);
+        // Create deal with 'pending' status - awaiting advertiser approval
+        // Unlike open campaigns, closed campaigns require advertiser to approve FIRST
+        const deal = await dealRepository.create({
+            advertiserId: campaign.advertiserId,
+            channelId: channel.id,
+            priceAmount: campaign.perChannelBudget,
+            priceCurrency: campaign.currency,
+            briefText: campaign.brief,
+            status: 'pending', // Awaiting advertiser approval
+            campaignId: campaign.id
+        });
 
-        // TODO: Notify advertiser of new application
+        // Application already created with status 'pending', no need to update
+        // The deal is linked via campaignId
+
+        console.log(`[CampaignService] Closed campaign application created: ${application.id}, deal: ${deal.id}`);
+
+        // Notify advertiser of new application
+        try {
+            const { bot } = await import('../botInstance');
+            const advertiser = await userRepository.findById(campaign.advertiserId);
+
+            if (advertiser?.telegramId && bot) {
+                await bot.api.sendMessage(
+                    advertiser.telegramId,
+                    `🔔 **New Channel Application!**\n\n` +
+                    `**${channel.title}** wants to join your campaign:\n` +
+                    `"${campaign.title}"\n\n` +
+                    `📊 ${(channel as any).subscriber_count?.toLocaleString() || 0} subscribers\n\n` +
+                    `Open the app to **accept or reject** this application.`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '📱 Review Application', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=partnerships` }]
+                            ]
+                        }
+                    }
+                );
+                console.log(`[CampaignService] ✅ Notified advertiser ${advertiser.telegramId} of new application`);
+            }
+        } catch (notifyError) {
+            console.error('[CampaignService] Failed to notify advertiser:', notifyError);
+        }
 
         return {
             success: true,
-            application
+            application,
+            dealId: deal.id
         };
     }
 

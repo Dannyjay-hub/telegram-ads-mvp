@@ -32,6 +32,7 @@ try {
 
 // Track processed Jetton transactions to avoid duplicates
 const processedJettonTxHashes = new Set<string>();
+const MAX_PROCESSED_CACHE = 1000; // Prevent memory leak - prune old entries
 
 /**
  * Check if two TON addresses are equal using @ton/core
@@ -57,7 +58,7 @@ interface AccountTxNotification {
  * Test with: curl https://your-backend.com/webhooks/ton
  */
 app.get('/ton', (c) => {
-    console.log('[Webhook] Health check received');
+    // Health check - no logging to avoid spam
     return c.json({
         status: 'ok',
         message: 'Webhook endpoint is accessible',
@@ -187,6 +188,12 @@ async function processTonTransfer(tx: any) {
  */
 async function processCampaignPayment(memo: string, amount: number, txHash: string) {
     try {
+        // Validate txHash - prevent null storage
+        if (!txHash) {
+            console.error('[Webhook] ❌ Missing transaction hash for campaign payment');
+            return;
+        }
+
         const campaign = await campaignRepository.findByPaymentMemo(memo);
 
         if (!campaign) {
@@ -324,8 +331,12 @@ async function checkRecentJettonTransfers() {
             const memo = op.payload?.Value?.Text || '';
             if (!memo.startsWith('campaign_') && !memo.startsWith('deal_')) continue;
 
-            // Mark as processed
+            // Mark as processed with cache pruning to prevent memory leak
             processedJettonTxHashes.add(txHash);
+            if (processedJettonTxHashes.size > MAX_PROCESSED_CACHE) {
+                const firstKey = processedJettonTxHashes.values().next().value;
+                if (firstKey) processedJettonTxHashes.delete(firstKey);
+            }
 
             const amount = Number(op.amount || 0) / 1e6; // USDT has 6 decimals
             console.log(`[Webhook-Jetton] 💵 USDT detected via hybrid: ${amount} USDT, memo: ${memo}`);
