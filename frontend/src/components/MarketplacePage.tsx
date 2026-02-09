@@ -5,25 +5,28 @@ import { Button } from '@/components/ui/button'
 import { MessageCircle, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-// New filter components
+// Filter components
 import { SearchInput } from '@/components/ui/search-input'
-import { FilterChip, FilterChipGroup } from '@/components/ui/filter-chip'
+import { FilterDropdown } from '@/components/marketplace/FilterDropdown'
 import { SortDropdown } from '@/components/marketplace/SortDropdown'
-import { FilterSheet, FilterButton } from '@/components/marketplace/FilterSheet'
-import { useMarketplaceFilters, CATEGORY_OPTIONS } from '@/hooks/useMarketplaceFilters'
+import {
+    useMarketplaceFilters,
+    CATEGORY_OPTIONS,
+    LANGUAGE_OPTIONS,
+    SUBSCRIBER_PRESETS,
+    PRICE_PRESETS,
+} from '@/hooks/useMarketplaceFilters'
 
 export function MarketplacePage() {
     const navigate = useNavigate()
     const [channels, setChannels] = useState<Channel[]>([])
     const [loading, setLoading] = useState(true)
-    const [filterSheetOpen, setFilterSheetOpen] = useState(false)
 
     // Use the filter hook
     const {
         filters,
         filteredChannels,
         resultCount,
-        activeFilterCount,
         updateSearch,
         toggleCategory,
         toggleLanguage,
@@ -31,7 +34,7 @@ export function MarketplacePage() {
         setPrice,
         setRating,
         setSortBy,
-        clearAdvancedFilters,
+        clearFilters,
     } = useMarketplaceFilters(channels)
 
     useEffect(() => {
@@ -64,10 +67,38 @@ export function MarketplacePage() {
         return minPrice === Infinity ? null : minPrice
     }
 
+    // Format category options for dropdown
+    const categoryOptions = CATEGORY_OPTIONS.map(cat => ({ label: cat, value: cat }))
+    const languageOptions = LANGUAGE_OPTIONS.map(lang => ({ label: lang, value: lang }))
+    const subscriberOptions = SUBSCRIBER_PRESETS.map(p => ({
+        label: p.label,
+        value: p.value ? `${p.value[0]}-${p.value[1]}` : null
+    }))
+    const priceOptions = PRICE_PRESETS.map(p => ({
+        label: p.label,
+        value: p.value ? `${p.value[0]}-${p.value[1]}` : null
+    }))
+    const ratingOptions = [
+        { label: 'Any', value: 'any' },
+        { label: '4+⭐', value: '4' },
+        { label: '3+⭐', value: '3' },
+        { label: 'Unrated', value: '0' },
+    ]
+
+    // Helper to compare subscriber/price preset
+    const getSubscriberKey = () => {
+        if (!filters.subscribers) return null
+        return `${filters.subscribers[0]}-${filters.subscribers[1]}`
+    }
+    const getPriceKey = () => {
+        if (!filters.price) return null
+        return `${filters.price[0]}-${filters.price[1]}`
+    }
+
     return (
         <div className="pb-20">
             {/* Search Bar */}
-            <div className="mb-4">
+            <div className="mb-3">
                 <SearchInput
                     value={filters.search}
                     onChange={updateSearch}
@@ -75,46 +106,87 @@ export function MarketplacePage() {
                 />
             </div>
 
-            {/* Category Chips (Horizontal Scroll) */}
-            <div className="mb-4">
-                <FilterChipGroup>
-                    <FilterChip
-                        label="All"
-                        selected={filters.categories.length === 0}
-                        onClick={() => {
-                            // Clear categories = show all
-                            if (filters.categories.length > 0) {
-                                filters.categories.forEach(cat => toggleCategory(cat))
-                            }
-                        }}
-                    />
-                    {CATEGORY_OPTIONS.slice(0, 8).map(cat => (
-                        <FilterChip
-                            key={cat}
-                            label={cat}
-                            selected={filters.categories.includes(cat)}
-                            onClick={() => toggleCategory(cat)}
-                        />
-                    ))}
-                </FilterChipGroup>
+            {/* Filter Dropdowns Row */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-4 px-4 scrollbar-none">
+                {/* Categories - Multi-select */}
+                <FilterDropdown
+                    label="Categories"
+                    value={filters.categories}
+                    options={categoryOptions}
+                    multiSelect
+                    onChange={() => { }}
+                    onToggle={toggleCategory}
+                />
+
+                {/* Subscribers - Single select */}
+                <FilterDropdown
+                    label="Subscribers"
+                    value={getSubscriberKey()}
+                    options={subscriberOptions}
+                    onChange={(val) => {
+                        if (!val) {
+                            setSubscribers(null)
+                        } else {
+                            const preset = SUBSCRIBER_PRESETS.find(p =>
+                                p.value && `${p.value[0]}-${p.value[1]}` === val
+                            )
+                            setSubscribers(preset?.value || null)
+                        }
+                    }}
+                />
+
+                {/* Price - Single select */}
+                <FilterDropdown
+                    label="Price"
+                    value={getPriceKey()}
+                    options={priceOptions}
+                    onChange={(val) => {
+                        if (!val) {
+                            setPrice(null)
+                        } else {
+                            const preset = PRICE_PRESETS.find(p =>
+                                p.value && `${p.value[0]}-${p.value[1]}` === val
+                            )
+                            setPrice(preset?.value || null)
+                        }
+                    }}
+                />
+
+                {/* Language - Multi-select */}
+                <FilterDropdown
+                    label="Language"
+                    value={filters.languages}
+                    options={languageOptions}
+                    multiSelect
+                    onChange={() => { }}
+                    onToggle={toggleLanguage}
+                />
+
+                {/* Rating - Single select */}
+                <FilterDropdown
+                    label="Rating"
+                    value={filters.minRating === null ? 'any' : String(filters.minRating)}
+                    options={ratingOptions}
+                    onChange={(val) => {
+                        if (!val || val === 'any') {
+                            setRating(null)
+                        } else {
+                            setRating(parseInt(val, 10))
+                        }
+                    }}
+                />
             </div>
 
-            {/* Filter & Sort Row */}
+            {/* Results Count & Sort */}
             <div className="flex items-center justify-between mb-4">
-                <FilterButton
-                    onClick={() => setFilterSheetOpen(true)}
-                    activeCount={activeFilterCount}
-                />
+                <p className="text-sm text-muted-foreground">
+                    {loading ? 'Loading...' : `${resultCount} channel${resultCount !== 1 ? 's' : ''}`}
+                </p>
                 <SortDropdown
                     value={filters.sortBy}
                     onChange={setSortBy}
                 />
             </div>
-
-            {/* Results Count */}
-            <p className="text-sm text-muted-foreground mb-4">
-                {loading ? 'Loading...' : `${resultCount} channel${resultCount !== 1 ? 's' : ''} found`}
-            </p>
 
             {/* Channel List */}
             <div className="space-y-3">
@@ -140,10 +212,7 @@ export function MarketplacePage() {
                         <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => {
-                                clearAdvancedFilters()
-                                updateSearch('')
-                            }}
+                            onClick={clearFilters}
                         >
                             Clear Filters
                         </Button>
@@ -228,19 +297,6 @@ export function MarketplacePage() {
                     ))
                 )}
             </div>
-
-            {/* Filter Sheet */}
-            <FilterSheet
-                isOpen={filterSheetOpen}
-                onClose={() => setFilterSheetOpen(false)}
-                filters={filters}
-                onToggleLanguage={toggleLanguage}
-                onSetSubscribers={setSubscribers}
-                onSetPrice={setPrice}
-                onSetRating={setRating}
-                onClearAll={clearAdvancedFilters}
-                activeCount={activeFilterCount}
-            />
         </div>
     )
 }
