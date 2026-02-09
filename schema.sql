@@ -1,133 +1,272 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- 1. Users table
--- Represents any actor in the system (Advertiser, Channel Owner, PR Manager)
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    telegram_id BIGINT UNIQUE NOT NULL,
-    username TEXT,
-    first_name TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.campaign_applications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL,
+  channel_id uuid NOT NULL,
+  status character varying DEFAULT 'pending'::character varying,
+  deal_id uuid,
+  applied_at timestamp with time zone DEFAULT now(),
+  reviewed_at timestamp with time zone,
+  CONSTRAINT campaign_applications_pkey PRIMARY KEY (id),
+  CONSTRAINT campaign_applications_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id),
+  CONSTRAINT campaign_applications_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES public.channels(id),
+  CONSTRAINT campaign_applications_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id)
 );
-
--- 2. Channels table
--- Stores channel metadata and verified stats
-CREATE TABLE channels (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    telegram_channel_id BIGINT UNIQUE NOT NULL, -- The actual Telegram ID (e.g., -100...)
-    title TEXT NOT NULL,
-    username TEXT, -- e.g., @channelname
-    photo_url TEXT,
-    
-    -- "Verified channel stats (from Telegram)" stored flexibly
-    -- Structure example: { "subscribers": 10000, "avg_views": 500, "languages": {"en": 80}, "premium_rank": 5 }
-    verified_stats JSONB DEFAULT '{}'::jsonb,
-    
-    -- Listing settings
-    description TEXT,
-    base_price_amount NUMERIC(10, 2), -- MVP: Simple base price
-    base_price_currency VARCHAR(3) DEFAULT 'USD',
-    is_active BOOLEAN DEFAULT TRUE,
-    
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.campaigns (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  advertiser_id uuid,
+  title text NOT NULL,
+  brief_text text,
+  creative_content jsonb,
+  total_budget numeric NOT NULL,
+  slots integer NOT NULL DEFAULT 1,
+  individual_slot_budget numeric NOT NULL,
+  status text NOT NULL DEFAULT 'open'::text,
+  type text NOT NULL DEFAULT 'open'::text,
+  eligibility_criteria jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  escrow_deposited numeric DEFAULT 0,
+  escrow_allocated numeric DEFAULT 0,
+  required_languages ARRAY,
+  required_categories ARRAY,
+  min_avg_views integer DEFAULT 0,
+  max_subscribers integer,
+  slots_filled integer DEFAULT 0,
+  expired_at timestamp with time zone,
+  media_urls ARRAY,
+  escrow_wallet_address text,
+  escrow_funded boolean DEFAULT false,
+  starts_at timestamp with time zone DEFAULT now(),
+  currency text DEFAULT 'TON'::text,
+  brief text,
+  campaign_type text DEFAULT 'open'::text,
+  per_channel_budget numeric,
+  expires_at timestamp with time zone,
+  min_subscribers integer DEFAULT 0,
+  payment_memo text UNIQUE,
+  escrow_released numeric DEFAULT 0,
+  escrow_tx_hash text,
+  funded_at timestamp with time zone,
+  payment_expires_at timestamp with time zone,
+  draft_step integer DEFAULT 0,
+  expires_in_days integer DEFAULT 7,
+  escrow_available numeric DEFAULT (COALESCE(escrow_deposited, (0)::numeric) - COALESCE(escrow_allocated, (0)::numeric)),
+  CONSTRAINT campaigns_pkey PRIMARY KEY (id),
+  CONSTRAINT campaigns_advertiser_id_fkey FOREIGN KEY (advertiser_id) REFERENCES public.users(id)
 );
-
--- 3. Channel Admins (PR Manager Flow)
--- Links Users to Channels with specific permissions
-CREATE TABLE channel_admins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    channel_id UUID REFERENCES channels(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    
-    -- Permissions bitmask or booleans
-    can_negotiate BOOLEAN DEFAULT TRUE,
-    can_approve_creative BOOLEAN DEFAULT FALSE,
-    can_manage_finance BOOLEAN DEFAULT FALSE, -- Only owner should usually have this
-    
-    is_owner BOOLEAN DEFAULT FALSE, -- The primary owner
-    
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(channel_id, user_id)
+CREATE TABLE public.channel_admins (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  channel_id uuid,
+  user_id uuid,
+  can_negotiate boolean DEFAULT true,
+  can_approve_creative boolean DEFAULT false,
+  can_manage_finance boolean DEFAULT false,
+  is_owner boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  role text DEFAULT 'manager'::text,
+  permissions jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT channel_admins_pkey PRIMARY KEY (id),
+  CONSTRAINT channel_admins_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES public.channels(id),
+  CONSTRAINT channel_admins_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- 4. Wallets
--- Internal ledger for holding funds
-CREATE TABLE wallets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    balance NUMERIC(15, 2) DEFAULT 0.00 CHECK (balance >= 0),
-    currency VARCHAR(3) DEFAULT 'USD'
+CREATE TABLE public.channels (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  telegram_channel_id bigint NOT NULL UNIQUE,
+  title text NOT NULL,
+  username text,
+  photo_url text,
+  verified_stats jsonb DEFAULT '{}'::jsonb,
+  description text,
+  base_price_amount numeric,
+  base_price_currency character varying DEFAULT 'USD'::character varying,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  stats_json jsonb,
+  avg_views integer DEFAULT 0,
+  rate_card jsonb DEFAULT '[]'::jsonb,
+  is_verified boolean DEFAULT false,
+  permissions jsonb DEFAULT '{}'::jsonb,
+  pricing jsonb DEFAULT '{}'::jsonb,
+  status text DEFAULT 'active'::text,
+  category text,
+  tags ARRAY,
+  language text,
+  CONSTRAINT channels_pkey PRIMARY KEY (id)
 );
-
--- 5. Deals (The Core)
--- Represents the ad campaign lifecycle
-CREATE TYPE deal_status AS ENUM (
-    'draft',        -- Advertiser creating request
-    'submitted',    -- Sent to channel (Pending Acceptance)
-    'negotiating',  -- Optional loop for edits
-    'funded',       -- Funds locked in escrow
-    'approved',     -- Channel accepted, Creative approved (Ready to post)
-    'posted',       -- Auto-posted by bot
-    'monitoring',   -- Waiting period (e.g. 24h) to ensure post stays up
-    'released',     -- Funds released to channel owner (Success)
-    'cancelled',    -- Cancelled by user or timeout (Refunded)
-    'disputed'      -- Manual intervention needed
+CREATE TABLE public.deal_messages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  deal_id uuid,
+  sender_id uuid,
+  sender_role text NOT NULL CHECK (sender_role = ANY (ARRAY['advertiser'::text, 'channel_owner'::text])),
+  message_text text,
+  message_type text DEFAULT 'text'::text CHECK (message_type = ANY (ARRAY['text'::text, 'photo'::text, 'action'::text, 'system'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT deal_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT deal_messages_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id),
+  CONSTRAINT deal_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id)
 );
-
-CREATE TABLE deals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    advertiser_id UUID REFERENCES users(id),
-    channel_id UUID REFERENCES channels(id),
-    
-    -- Campaign Details
-    brief_text TEXT,
-    creative_content JSONB, -- The actual post content (text, media_ids)
-    
-    -- Financials
-    price_amount NUMERIC(10, 2) NOT NULL,
-    price_currency VARCHAR(3) DEFAULT 'USD',
-    escrow_wallet_id UUID, -- Internal system wallet holding these funds temporarily
-    
-    -- Scheduling
-    requested_post_time TIMESTAMP WITH TIME ZONE,
-    actual_post_time TIMESTAMP WITH TIME ZONE,
-    min_duration_hours INT DEFAULT 24, -- How long it must stay up
-    
-    -- Lifecycle
-    status deal_status DEFAULT 'draft',
-    rejection_reason TEXT,
-    
-    -- Timestamps for auto-cancellation logic
-    last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.deals (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  advertiser_id uuid,
+  channel_id uuid,
+  brief_text text,
+  creative_content jsonb,
+  price_amount numeric NOT NULL,
+  price_currency character varying DEFAULT 'USD'::character varying,
+  escrow_wallet_id uuid,
+  requested_post_time timestamp with time zone,
+  actual_post_time timestamp with time zone,
+  min_duration_hours integer DEFAULT 24,
+  status USER-DEFINED DEFAULT 'draft'::deal_status,
+  rejection_reason text,
+  last_activity_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  brief_id uuid,
+  package_title text,
+  package_description text,
+  campaign_id uuid,
+  origin text DEFAULT 'direct'::text,
+  negotiation_status text DEFAULT 'pending'::text,
+  bids_today_count integer DEFAULT 0,
+  last_bid_at timestamp with time zone,
+  bidding_history jsonb DEFAULT '[]'::jsonb,
+  content_items jsonb,
+  payment_memo text UNIQUE,
+  advertiser_wallet_address text,
+  channel_owner_wallet text,
+  payment_tx_hash text,
+  payment_confirmed_at timestamp with time zone,
+  payout_tx_hash text,
+  payout_at timestamp with time zone,
+  refund_tx_hash text,
+  refund_at timestamp with time zone,
+  expires_at timestamp with time zone,
+  status_updated_at timestamp with time zone DEFAULT now(),
+  draft_text text,
+  draft_media_file_id text,
+  draft_media_type text,
+  draft_version integer DEFAULT 0,
+  draft_submitted_at timestamp with time zone,
+  draft_feedback text,
+  proposed_post_time timestamp with time zone,
+  time_proposed_by text,
+  agreed_post_time timestamp with time zone,
+  posted_message_id bigint,
+  posted_at timestamp with time zone,
+  monitoring_end_at timestamp with time zone,
+  monitoring_checks integer DEFAULT 0,
+  last_checked_at timestamp with time zone,
+  funded_at timestamp with time zone,
+  status_history jsonb DEFAULT '[]'::jsonb,
+  scheduled_checks jsonb DEFAULT '[]'::jsonb,
+  next_check_at timestamp with time zone,
+  CONSTRAINT deals_pkey PRIMARY KEY (id),
+  CONSTRAINT deals_advertiser_id_fkey FOREIGN KEY (advertiser_id) REFERENCES public.users(id),
+  CONSTRAINT deals_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES public.channels(id),
+  CONSTRAINT deals_brief_id_fkey FOREIGN KEY (brief_id) REFERENCES public.public_briefs(id),
+  CONSTRAINT deals_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id)
 );
-
--- 6. Public Briefs (Open Marketplace Requests)
--- Advertisers post these, Channels apply to them.
-CREATE TABLE public_briefs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    advertiser_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    
-    title TEXT NOT NULL,
-    content TEXT NOT NULL, -- Detailed requirements
-    budget_range_min NUMERIC(10, 2),
-    budget_range_max NUMERIC(10, 2),
-    currency VARCHAR(3) DEFAULT 'USD',
-    
-    tags TEXT[], -- e.g. ['crypto', 'tech']
-    
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.late_payments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  campaign_id uuid,
+  deal_id uuid,
+  memo text NOT NULL,
+  amount numeric,
+  currency text DEFAULT 'TON'::text,
+  detected_at timestamp with time zone DEFAULT now(),
+  refund_status text DEFAULT 'pending'::text CHECK (refund_status = ANY (ARRAY['pending'::text, 'refunded'::text, 'ignored'::text])),
+  tx_hash text,
+  notes text,
+  CONSTRAINT late_payments_pkey PRIMARY KEY (id),
+  CONSTRAINT late_payments_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id),
+  CONSTRAINT late_payments_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id)
 );
-
--- Index for finding timed-out deals
-CREATE INDEX idx_deals_status_last_activity ON deals(status, last_activity_at);
--- Index for quick lookups of a user's deals
-CREATE INDEX idx_deals_advertiser ON deals(advertiser_id);
-CREATE INDEX idx_deals_channel ON deals(channel_id);
--- Index for briefs
-CREATE INDEX idx_briefs_active ON public_briefs(is_active);
+CREATE TABLE public.pending_payouts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  deal_id uuid,
+  recipient_address text NOT NULL,
+  amount_ton numeric NOT NULL,
+  memo text,
+  type text DEFAULT 'payout'::text,
+  status text DEFAULT 'pending'::text,
+  reason text,
+  tx_hash text,
+  created_at timestamp with time zone DEFAULT now(),
+  completed_at timestamp with time zone,
+  error_message text,
+  retry_count integer DEFAULT 0,
+  currency text DEFAULT 'TON'::text,
+  CONSTRAINT pending_payouts_pkey PRIMARY KEY (id),
+  CONSTRAINT pending_payouts_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id)
+);
+CREATE TABLE public.public_briefs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  advertiser_id uuid,
+  title text NOT NULL,
+  content text NOT NULL,
+  budget_range_min numeric,
+  budget_range_max numeric,
+  currency character varying DEFAULT 'USD'::character varying,
+  tags ARRAY,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT public_briefs_pkey PRIMARY KEY (id),
+  CONSTRAINT public_briefs_advertiser_id_fkey FOREIGN KEY (advertiser_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.transactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  wallet_id uuid,
+  amount numeric NOT NULL,
+  type text NOT NULL,
+  reference_id uuid,
+  description text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT transactions_wallet_id_fkey FOREIGN KEY (wallet_id) REFERENCES public.wallets(id)
+);
+CREATE TABLE public.unlisted_drafts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  telegram_channel_id bigint NOT NULL,
+  user_id uuid,
+  draft_data jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT unlisted_drafts_pkey PRIMARY KEY (id),
+  CONSTRAINT unlisted_drafts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_contexts (
+  user_id uuid NOT NULL,
+  context_type text CHECK (context_type = ANY (ARRAY['draft'::text, 'chat'::text, 'schedule'::text, 'feedback'::text])),
+  deal_id uuid,
+  extra_data jsonb DEFAULT '{}'::jsonb,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_contexts_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_contexts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_contexts_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  telegram_id bigint NOT NULL UNIQUE,
+  username text,
+  first_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  current_negotiating_deal_id uuid,
+  ton_wallet_address text,
+  wallet_connected_at timestamp with time zone,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_current_negotiating_deal_id_fkey FOREIGN KEY (current_negotiating_deal_id) REFERENCES public.deals(id)
+);
+CREATE TABLE public.wallets (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  balance numeric DEFAULT 0.00 CHECK (balance >= 0::numeric),
+  currency character varying DEFAULT 'USD'::character varying,
+  CONSTRAINT wallets_pkey PRIMARY KEY (id),
+  CONSTRAINT wallets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
