@@ -1,7 +1,9 @@
+
 import { useSearchParams } from 'react-router-dom'
 import { Megaphone, Briefcase } from 'lucide-react'
 import { MarketplacePage } from './MarketplacePage'
 import { CampaignMarketplace } from './CampaignMarketplace'
+
 
 // CampaignsMarketplaceTab - uses the real CampaignMarketplace component
 function CampaignsMarketplaceTab() {
@@ -18,14 +20,18 @@ export function MarketplaceContainer() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)]">
-            {/* Sticky Header Section */}
-            <div className="flex-shrink-0 bg-[--tg-theme-bg-color] pb-2">
-                {/* P2P Style Toggle - No "Marketplace" title */}
+        <div className="pb-20 space-y-6">
+            {/* Header - back navigation handled by Telegram native BackButton */}
+            <div className="space-y-4">
+                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                    Marketplace
+                </h1>
+
+                {/* P2P Style Toggle */}
                 <div className="bg-black/20 p-1 rounded-xl flex relative">
-                    {/* Sliding Background */}
+                    {/* Sliding Background (CSS-only for simplicity or Framer Motion later) */}
                     <div
-                        className="absolute top-1 bottom-1 rounded-lg bg-white/10 transition-all duration-300 ease-out"
+                        className={`absolute top-1 bottom-1 rounded-lg bg-white/10 transition-all duration-300 ease-out`}
                         style={{
                             left: activeTab === 'channels' ? '0.25rem' : '50%',
                             width: 'calc(50% - 0.25rem)'
@@ -49,11 +55,13 @@ export function MarketplaceContainer() {
                 </div>
             </div>
 
-            {/* Content Area - This includes search/filter/sort in each page */}
-            <div className="flex-1 overflow-hidden">
+            {/* Content Area */}
+            <div className="min-h-[50vh]">
                 {activeTab === 'channels' ? (
+                    /* The existing Advertiser View (Find Channels) */
                     <MarketplacePage />
                 ) : (
+                    /* The new Channel Owner View (Find Campaigns) */
                     <CampaignsMarketplaceTab />
                 )}
             </div>
