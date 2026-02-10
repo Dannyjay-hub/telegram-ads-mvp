@@ -33,7 +33,7 @@ export function EscrowPaymentPage() {
 
     // Campaign and payment instructions passed from wizard
     const [campaign] = useState<Campaign | null>(location.state?.campaign || null)
-    const [paymentInstructions] = useState<{ address: string; memo: string; amount: number; expiresAt?: string } | null>(
+    const [paymentInstructions] = useState<{ address: string; memo: string; amount: number; budgetAmount?: number; platformFee?: number; feePercent?: number; expiresAt?: string } | null>(
         location.state?.paymentInstructions || null
     )
     const [loading, setLoading] = useState(false)
@@ -228,10 +228,28 @@ export function EscrowPaymentPage() {
             <h1 className="text-xl font-bold">Fund Campaign</h1>
 
             <GlassCard className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Total Budget</span>
-                    <span className="text-xl font-bold text-primary">{campaign.totalBudget} {campaign.currency}</span>
-                </div>
+                {/* Fee breakdown */}
+                {paymentInstructions?.platformFee ? (
+                    <>
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Campaign Budget</span>
+                            <span className="font-medium">{paymentInstructions.budgetAmount} {campaign.currency}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Platform Fee ({paymentInstructions.feePercent}%)</span>
+                            <span className="font-medium">{paymentInstructions.platformFee} {campaign.currency}</span>
+                        </div>
+                        <div className="border-t border-white/10 pt-2 flex items-center justify-between">
+                            <span className="text-muted-foreground font-medium">Total</span>
+                            <span className="text-xl font-bold text-primary">{paymentInstructions.amount} {campaign.currency}</span>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Total Budget</span>
+                        <span className="text-xl font-bold text-primary">{campaign.totalBudget} {campaign.currency}</span>
+                    </div>
+                )}
 
                 {/* Payment Window Countdown */}
                 {paymentInstructions?.expiresAt && (

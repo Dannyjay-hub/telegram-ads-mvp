@@ -227,10 +227,11 @@ async function processCampaignPayment(memo: string, amount: number, txHash: stri
             return;
         }
 
-        // ✅ Amount validation
+        // ✅ Amount validation - user pays totalBudget + platform fee
+        // Minimum acceptable is the campaign budget itself
         if (amount < campaign.totalBudget) {
-            console.warn('[Webhook] ⚠️ Partial payment:', {
-                expected: campaign.totalBudget,
+            console.warn('[Webhook] ⚠️ Insufficient payment:', {
+                minimumExpected: campaign.totalBudget,
                 received: amount,
                 campaignId: campaign.id
             });

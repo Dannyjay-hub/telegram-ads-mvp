@@ -12,6 +12,9 @@ const channelRepository = new SupabaseChannelRepository();
 // Master hot wallet address for escrow payments (same as in DealService)
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || 'EQA...your-wallet...';
 
+// Platform fee percentage (5%)
+const PLATFORM_FEE_PERCENT = 0.05;
+
 // Simple in-memory deduplication cache to prevent duplicate draft creation
 // Key: `${advertiserId}:${title}`, Value: timestamp of last request
 const recentDraftRequests = new Map<string, number>();
@@ -119,13 +122,20 @@ campaigns.post('/', async (c) => {
             console.log(`[Campaigns] Created new campaign ${campaign.id}`);
         }
 
-        // Return campaign with payment instructions including expiry
+        // Calculate platform fee
+        const platformFee = Math.round(body.totalBudget * PLATFORM_FEE_PERCENT * 100) / 100;
+        const totalWithFee = Math.round((body.totalBudget + platformFee) * 100) / 100;
+
+        // Return campaign with payment instructions including fee breakdown
         return c.json({
             campaign,
             paymentInstructions: {
                 address: MASTER_WALLET_ADDRESS,
                 memo: paymentMemo,
-                amount: body.totalBudget,
+                amount: totalWithFee,
+                budgetAmount: body.totalBudget,
+                platformFee: platformFee,
+                feePercent: PLATFORM_FEE_PERCENT * 100,
                 expiresAt: paymentExpiresAt.toISOString()
             }
         }, 201);
