@@ -39,7 +39,7 @@ interface DealWithDetails {
 
 // Status badge config
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-    pending: { label: 'Awaiting Payment', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
+    pending: { label: 'Pending Approval', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
     funded: { label: 'Pending Approval', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
     draft_pending: { label: 'Create Draft', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
     draft_submitted: { label: 'Under Review', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
@@ -212,9 +212,9 @@ export function ChannelOwnerPartnerships() {
         openTelegramLink('https://t.me/DanielAdsMVP_bot')
     }
 
-    // Categorize deals - including new post-escrow statuses
-    const pendingStatuses = ['funded', 'draft_pending', 'changes_requested'] // Needs action from channel owner
-    const activeStatuses = ['draft_submitted', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress'] // In progress
+    // Categorize deals - Pending = accept/reject only, Active = working, Ended = done
+    const pendingStatuses = ['funded', 'pending'] // funded = advertiser sent service package (accept/reject), pending = closed campaign app awaiting approval
+    const activeStatuses = ['draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress'] // All working deals
 
     const pendingDeals = deals.filter(d => pendingStatuses.includes(d.status))
     const activeDeals = deals.filter(d => activeStatuses.includes(d.status))
@@ -323,6 +323,16 @@ export function ChannelOwnerPartnerships() {
                                 </div>
 
                                 {/* Actions based on status */}
+                                {/* Pending: Channel applied to closed campaign, waiting for advertiser */}
+                                {deal.status === 'pending' && (
+                                    <div className="pt-2 border-t border-white/10">
+                                        <p className="text-sm text-orange-400 flex items-center gap-1">
+                                            <Clock className="w-4 h-4" />
+                                            Waiting for advertiser to accept your application
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Funded: Accept/Reject */}
                                 {deal.status === 'funded' && (
                                     <div className="flex gap-2 pt-2 border-t border-white/10">

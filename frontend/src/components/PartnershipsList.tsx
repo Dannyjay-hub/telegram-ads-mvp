@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, AlertCircle, Eye, Calendar, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, Eye, Calendar, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react'
 import { API_URL, getHeaders, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
 import { openTelegramLink } from '@/lib/telegram'
@@ -36,7 +36,7 @@ interface DealWithChannel {
 // Status badge config
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
     draft: { label: 'Draft', color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
-    pending: { label: 'Awaiting Payment', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
+    pending: { label: 'Pending Approval', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
     funded: { label: 'Payment Received', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
     draft_pending: { label: 'Creating Draft', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
     draft_submitted: { label: 'Review Draft', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
@@ -90,8 +90,10 @@ function CopyMemo({ memo }: { memo: string }) {
 export function PartnershipsList() {
     const [deals, setDeals] = useState<DealWithChannel[]>([])
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'completed'>('active')
+    const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'completed'>('pending')
     const [lastFetchedAt, setLastFetchedAt] = useState<Date>(new Date())
+    const [processingId, setProcessingId] = useState<string | null>(null)
+    const [processingAction, setProcessingAction] = useState<'accept' | 'reject' | null>(null)
     const [timePickerDealId, setTimePickerDealId] = useState<string | null>(null)
     const [schedulingProposal, setSchedulingProposal] = useState<{
         proposedTime: string;
@@ -188,18 +190,54 @@ export function PartnershipsList() {
     // Filter out drafts entirely - they're unpaid and shouldn't appear anywhere
     const visibleDeals = deals.filter(d => d.status !== 'draft')
 
-    // Pending: awaiting action from either party before work begins
-    const pendingStatuses = ['pending', 'funded', 'draft_pending', 'changes_requested', 'scheduling']
-    // Active: work in progress
-    const activeStatuses = ['draft_submitted', 'approved', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
+    // Pending: ONLY accept/reject decisions
+    const pendingStatuses = ['pending']
+    // Active: all working deals (drafting, reviewing, scheduling, posting, monitoring)
+    const activeStatuses = ['funded', 'draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
     // Completed: finished states
-    const completedStatuses = ['released', 'cancelled', 'refunded', 'pending_refund', 'completed']
+    const completedStatuses = ['released', 'cancelled', 'refunded', 'pending_refund', 'completed', 'rejected']
 
     const pendingDeals = visibleDeals.filter(d => pendingStatuses.includes(d.status))
     const activeDeals = visibleDeals.filter(d => activeStatuses.includes(d.status))
     const completedDeals = visibleDeals.filter(d => completedStatuses.includes(d.status))
 
     const displayDeals = activeTab === 'pending' ? pendingDeals : activeTab === 'active' ? activeDeals : completedDeals
+
+    // Accept/Reject handler for pending deals (closed campaign applications)
+    const handlePendingAction = async (dealId: string, action: 'accept' | 'reject') => {
+        setProcessingId(dealId)
+        setProcessingAction(action)
+        haptic.light()
+
+        try {
+            const response = await fetch(`${API_URL}/deals/${dealId}/approve`, {
+                method: 'POST',
+                headers: {
+                    ...getHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    is_advertiser: true,
+                    reject: action === 'reject'
+                })
+            })
+
+            if (response.ok) {
+                haptic.success()
+                await loadDeals()
+            } else {
+                const err = await response.json().catch(() => ({}))
+                console.error('Action failed:', err)
+                haptic.error()
+            }
+        } catch (error) {
+            console.error('Failed to process:', error)
+            haptic.error()
+        } finally {
+            setProcessingId(null)
+            setProcessingAction(null)
+        }
+    }
 
     if (loading) {
         return (
@@ -300,11 +338,38 @@ export function PartnershipsList() {
                                 </div>
 
                                 {/* Status-specific UI */}
+                                {/* Pending: Accept/Reject (closed campaign applications) */}
                                 {deal.status === 'pending' && (
-                                    <p className="text-xs text-yellow-400 flex items-center gap-1">
-                                        <AlertCircle className="w-3 h-3" />
-                                        Waiting for your payment
-                                    </p>
+                                    <div className="flex gap-2 pt-2 border-t border-white/10">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                            onClick={() => handlePendingAction(deal.id, 'accept')}
+                                            disabled={processingId === deal.id}
+                                        >
+                                            {processingId === deal.id && processingAction === 'accept' ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <CheckCircle className="w-4 h-4 mr-1" />
+                                            )}
+                                            Accept
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                            onClick={() => handlePendingAction(deal.id, 'reject')}
+                                            disabled={processingId === deal.id}
+                                        >
+                                            {processingId === deal.id && processingAction === 'reject' ? (
+                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <XCircle className="w-4 h-4 mr-1" />
+                                            )}
+                                            Reject
+                                        </Button>
+                                    </div>
                                 )}
 
                                 {deal.status === 'funded' && (

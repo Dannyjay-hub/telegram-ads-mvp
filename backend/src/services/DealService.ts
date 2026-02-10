@@ -4,6 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { tonPayoutService } from './TonPayoutService';
 import { notifyDealStatusChange, notifyNewDealRequest, notifyPaymentConfirmed } from './NotificationService';
 import { supabase } from '../db';
+import { SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
+
+const campaignRepository = new SupabaseCampaignRepository();
 
 // Master hot wallet address for escrow payments
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || 'EQA...your-wallet...';
@@ -246,7 +249,38 @@ export class DealService {
         }
 
         if (reject) {
-            if (deal.status === 'submitted' || deal.status === 'negotiating' || deal.status === 'funded') {
+            // Handle rejection for pending (closed campaign), funded, submitted, negotiating
+            if (deal.status === 'pending' || deal.status === 'submitted' || deal.status === 'negotiating' || deal.status === 'funded') {
+                // Pending = closed campaign application - just cancel, no refund needed
+                if (deal.status === 'pending') {
+                    // Notify channel owner about rejection
+                    try {
+                        // Get channel owner telegram_id
+                        const { data: ownerData } = await (supabase as any)
+                            .from('channel_admins')
+                            .select('users(telegram_id)')
+                            .eq('channel_id', deal.channelId)
+                            .eq('is_owner', true)
+                            .single();
+                        const ownerTelegramId = ownerData?.users?.telegram_id;
+                        if (ownerTelegramId) {
+                            const { bot } = await import('../botInstance');
+                            if (bot) {
+                                await bot.api.sendMessage(
+                                    ownerTelegramId,
+                                    `❌ **Application Rejected**\n\n` +
+                                    `Your application for **${channelTitle}** was not accepted by the advertiser.\n\n` +
+                                    `Don't worry — browse other campaigns in the marketplace!`,
+                                    { parse_mode: 'Markdown' }
+                                );
+                            }
+                        }
+                    } catch (notifErr) {
+                        console.error('DealService: Rejection notification failed:', notifErr);
+                    }
+                    return this.dealRepo.updateStatus(dealId, 'rejected', 'Rejected by advertiser');
+                }
+
                 // If rejecting a funded deal, trigger refund to advertiser
                 if (deal.status === 'funded') {
                     let refundQueued = false;
@@ -298,6 +332,57 @@ export class DealService {
                 return this.dealRepo.updateStatus(dealId, 'cancelled', 'Rejected by user');
             }
             throw new Error('Cannot reject deal in current status');
+        }
+
+        // Advertiser approves a pending deal (closed campaign application)
+        if (deal.status === 'pending') {
+            // Allocate campaign slot
+            if (deal.campaignId) {
+                try {
+                    const campaign = await campaignRepository.findById(deal.campaignId);
+                    if (campaign) {
+                        await campaignRepository.atomicAllocateSlot(campaign.id, campaign.perChannelBudget);
+                        console.log(`DealService: Allocated slot for campaign ${deal.campaignId}`);
+                    }
+                } catch (slotErr) {
+                    console.error('DealService: Slot allocation failed:', slotErr);
+                    throw new Error('Campaign full or insufficient escrow');
+                }
+            }
+
+            // Notify channel owner to create draft
+            try {
+                const { data: ownerData } = await (supabase as any)
+                    .from('channel_admins')
+                    .select('users(telegram_id)')
+                    .eq('channel_id', deal.channelId)
+                    .eq('is_owner', true)
+                    .single();
+                const ownerTelegramId = ownerData?.users?.telegram_id;
+                if (ownerTelegramId) {
+                    const { bot } = await import('../botInstance');
+                    if (bot) {
+                        await bot.api.sendMessage(
+                            ownerTelegramId,
+                            `✅ **Application Accepted!**\n\n` +
+                            `Your channel **${channelTitle}** has been approved!\n` +
+                            `Please create a draft post based on the brief.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: '📝 Create Draft', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }]
+                                    ]
+                                }
+                            }
+                        );
+                    }
+                }
+            } catch (notifErr) {
+                console.error('DealService: Acceptance notification failed:', notifErr);
+            }
+
+            return this.dealRepo.updateStatus(dealId, 'draft_pending');
         }
 
         // Channel owner approves a funded deal
