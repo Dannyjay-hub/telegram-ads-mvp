@@ -18,7 +18,7 @@ export function MarketplaceContainer() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-60px)]">
+        <div className="flex flex-col h-full">
             {/* Sticky Tabs - No "Marketplace" title */}
             <div className="flex-shrink-0 bg-[--tg-theme-bg-color] pb-3">
                 {/* P2P Style Toggle */}
