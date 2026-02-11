@@ -8,6 +8,7 @@ import { useTelegram } from '@/providers/TelegramProvider'
 import { useTonWallet } from '@/hooks/useTonWallet'
 import { haptic } from '@/utils/haptic'
 import { TON_TOKEN, USDT_TOKEN, type JettonToken } from '@/lib/jettons'
+import { parseTagArray } from '@/lib/parseTagArray'
 import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons'
 
 // Type for selected package quantities
@@ -552,21 +553,21 @@ export function ChannelViewPage() {
                     <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">
                         Details
                     </h3>
-                    {channel.category && (
+                    {parseTagArray(channel.category).length > 0 && (
                         <div className="mb-3">
                             <span className="text-xs text-muted-foreground mr-2">Category: </span>
                             <div className="inline-flex flex-wrap gap-1">
-                                {(Array.isArray(channel.category) ? channel.category : [channel.category]).map((cat: string) => (
+                                {parseTagArray(channel.category).map((cat: string) => (
                                     <span key={cat} className="bg-primary/20 text-primary text-xs px-2 py-1 rounded">{cat}</span>
                                 ))}
                             </div>
                         </div>
                     )}
-                    {(channel as any).language && (
+                    {parseTagArray((channel as any).language).length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap">
                             <Globe className="w-4 h-4 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">Language: </span>
-                            {(Array.isArray((channel as any).language) ? (channel as any).language : [(channel as any).language]).map((lang: string) => (
+                            {parseTagArray((channel as any).language).map((lang: string) => (
                                 <span key={lang} className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">{lang}</span>
                             ))}
                         </div>

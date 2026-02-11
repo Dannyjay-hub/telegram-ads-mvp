@@ -10,6 +10,8 @@ import { useTelegram } from '@/providers/TelegramProvider'
 import { showAlert, showConfirm, openTelegramLink, showSuccess, showError } from '@/lib/telegram'
 import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons'
 import { useTonWallet } from '@/hooks/useTonWallet'
+import { parseTagArray } from '@/lib/parseTagArray'
+import { MultiSelectDropdown } from '@/components/ui/multi-select-dropdown'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
@@ -74,8 +76,8 @@ export function ChannelWizard() {
                 setRateCard(channel.rateCard || [])
                 setDescription(channel.description || '')
                 // Handle both legacy string and new array format
-                setCategories(Array.isArray(channel.category) ? channel.category : (channel.category ? [channel.category] : []))
-                setLanguages(Array.isArray(channel.language) ? channel.language : (channel.language ? [channel.language] : []))
+                setCategories(parseTagArray(channel.category))
+                setLanguages(parseTagArray(channel.language))
                 setVerifiedStats({
                     title: channel.title,
                     username: channel.username?.replace('@', ''),
@@ -529,54 +531,34 @@ export function ChannelWizard() {
                                         />
                                     </div>
                                     <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label>Categories <span className="text-red-400">*</span> <span className="text-xs text-muted-foreground">(select multiple)</span></Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {['Crypto', 'Tech', 'News', 'Entertainment', 'Education', 'Gaming', 'Finance', 'Lifestyle', 'Business', 'Sports', 'Music', 'Art', 'Food', 'Travel', 'Health', 'Other'].map(cat => (
-                                                    <button
-                                                        key={cat}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (categories.includes(cat)) {
-                                                                setCategories(categories.filter(c => c !== cat))
-                                                            } else {
-                                                                setCategories([...categories, cat])
-                                                            }
-                                                        }}
-                                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${categories.includes(cat)
-                                                            ? 'bg-blue-600 text-white border-blue-500'
-                                                            : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
-                                                            } border`}
-                                                    >
-                                                        {cat}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Languages <span className="text-red-400">*</span> <span className="text-xs text-muted-foreground">(select multiple)</span></Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {['English', 'Russian', 'Spanish', 'Portuguese', 'Chinese', 'Arabic', 'Hindi', 'French', 'German', 'Japanese', 'Korean', 'Indonesian', 'Turkish', 'Italian', 'Other'].map(lang => (
-                                                    <button
-                                                        key={lang}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (languages.includes(lang)) {
-                                                                setLanguages(languages.filter(l => l !== lang))
-                                                            } else {
-                                                                setLanguages([...languages, lang])
-                                                            }
-                                                        }}
-                                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${languages.includes(lang)
-                                                            ? 'bg-blue-600 text-white border-blue-500'
-                                                            : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
-                                                            } border`}
-                                                    >
-                                                        {lang}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <MultiSelectDropdown
+                                            label="Categories"
+                                            required
+                                            options={['Crypto', 'Tech', 'News', 'Entertainment', 'Education', 'Gaming', 'Finance', 'Lifestyle', 'Business', 'Sports', 'Music', 'Art', 'Food', 'Travel', 'Health', 'Other']}
+                                            selected={categories}
+                                            onToggle={(cat) => {
+                                                if (categories.includes(cat)) {
+                                                    setCategories(categories.filter(c => c !== cat))
+                                                } else {
+                                                    setCategories([...categories, cat])
+                                                }
+                                            }}
+                                            onRemove={(cat) => setCategories(categories.filter(c => c !== cat))}
+                                        />
+                                        <MultiSelectDropdown
+                                            label="Languages"
+                                            required
+                                            options={['English', 'Russian', 'Spanish', 'Portuguese', 'Chinese', 'Arabic', 'Hindi', 'French', 'German', 'Japanese', 'Korean', 'Indonesian', 'Turkish', 'Italian', 'Other']}
+                                            selected={languages}
+                                            onToggle={(lang) => {
+                                                if (languages.includes(lang)) {
+                                                    setLanguages(languages.filter(l => l !== lang))
+                                                } else {
+                                                    setLanguages([...languages, lang])
+                                                }
+                                            }}
+                                            onRemove={(lang) => setLanguages(languages.filter(l => l !== lang))}
+                                        />
                                     </div>
                                 </div>
                             </GlassCard>

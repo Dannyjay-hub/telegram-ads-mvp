@@ -4,6 +4,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MessageCircle, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { parseTagArray } from '@/lib/parseTagArray'
 
 // Filter components
 import { SearchInput } from '@/components/ui/search-input'
@@ -197,8 +198,7 @@ export function MarketplacePage() {
                                 {/* Category & Price */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex gap-1.5 flex-wrap">
-                                        {(Array.isArray(channel.category) ? channel.category : [channel.category])
-                                            .filter(Boolean)
+                                        {parseTagArray(channel.category)
                                             .slice(0, 2)
                                             .map((cat, i) => (
                                                 <span
@@ -208,9 +208,9 @@ export function MarketplacePage() {
                                                     {cat}
                                                 </span>
                                             ))}
-                                        {channel.language && (
+                                        {parseTagArray(channel.language).length > 0 && (
                                             <span className="px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium">
-                                                {Array.isArray(channel.language) ? channel.language[0] : channel.language}
+                                                {parseTagArray(channel.language)[0]}
                                             </span>
                                         )}
                                     </div>
