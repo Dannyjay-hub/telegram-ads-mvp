@@ -4,16 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus, Pencil } from 'lucide-react'
+import { Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus, Pencil, Wallet } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { showAlert, showConfirm, openTelegramLink, showSuccess, showError } from '@/lib/telegram'
 import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons'
+import { useTonWallet } from '@/hooks/useTonWallet'
 
 export function ChannelWizard() {
     const navigate = useNavigate()
     const { id } = useParams()
     const { user } = useTelegram()
+    const { isConnected: walletConnected, walletAddress, connectWallet, disconnectWallet, formatAddress, isLoading: walletLoading } = useTonWallet()
 
     // Note: Back navigation is now handled by Telegram native BackButton
 
@@ -216,6 +218,12 @@ export function ChannelWizard() {
                     setLoading(false);
                     return;
                 }
+                // Wallet required for publishing (not drafts)
+                if (!walletConnected || !walletAddress) {
+                    showAlert('Please connect your TON wallet to receive payouts before publishing.');
+                    setLoading(false);
+                    return;
+                }
             }
 
             // === OWNER CHECK: For new registrations, verify user is channel owner ===
@@ -292,12 +300,12 @@ export function ChannelWizard() {
                 title: verifiedStats?.title,
                 username: verifiedStats?.username,
                 description: description,
-                category: categories,  // Now array
-                language: languages,  // Now array
-                // base_price_amount removed - using rate card packages only
+                category: categories,
+                language: languages,
                 pricing: null,
                 rateCard: rateCard,
-                status: status
+                status: status,
+                payout_wallet: walletAddress || undefined
             };
 
             if (id) {
@@ -535,8 +543,8 @@ export function ChannelWizard() {
                                                             }
                                                         }}
                                                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${categories.includes(cat)
-                                                                ? 'bg-blue-600 text-white border-blue-500'
-                                                                : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
+                                                            ? 'bg-blue-600 text-white border-blue-500'
+                                                            : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
                                                             } border`}
                                                     >
                                                         {cat}
@@ -559,8 +567,8 @@ export function ChannelWizard() {
                                                             }
                                                         }}
                                                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${languages.includes(lang)
-                                                                ? 'bg-blue-600 text-white border-blue-500'
-                                                                : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
+                                                            ? 'bg-blue-600 text-white border-blue-500'
+                                                            : 'bg-black/20 text-white/70 border-white/10 hover:border-white/30'
                                                             } border`}
                                                     >
                                                         {lang}
@@ -992,6 +1000,66 @@ export function ChannelWizard() {
                                         )}
                                     </div>
                                 )}
+                            </GlassCard>
+
+                            {/* ===== PAYOUT WALLET ===== */}
+                            <GlassCard className="p-6 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                        <Wallet className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white">Payout Wallet</h3>
+                                        <p className="text-xs text-muted-foreground">Where you'll receive payments for deals</p>
+                                    </div>
+                                    {walletConnected && (
+                                        <div className="ml-auto flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
+                                            <Check className="w-3 h-3" />
+                                            Connected
+                                        </div>
+                                    )}
+                                </div>
+
+                                {walletConnected ? (
+                                    <div className="space-y-3">
+                                        <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                                            <p className="text-xs text-muted-foreground mb-1">Connected Wallet</p>
+                                            <p className="font-mono text-sm text-white">{formatAddress(walletAddress)}</p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full border-white/10 text-muted-foreground hover:text-white"
+                                            onClick={disconnectWallet}
+                                        >
+                                            Change Wallet
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                                            <p className="text-sm text-amber-200">
+                                                <strong>Required to publish.</strong> Connect your TON wallet to receive payouts when deals are completed.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            className="w-full h-11 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                                            onClick={connectWallet}
+                                            disabled={walletLoading}
+                                        >
+                                            {walletLoading ? (
+                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                            ) : (
+                                                <Wallet className="w-4 h-4 mr-2" />
+                                            )}
+                                            Connect TON Wallet
+                                        </Button>
+                                    </div>
+                                )}
+
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    💡 This wallet will receive payouts for all deals on this channel. You can change it anytime from channel settings.
+                                </p>
                             </GlassCard>
 
                             <div className="flex gap-4">

@@ -21,11 +21,12 @@ export class SupabaseChannelRepository implements IChannelRepository {
             status: row.status,
             permissions: row.permissions,
             pricing: row.pricing,
-            rateCard: row.rate_card, // Map JSONB
+            rateCard: row.rate_card,
             description: row.description,
             category: row.category,
             tags: row.tags,
             language: row.language,
+            payoutWallet: row.payout_wallet,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at)
         };
@@ -51,7 +52,8 @@ export class SupabaseChannelRepository implements IChannelRepository {
                 description: channel.description,
                 category: channel.category,
                 tags: channel.tags,
-                language: channel.language
+                language: channel.language,
+                payout_wallet: channel.payoutWallet
             } as any)
             .select()
             .single();
@@ -197,6 +199,7 @@ export class SupabaseChannelRepository implements IChannelRepository {
         if (updates.language !== undefined) dbUpdates.language = updates.language;
         if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
         if (updates.photoUrl !== undefined) dbUpdates.photo_url = updates.photoUrl;
+        if (updates.payoutWallet !== undefined) dbUpdates.payout_wallet = updates.payoutWallet;
 
         dbUpdates.updated_at = new Date().toISOString();
 

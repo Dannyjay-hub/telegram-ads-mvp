@@ -512,7 +512,8 @@ app.post('/', async (c) => {
             tags,
             base_price_amount,
             pricing,
-            rateCard
+            rateCard,
+            payout_wallet
         } = body;
 
         // In a real app we'd get userId from Auth Middleware context
@@ -562,7 +563,8 @@ app.post('/', async (c) => {
                 description,
                 category,
                 tags,
-                rateCard
+                rateCard,
+                payoutWallet: payout_wallet
             },
             status // Pass status (e.g. 'draft')
         );
@@ -721,7 +723,8 @@ app.put('/:id', async (c) => {
             description: body.description,
             category: body.category,
             tags: body.tags,
-            language: body.language
+            language: body.language,
+            payoutWallet: body.payout_wallet
         };
 
         console.log('[PUT /channels/:id] Received body:', body);

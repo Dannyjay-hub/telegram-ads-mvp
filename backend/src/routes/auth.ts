@@ -63,6 +63,63 @@ auth.post('/wallet', async (c) => {
         }
 
         console.log(`[Auth] ✅ Wallet saved for user ${telegramId}: ${walletAddress.slice(0, 8)}...`);
+
+        // Also update payout_wallet on any channels this user owns
+        // (in case they listed without a wallet)
+        const { data: ownedChannels } = await supabase
+            .from('channel_admins')
+            .select('channel_id')
+            .eq('user_id', (data as any).id)
+            .eq('role', 'owner') as any;
+
+        if (ownedChannels?.length) {
+            const channelIds = ownedChannels.map((c: any) => c.channel_id);
+
+            // Update channels that don't have a payout wallet yet
+            await supabase
+                .from('channels')
+                .update({ payout_wallet: walletAddress } as any)
+                .in('id', channelIds)
+                .is('payout_wallet', null);
+
+            console.log(`[Auth] Updated payout_wallet for ${channelIds.length} owned channel(s)`);
+
+            // Check for payout_pending deals on these channels and process them
+            const { data: pendingDeals } = await supabase
+                .from('deals')
+                .select('id, price_amount, price_currency')
+                .in('channel_id', channelIds)
+                .eq('status', 'payout_pending') as any;
+
+            if (pendingDeals?.length) {
+                console.log(`[Auth] 🎉 Found ${pendingDeals.length} payout_pending deal(s) — processing now`);
+                const { tonPayoutService } = await import('../services/TonPayoutService');
+
+                for (const deal of pendingDeals) {
+                    try {
+                        await tonPayoutService.queuePayout(
+                            deal.id,
+                            walletAddress,
+                            deal.price_amount,
+                            deal.price_currency || 'TON'
+                        );
+
+                        await supabase
+                            .from('deals')
+                            .update({
+                                status: 'released',
+                                status_updated_at: new Date().toISOString()
+                            } as any)
+                            .eq('id', deal.id);
+
+                        console.log(`[Auth] ✅ Payout queued for deal ${deal.id}`);
+                    } catch (e) {
+                        console.error(`[Auth] Failed to process payout for deal ${deal.id}:`, e);
+                    }
+                }
+            }
+        }
+
         return c.json({ success: true, walletAddress });
 
     } catch (error: any) {

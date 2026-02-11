@@ -15,6 +15,7 @@ export type DealStatus =
     | 'posted'        // Content published
     | 'failed_to_post' // Posting failed (bot removed, etc.)
     | 'monitoring'    // Safety period
+    | 'payout_pending' // Monitoring passed, payout waiting (no wallet or queue failed)
     | 'released'      // Funds released (completed)
     | 'refunded'      // Refund completed
     | 'pending_refund' // Refund failed to queue, needs manual intervention
@@ -62,6 +63,7 @@ export interface Channel {
     category?: string;
     tags?: string[];
     language?: string;
+    payoutWallet?: string; // TON wallet for receiving payouts
     createdAt?: Date;
     updatedAt?: Date;
 }

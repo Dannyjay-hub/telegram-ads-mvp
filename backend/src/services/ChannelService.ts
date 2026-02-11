@@ -87,7 +87,8 @@ export class ChannelService {
             description?: string,
             category?: string,
             tags?: string[],
-            rateCard?: any[]
+            rateCard?: any[],
+            payoutWallet?: string
         },
         initialStatus: string = 'active'
     ): Promise<Channel> {
@@ -178,7 +179,8 @@ export class ChannelService {
             description: channelData?.description,
             category: channelData?.category,
             tags: channelData?.tags,
-            rateCard: channelData?.rateCard || []
+            rateCard: channelData?.rateCard || [],
+            payoutWallet: channelData?.payoutWallet
         });
         console.log('[verifyAndAddChannel] Created channel:', channel.id, 'with description:', channel.description);
 

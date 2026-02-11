@@ -322,15 +322,6 @@ export class MonitoringService {
     private async releaseFunds(deal: any): Promise<void> {
         console.log(`[MonitoringService] ✅ Releasing funds for deal ${deal.id}`);
 
-        // Update deal status first
-        await (supabase as any)
-            .from('deals')
-            .update({
-                status: 'released',
-                status_updated_at: new Date().toISOString()
-            })
-            .eq('id', deal.id);
-
         // Fetch full deal info for payout including amount and currency
         const { data: fullDeal, error: dealError } = await (supabase as any)
             .from('deals')
@@ -345,11 +336,28 @@ export class MonitoringService {
             return;
         }
 
-        // Try to get wallet: first from deal, then from channel owner's TonConnect
-        let ownerWalletAddress = fullDeal.channel_owner_wallet;
+        // Wallet resolution order:
+        // 1. Channel's payout_wallet (set during listing — most reliable)
+        // 2. Deal's channel_owner_wallet (legacy)
+        // 3. Channel owner's TonConnect wallet (fallback)
+        let ownerWalletAddress: string | null = null;
 
+        // 1. Try channel's payout wallet first
+        const { data: channelData } = await (supabase as any)
+            .from('channels')
+            .select('payout_wallet')
+            .eq('id', fullDeal.channel_id)
+            .single();
+
+        ownerWalletAddress = channelData?.payout_wallet || null;
+
+        // 2. Fallback: deal's stored wallet
         if (!ownerWalletAddress) {
-            // Fallback: get from channel owner's connected wallet
+            ownerWalletAddress = fullDeal.channel_owner_wallet || null;
+        }
+
+        // 3. Fallback: channel owner's TonConnect wallet
+        if (!ownerWalletAddress) {
             const { data: ownerData } = await (supabase as any)
                 .from('channel_admins')
                 .select('users(ton_wallet_address)')
@@ -357,11 +365,11 @@ export class MonitoringService {
                 .eq('is_owner', true)
                 .single();
 
-            ownerWalletAddress = ownerData?.users?.ton_wallet_address;
+            ownerWalletAddress = ownerData?.users?.ton_wallet_address || null;
         }
 
         if (ownerWalletAddress && fullDeal.price_amount > 0) {
-            // Import the payout service dynamically to avoid circular deps
+            // Wallet found — queue payout and mark as released
             const { tonPayoutService } = await import('./TonPayoutService');
 
             console.log(`[MonitoringService] Queueing payout: ${fullDeal.price_amount} ${fullDeal.price_currency} to ${ownerWalletAddress}`);
@@ -373,25 +381,54 @@ export class MonitoringService {
                     fullDeal.price_amount,
                     fullDeal.price_currency || 'TON'
                 );
-                console.log(`[MonitoringService] Payout queued successfully`);
+
+                // Only mark as 'released' AFTER payout is queued
+                await (supabase as any)
+                    .from('deals')
+                    .update({
+                        status: 'released',
+                        status_updated_at: new Date().toISOString()
+                    })
+                    .eq('id', deal.id);
+
+                console.log(`[MonitoringService] ✅ Payout queued, deal marked as released`);
             } catch (payoutError) {
                 console.error(`[MonitoringService] Failed to queue payout:`, payoutError);
-                // Don't fail the release - payout can be retried
+                // Payout failed — mark as payout_pending so cron can retry
+                await (supabase as any)
+                    .from('deals')
+                    .update({
+                        status: 'payout_pending',
+                        status_updated_at: new Date().toISOString()
+                    })
+                    .eq('id', deal.id);
             }
         } else {
-            console.warn(`[MonitoringService] No wallet address or 0 amount for deal ${deal.id}`);
+            // No wallet — mark as payout_pending (NOT released)
+            // DB stays honest: money hasn't moved
+            console.warn(`[MonitoringService] ⚠️ No wallet for deal ${deal.id} — marking as payout_pending`);
+
+            await (supabase as any)
+                .from('deals')
+                .update({
+                    status: 'payout_pending',
+                    status_updated_at: new Date().toISOString()
+                })
+                .eq('id', deal.id);
         }
 
         // Notify both parties
         if (bot) {
-            const message = (isOwner: boolean) => isOwner
+            const hasWallet = !!ownerWalletAddress;
+            const ownerMessage = hasWallet
                 ? `💰 **Payment Released!**\n\nYour payment for deal with **${deal.channel?.title}** has been released. The funds are now in your wallet.`
-                : `✅ **Deal Completed!**\n\nThe 24-hour monitoring period has ended. Your post stayed live and funds have been released to the channel owner.\n\nThank you for using our platform!`;
+                : `💰 **Deal Completed!**\n\nYour deal with **${deal.channel?.title}** monitoring is complete! Connect your wallet in the app to receive your payout of ${fullDeal.price_amount} ${fullDeal.price_currency}.`;
+            const advertiserMessage = `✅ **Deal Completed!**\n\nThe 24-hour monitoring period has ended. Your post stayed live and funds have been released to the channel owner.\n\nThank you for using our platform!`;
 
             // Notify advertiser
             if (deal.advertiser?.telegram_id) {
                 try {
-                    await bot.api.sendMessage(deal.advertiser.telegram_id, message(false), {
+                    await bot.api.sendMessage(deal.advertiser.telegram_id, advertiserMessage, {
                         parse_mode: 'Markdown'
                     });
                 } catch (e) { }
@@ -407,7 +444,7 @@ export class MonitoringService {
 
             if (channelAdmin?.user?.telegram_id) {
                 try {
-                    await bot.api.sendMessage(channelAdmin.user.telegram_id, message(true), {
+                    await bot.api.sendMessage(channelAdmin.user.telegram_id, ownerMessage, {
                         parse_mode: 'Markdown'
                     });
                 } catch (e) { }
