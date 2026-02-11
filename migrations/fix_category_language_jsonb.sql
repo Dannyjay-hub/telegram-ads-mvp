@@ -53,16 +53,22 @@ WHERE language IS NOT NULL
   );
 
 -- Step 3: Flatten any remaining nested arrays (e.g., [["Crypto","Gaming"]] -> ["Crypto","Gaming"])
-UPDATE channels 
+-- Uses a recursive approach that avoids set-returning functions in CASE
+UPDATE channels
 SET category = (
-  SELECT jsonb_agg(inner_elem)
-  FROM jsonb_array_elements(category) AS elem,
-       LATERAL (
-         SELECT CASE 
-           WHEN jsonb_typeof(elem) = 'array' THEN jsonb_array_elements(elem)
-           ELSE elem
-         END AS inner_elem
-       ) sub
+  SELECT jsonb_agg(val)
+  FROM (
+    -- Get scalar elements directly
+    SELECT elem AS val
+    FROM jsonb_array_elements(category) AS elem
+    WHERE jsonb_typeof(elem) != 'array'
+    UNION ALL
+    -- Flatten nested array elements
+    SELECT inner_elem AS val
+    FROM jsonb_array_elements(category) AS elem,
+         LATERAL jsonb_array_elements(elem) AS inner_elem
+    WHERE jsonb_typeof(elem) = 'array'
+  ) sub
 )
 WHERE category IS NOT NULL 
   AND jsonb_typeof(category) = 'array'
@@ -70,16 +76,19 @@ WHERE category IS NOT NULL
     SELECT 1 FROM jsonb_array_elements(category) AS t WHERE jsonb_typeof(t) = 'array'
   );
 
-UPDATE channels 
+UPDATE channels
 SET language = (
-  SELECT jsonb_agg(inner_elem)
-  FROM jsonb_array_elements(language) AS elem,
-       LATERAL (
-         SELECT CASE 
-           WHEN jsonb_typeof(elem) = 'array' THEN jsonb_array_elements(elem)
-           ELSE elem
-         END AS inner_elem
-       ) sub
+  SELECT jsonb_agg(val)
+  FROM (
+    SELECT elem AS val
+    FROM jsonb_array_elements(language) AS elem
+    WHERE jsonb_typeof(elem) != 'array'
+    UNION ALL
+    SELECT inner_elem AS val
+    FROM jsonb_array_elements(language) AS elem,
+         LATERAL jsonb_array_elements(elem) AS inner_elem
+    WHERE jsonb_typeof(elem) = 'array'
+  ) sub
 )
 WHERE language IS NOT NULL 
   AND jsonb_typeof(language) = 'array'
