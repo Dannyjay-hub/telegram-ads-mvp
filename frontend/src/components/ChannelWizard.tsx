@@ -24,7 +24,7 @@ export function ChannelWizard() {
     const [step, setStep] = useState(0)
     const [loading, setLoading] = useState(false)
     const [savingAction, setSavingAction] = useState<'draft' | 'active' | 'delete' | null>(null) // Track which action is in progress
-    const [initialLoading, setInitialLoading] = useState(false)
+    const [initialLoading, setInitialLoading] = useState(!!id)
     const [channelId, setChannelId] = useState('')
     // Removed isDraft
 

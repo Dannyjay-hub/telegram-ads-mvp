@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { Channel } from '@/lib/api';
+import { parseTagArray } from '@/lib/parseTagArray';
 
 /**
  * Debounce hook - delays value updates to prevent excessive re-renders
@@ -51,8 +52,8 @@ export const CATEGORY_OPTIONS = [
 ];
 
 export const LANGUAGE_OPTIONS = [
-    'EN', 'RU', 'ES', 'PT', 'ZH', 'AR', 'HI',
-    'FR', 'DE', 'JA', 'KO', 'ID', 'TR', 'IT'
+    'English', 'Russian', 'Spanish', 'Portuguese', 'Chinese', 'Arabic', 'Hindi',
+    'French', 'German', 'Japanese', 'Korean', 'Indonesian', 'Turkish', 'Italian', 'Other'
 ];
 
 export const SUBSCRIBER_PRESETS: { label: string; value: [number, number] | null }[] = [
@@ -118,9 +119,7 @@ export function useMarketplaceFilters(channels: Channel[]) {
 
                 // 2. Categories (OR logic - match any selected)
                 if (filters.categories.length > 0) {
-                    const channelCategories = Array.isArray(channel.category)
-                        ? channel.category
-                        : (channel.category ? [channel.category] : []);
+                    const channelCategories = parseTagArray(channel.category);
                     const hasMatch = channelCategories.some(cat =>
                         filters.categories.some(f => f.toLowerCase() === cat.toLowerCase())
                     );
@@ -129,9 +128,7 @@ export function useMarketplaceFilters(channels: Channel[]) {
 
                 // 3. Languages (OR logic)
                 if (filters.languages.length > 0) {
-                    const channelLanguages = Array.isArray(channel.language)
-                        ? channel.language
-                        : (channel.language ? [channel.language] : []);
+                    const channelLanguages = parseTagArray(channel.language);
                     const hasMatch = channelLanguages.some(lang =>
                         filters.languages.some(f => f.toLowerCase() === lang.toLowerCase())
                     );
