@@ -237,6 +237,57 @@ export function CampaignDetail() {
                 </GlassCard>
             )}
 
+            {/* Extend Campaign (expired within 24h grace period) */}
+            {campaign.status === 'expired' && campaign.expiresAt && (() => {
+                const expiredAt = new Date(campaign.expiresAt).getTime()
+                const graceEnd = expiredAt + 24 * 60 * 60 * 1000
+                const isInGrace = Date.now() < graceEnd
+                const slotsLeft = campaign.slots - campaign.slotsFilled
+                const hoursLeft = Math.max(0, Math.round((graceEnd - Date.now()) / (1000 * 60 * 60)))
+
+                if (!isInGrace || slotsLeft <= 0) return null
+
+                return (
+                    <GlassCard className="p-4 space-y-3 border-amber-500/30">
+                        <h3 className="font-semibold">Extend Campaign</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Your campaign expired but you have {hoursLeft}h left to extend it by 7 more days.
+                            {slotsLeft < campaign.slots && (
+                                <span className="text-amber-400 block mt-1">
+                                    ⚠️ {slotsLeft} of {campaign.slots} slots remaining.
+                                </span>
+                            )}
+                        </p>
+                        <Button
+                            className="w-full"
+                            onClick={async () => {
+                                setActionLoading('extend')
+                                try {
+                                    const res = await fetch(`${API_URL}/campaigns/${campaign.id}/extend`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-Telegram-Id': String(user?.telegramId || '')
+                                        }
+                                    })
+                                    if (res.ok) {
+                                        // Refresh campaign data
+                                        fetchCampaign()
+                                    }
+                                } catch (e) {
+                                    console.error('Extension failed:', e)
+                                } finally {
+                                    setActionLoading(null)
+                                }
+                            }}
+                            disabled={actionLoading === 'extend'}
+                        >
+                            {actionLoading === 'extend' ? 'Extending...' : 'Extend 7 Days'}
+                        </Button>
+                    </GlassCard>
+                )
+            })()}
+
             {/* Duplicate Campaign (for ended/expired campaigns) */}
             {(campaign.status === 'ended' || campaign.status === 'expired') && (
                 <GlassCard className="p-4 space-y-3">

@@ -723,4 +723,73 @@ campaigns.post('/:id/escrow', async (c) => {
     }
 });
 
+/**
+ * Extend an expired campaign by 7 days
+ * Works within a 24h grace period after expiration
+ * POST /campaigns/:id/extend
+ */
+campaigns.post('/:id/extend', async (c) => {
+    try {
+        const campaignId = c.req.param('id');
+        const telegramId = c.req.header('X-Telegram-ID');
+
+        if (!telegramId) {
+            return c.json({ error: 'Telegram ID required' }, 401);
+        }
+
+        // Find user
+        const user = await userRepository.findByTelegramId(Number(telegramId));
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        // Get campaign
+        const campaign = await campaignService.getCampaign(campaignId);
+        if (!campaign) {
+            return c.json({ error: 'Campaign not found' }, 404);
+        }
+
+        // Verify ownership
+        if (campaign.advertiserId !== user.id) {
+            return c.json({ error: 'Not your campaign' }, 403);
+        }
+
+        // Only expired campaigns can be extended
+        if (campaign.status !== 'expired') {
+            return c.json({ error: 'Only expired campaigns can be extended' }, 400);
+        }
+
+        // Check 24h grace period
+        const expiresAt = campaign.expiresAt ? new Date(campaign.expiresAt) : null;
+        if (expiresAt) {
+            const gracePeriodEnd = new Date(expiresAt.getTime() + 24 * 60 * 60 * 1000);
+            if (Date.now() > gracePeriodEnd.getTime()) {
+                return c.json({ error: 'Grace period has ended. Please create a new campaign.' }, 400);
+            }
+        }
+
+        // Check remaining budget
+        const slotsLeft = campaign.slots - (campaign.slotsFilled || 0);
+        if (slotsLeft <= 0) {
+            return c.json({ error: 'No slots remaining. All slots are filled.' }, 400);
+        }
+
+        // Extend by 7 days from now
+        const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        const updated = await campaignService.updateCampaign(campaignId, {
+            status: 'active',
+            expiresAt: newExpiresAt.toISOString(),
+            expiryNotified: false,
+        } as any);
+
+        console.log(`[Campaigns] Extended campaign ${campaignId} to ${newExpiresAt.toISOString()}`);
+
+        return c.json({ campaign: updated, message: 'Campaign extended by 7 days' });
+    } catch (error: any) {
+        console.error('[Campaigns] Extension error:', error);
+        return c.json({ error: error.message || 'Failed to extend campaign' }, 400);
+    }
+});
+
 export default campaigns;
