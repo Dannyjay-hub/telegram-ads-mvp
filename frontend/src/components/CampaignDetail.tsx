@@ -237,6 +237,38 @@ export function CampaignDetail() {
                 </GlassCard>
             )}
 
+            {/* Duplicate Campaign (for ended/expired campaigns) */}
+            {(campaign.status === 'ended' || campaign.status === 'expired') && (
+                <GlassCard className="p-4 space-y-3">
+                    <h3 className="font-semibold">Run Again?</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Create a new campaign with the same details. A fresh escrow deposit will be required.
+                    </p>
+                    <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => navigate('/campaigns/create', {
+                            state: {
+                                duplicateFrom: {
+                                    title: campaign.title,
+                                    brief: campaign.brief,
+                                    perChannelBudget: campaign.perChannelBudget,
+                                    currency: campaign.currency,
+                                    slots: campaign.slots,
+                                    campaignType: campaign.campaignType,
+                                    minSubscribers: campaign.minSubscribers,
+                                    maxSubscribers: campaign.maxSubscribers,
+                                    requiredLanguages: campaign.requiredLanguages,
+                                    requiredCategories: campaign.requiredCategories,
+                                }
+                            }
+                        })}
+                    >
+                        Duplicate Campaign
+                    </Button>
+                </GlassCard>
+            )}
+
 
         </div>
     )

@@ -108,6 +108,30 @@ export function CampaignWizard() {
             return
         }
 
+        // Check if duplicating a campaign
+        const duplicateFrom = location.state?.duplicateFrom
+        if (duplicateFrom) {
+            setFormData({
+                ...DEFAULT_FORM_DATA,
+                title: duplicateFrom.title ? `${duplicateFrom.title} (Copy)` : '',
+                brief: duplicateFrom.brief || '',
+                slots: duplicateFrom.slots || 3,
+                perChannelBudget: duplicateFrom.perChannelBudget ? String(duplicateFrom.perChannelBudget) : '',
+                currency: duplicateFrom.currency || 'TON',
+                requiredLanguages: duplicateFrom.requiredLanguages || [],
+                requiredCategories: duplicateFrom.requiredCategories || [],
+                minSubscribers: duplicateFrom.minSubscribers ? String(duplicateFrom.minSubscribers) : '',
+                maxSubscribers: duplicateFrom.maxSubscribers ? String(duplicateFrom.maxSubscribers) : '',
+                campaignType: duplicateFrom.campaignType || 'open',
+                expiresInDays: '7' // Fresh deadline
+            })
+            // No campaign ID — this is a new draft
+            setCampaignId(null)
+            setStep(0)
+            localStorage.removeItem(DRAFT_KEY)
+            return
+        }
+
         // Fresh create - clear any old localStorage draft
         // User must explicitly use "Resume" button to restore a draft
         localStorage.removeItem(DRAFT_KEY)
