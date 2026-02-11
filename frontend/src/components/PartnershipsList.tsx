@@ -323,16 +323,14 @@ export function PartnershipsList() {
                                             <p className="text-xs text-muted-foreground">@{deal.channel.username}</p>
                                         )}
 
-                                        {/* Price and Memo */}
+                                        {/* Price and Deal ID */}
                                         <div className="flex items-center gap-4 mt-2 text-sm">
                                             <span className="flex items-center gap-1 text-green-400">
                                                 <DollarSign className="w-3 h-3" />
                                                 {deal.priceAmount} {deal.priceCurrency}
                                             </span>
 
-                                            {deal.paymentMemo && (
-                                                <CopyMemo memo={deal.paymentMemo} />
-                                            )}
+                                            <CopyMemo memo={deal.paymentMemo || deal.id} />
                                         </div>
                                     </div>
                                 </div>
