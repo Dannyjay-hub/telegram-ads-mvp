@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye } from 'lucide-react'
 import { API_URL, getHeaders, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
-import { openTelegramLink } from '@/lib/telegram'
+import { openTelegramLink, getBotUrl, getBotDeepLinkUrl } from '@/lib/telegram'
 import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
 import { TimePickerModal } from './TimePickerModal'
 
@@ -171,13 +171,13 @@ export function ChannelOwnerPartnerships() {
 
     const openBot = () => {
         haptic.light()
-        openTelegramLink('https://t.me/DanielAdsMVP_bot')
+        openTelegramLink(getBotUrl())
     }
 
     // Deep link to bot for specific actions
     const openBotDeepLink = (path: string) => {
         haptic.light()
-        openTelegramLink(`https://t.me/DanielAdsMVP_bot?start=${path}`)
+        openTelegramLink(getBotDeepLinkUrl(path))
     }
 
     // Open time picker with existing proposal if any
@@ -209,7 +209,7 @@ export function ChannelOwnerPartnerships() {
     // Open support for failed posts
     const openSupport = () => {
         haptic.light()
-        openTelegramLink('https://t.me/DanielAdsMVP_bot')
+        openTelegramLink(getBotUrl())
     }
 
     // Categorize deals - Pending = accept/reject only, Active = working, Ended = done

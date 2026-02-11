@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { tonPayoutService } from './TonPayoutService';
 import { notifyDealStatusChange, notifyNewDealRequest, notifyPaymentConfirmed } from './NotificationService';
 import { supabase } from '../db';
+import { getMiniAppUrl } from '../botInstance';
 import { SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 
 const campaignRepository = new SupabaseCampaignRepository();
@@ -371,7 +372,7 @@ export class DealService {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [
-                                        [{ text: '📝 Create Draft', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }]
+                                        [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${dealId}`) }]
                                     ]
                                 }
                             }
@@ -401,7 +402,7 @@ export class DealService {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [
-                                        [{ text: '📋 View Details', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${dealId}` }]
+                                        [{ text: '📋 View Details', url: getMiniAppUrl(`deal_${dealId}`) }]
                                     ]
                                 }
                             }
@@ -433,7 +434,7 @@ export class DealService {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [
-                                        [{ text: '📝 Create Draft', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }]
+                                        [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${dealId}`) }]
                                     ]
                                 }
                             }

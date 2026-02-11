@@ -1,4 +1,5 @@
 import { supabase } from '../db';
+import { getMiniAppUrl } from '../botInstance';
 import { bot } from '../botInstance';
 
 /**
@@ -97,7 +98,7 @@ export class SchedulingService {
                                     parse_mode: 'Markdown',
                                     reply_markup: {
                                         inline_keyboard: [[
-                                            { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }
+                                            { text: '📱 View Partnership', url: getMiniAppUrl(`owner_deal_${dealId}`) }
                                         ]]
                                     }
                                 }
@@ -136,7 +137,7 @@ export class SchedulingService {
                                     parse_mode: 'Markdown',
                                     reply_markup: {
                                         inline_keyboard: [[
-                                            { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${dealId}` }
+                                            { text: '📱 View Partnership', url: getMiniAppUrl(`deal_${dealId}`) }
                                         ]]
                                     }
                                 }
@@ -258,7 +259,7 @@ export class SchedulingService {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [[
-                                        { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${dealId}` }
+                                        { text: '📱 View Partnership', url: getMiniAppUrl(`deal_${dealId}`) }
                                     ]]
                                 }
                             }
@@ -286,7 +287,7 @@ export class SchedulingService {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [[
-                                        { text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }
+                                        { text: '📱 View Partnership', url: getMiniAppUrl(`owner_deal_${dealId}`) }
                                     ]]
                                 }
                             }

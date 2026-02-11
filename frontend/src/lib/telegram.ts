@@ -5,6 +5,21 @@
 
 import { haptic } from '@/utils/haptic';
 
+// Bot username - configurable via env var
+export const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME || 'DanielAdsMVP_bot';
+
+/** Get the base bot URL, e.g. https://t.me/BotName */
+export function getBotUrl(): string {
+    return `https://t.me/${BOT_USERNAME}`;
+}
+
+/** Get a bot deep link URL, e.g. https://t.me/BotName?start=support */
+export function getBotDeepLinkUrl(startParam?: string): string {
+    const base = getBotUrl();
+    return startParam ? `${base}?start=${startParam}` : base;
+}
+
+
 // Get WebApp at call time, not module load time
 const getWebApp = () => (window as any).Telegram?.WebApp;
 

@@ -3,6 +3,7 @@ import { Megaphone, Store, Handshake, Tv, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
 import { haptic } from '@/utils/haptic'
+import { getBotDeepLinkUrl } from '@/lib/telegram'
 
 export function ChannelOwnerDashboard() {
     const navigate = useNavigate()
@@ -10,7 +11,7 @@ export function ChannelOwnerDashboard() {
     const openSupport = () => {
         haptic.light();
         // Open support bot conversation
-        const url = 'https://t.me/DanielAdsMVP_bot?start=support';
+        const url = getBotDeepLinkUrl('support');
         if ((window as any).Telegram?.WebApp?.openTelegramLink) {
             (window as any).Telegram.WebApp.openTelegramLink(url);
         } else {

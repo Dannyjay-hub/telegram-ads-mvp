@@ -132,11 +132,12 @@ export function EscrowPaymentPage() {
         setVerifying(true)
         setLoading(false)
 
-        // Poll for campaign activation (webhook will update status to 'active')
+        // Poll for campaign activation (webhook/polling will update status)
         let pollCount = 0
-        const maxPolls = 45 // 45 seconds max (every 1 second)
+        const maxPolls = 60 // ~2 minutes with increasing intervals
+        let currentInterval = 1000 // Start at 1s, gradually increase
 
-        const interval = setInterval(async () => {
+        const poll = async () => {
             pollCount++
 
             try {
@@ -148,16 +149,13 @@ export function EscrowPaymentPage() {
                 const data = await res.json()
 
                 // Check if campaign was funded and activated
-                // Use EXPLICIT success statuses to avoid matching error states
                 const SUCCESS_STATUSES = ['active', 'funded', 'confirmed', 'filled']
                 const isSuccess = SUCCESS_STATUSES.includes(data.status) || data.escrowDeposited > 0
 
                 console.log(`[EscrowPayment] Poll ${pollCount}: status=${data.status}, escrowDeposited=${data.escrowDeposited}, isSuccess=${isSuccess}`)
 
                 if (isSuccess) {
-                    clearInterval(interval)
                     setVerifying(false)
-                    // Navigate to My Campaigns so user can see their campaign
                     navigate('/campaigns', {
                         replace: true,
                         state: { paymentSuccess: true, campaignId: campaign.id }
@@ -168,21 +166,26 @@ export function EscrowPaymentPage() {
                 console.error('Poll error:', e)
             }
 
-            // Timeout after max polls - show message then redirect
+            // Timeout - redirect gracefully (payment may still be processing on chain)
             if (pollCount >= maxPolls) {
-                clearInterval(interval)
                 setVerifying(false)
-                console.log('[EscrowPayment] Timeout - showing message then redirecting')
-                // Show brief message before redirect
-                setError('Payment is processing. Redirecting to your campaigns...')
-                setTimeout(() => {
-                    navigate('/campaigns', {
-                        replace: true,
-                        state: { paymentPending: true, campaignId: campaign?.id }
-                    })
-                }, 2000)
+                console.log('[EscrowPayment] Timeout - redirecting with pending state')
+                navigate('/campaigns', {
+                    replace: true,
+                    state: { paymentPending: true, campaignId: campaign?.id }
+                })
+                return
             }
-        }, 1000) // Poll every 1 second for faster detection
+
+            // Gradually increase interval: 1s for first 15, 2s for next 15, 3s after that
+            if (pollCount > 30) currentInterval = 3000
+            else if (pollCount > 15) currentInterval = 2000
+
+            setTimeout(poll, currentInterval)
+        }
+
+        // Start first poll after 1 second
+        setTimeout(poll, 1000)
     }
 
     if (loading && !campaign) {

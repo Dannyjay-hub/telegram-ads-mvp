@@ -68,8 +68,8 @@ export async function register_channel(channelData: ChannelInsert) {
     // We expect basic stats to be passed in channelData.verified_stats if coming from the wizard
     // But for now, let's keep the random views/premium rank since we can't fetch them easily via Bot API
     const mockViewStats = {
-        avg_views: Math.floor(Math.random() * 5000) + 500,
-        premium_rank: Math.floor(Math.random() * 100)
+        avg_views: 0, // Real data will come from MTProto GetBroadcastStats
+        premium_rank: 0
     };
 
     // Merge provided stats (like subscribers from verification) with mock view stats

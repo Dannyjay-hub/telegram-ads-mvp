@@ -1,6 +1,7 @@
 import { campaignRepository, SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
+import { getMiniAppUrl } from '../botInstance';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 import { Campaign, CampaignApplication, CampaignInsert, CampaignUpdate, Channel } from '../domain/entities';
 
@@ -330,7 +331,7 @@ export class CampaignService {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${deal.id}` }]
+                                [{ text: '📱 View Partnership', url: getMiniAppUrl(`deal_${deal.id}`) }]
                             ]
                         }
                     }
@@ -351,7 +352,7 @@ export class CampaignService {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '📝 Create Draft', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${deal.id}` }]
+                                [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }]
                             ]
                         }
                     }
@@ -410,7 +411,7 @@ export class CampaignService {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '📱 Review Application', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=partnerships` }]
+                                [{ text: '📱 Review Application', url: getMiniAppUrl('partnerships') }]
                             ]
                         }
                     }

@@ -148,7 +148,7 @@ function AppContent() {
   }
 
   return (
-    <div className="h-full w-full bg-background transition-colors duration-300 flex flex-col overflow-hidden">
+    <div className="min-h-screen w-full bg-background transition-colors duration-300">
 
       {/* Global Fixed WalletButton - centered in Telegram header safe area (like giveaway-tool) */}
       <div
@@ -165,38 +165,35 @@ function AppContent() {
 
       {/* Content - uses CSS variable for proper top padding below Telegram header */}
       <div
-        className="relative z-10 px-4 max-w-md mx-auto flex-1 overflow-hidden flex flex-col"
+        className="relative z-10 p-4 max-w-md mx-auto"
         style={{
           paddingTop: 'calc(var(--tg-header-height, 56px) + 16px)'
         }}
       >
-
-        <div className="flex-1 overflow-y-auto min-h-0" style={{ overscrollBehavior: 'contain' }}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/advertiser" element={<AdvertiserDashboard />} />
-            <Route path="/channel-owner" element={<ChannelOwnerDashboard />} />
-            <Route path="/create" element={<CampaignWizard />} />
-            <Route path="/campaign/create" element={<CampaignWizard />} />
-            <Route path="/campaign/create" element={<CampaignWizard />} />
-            <Route path="/campaigns" element={<CampaignsList />} />
-            <Route path="/campaigns/marketplace" element={<CampaignMarketplace />} />
-            <Route path="/campaigns/marketplace/:id" element={<MarketplaceCampaignDetail />} />
-            <Route path="/campaigns/escrow" element={<EscrowPaymentPage />} />
-            <Route path="/campaigns/:id" element={<CampaignDetail />} />
-            <Route path="/channels/new" element={<ChannelWizard />} />
-            <Route path="/channels/edit/:id" element={<ChannelWizard />} />
-            <Route path="/channels/:id/view" element={<ChannelViewPage />} />
-            <Route path="/channels/:id/settings" element={<ChannelWizard />} />
-            <Route path="/marketplace/channel/:id" element={<ChannelViewPage />} />
-            <Route path="/channels/my" element={<MyChannelsPage />} />
-            <Route path="/channels/dashboard" element={<ChannelOwnerDashboard />} />
-            <Route path="/channels/partnerships" element={<ChannelOwnerPartnerships />} />
-            <Route path="/marketplace" element={<MarketplaceContainer />} />
-            <Route path="/marketplace/requests" element={<MarketplaceContainer />} />
-            <Route path="/partnerships" element={<PartnershipsList />} />
-          </Routes>
-        </div>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/advertiser" element={<AdvertiserDashboard />} />
+          <Route path="/channel-owner" element={<ChannelOwnerDashboard />} />
+          <Route path="/create" element={<CampaignWizard />} />
+          <Route path="/campaign/create" element={<CampaignWizard />} />
+          <Route path="/campaign/create" element={<CampaignWizard />} />
+          <Route path="/campaigns" element={<CampaignsList />} />
+          <Route path="/campaigns/marketplace" element={<CampaignMarketplace />} />
+          <Route path="/campaigns/marketplace/:id" element={<MarketplaceCampaignDetail />} />
+          <Route path="/campaigns/escrow" element={<EscrowPaymentPage />} />
+          <Route path="/campaigns/:id" element={<CampaignDetail />} />
+          <Route path="/channels/new" element={<ChannelWizard />} />
+          <Route path="/channels/edit/:id" element={<ChannelWizard />} />
+          <Route path="/channels/:id/view" element={<ChannelViewPage />} />
+          <Route path="/channels/:id/settings" element={<ChannelWizard />} />
+          <Route path="/marketplace/channel/:id" element={<ChannelViewPage />} />
+          <Route path="/channels/my" element={<MyChannelsPage />} />
+          <Route path="/channels/dashboard" element={<ChannelOwnerDashboard />} />
+          <Route path="/channels/partnerships" element={<ChannelOwnerPartnerships />} />
+          <Route path="/marketplace" element={<MarketplaceContainer />} />
+          <Route path="/marketplace/requests" element={<MarketplaceContainer />} />
+          <Route path="/partnerships" element={<PartnershipsList />} />
+        </Routes>
       </div>
     </div>
   )

@@ -360,7 +360,7 @@ export function ChannelViewPage() {
 
     const subscribers = channel.verifiedStats?.subscribers || 0
     const avgViews = channel.avgViews || 0
-    const engagement = subscribers > 0 ? ((avgViews / subscribers) * 100).toFixed(1) : '0'
+    const engagement = subscribers > 0 && avgViews > 0 ? ((avgViews / subscribers) * 100).toFixed(1) : null
 
     return (
         <div className="pb-20 max-w-lg mx-auto p-4">
@@ -447,12 +447,12 @@ export function ChannelViewPage() {
                     </div>
                     <div>
                         <Eye className="w-5 h-5 mx-auto mb-1 text-primary/60" />
-                        <p className="text-xl font-bold">{avgViews.toLocaleString()}</p>
+                        <p className="text-xl font-bold">{avgViews > 0 ? avgViews.toLocaleString() : '—'}</p>
                         <p className="text-xs text-muted-foreground">Avg Views</p>
                     </div>
                     <div>
                         <TrendingUp className="w-5 h-5 mx-auto mb-1 text-primary/60" />
-                        <p className="text-xl font-bold">{engagement}%</p>
+                        <p className="text-xl font-bold">{engagement ? `${engagement}%` : '—'}</p>
                         <p className="text-xs text-muted-foreground">Engagement</p>
                     </div>
                 </div>

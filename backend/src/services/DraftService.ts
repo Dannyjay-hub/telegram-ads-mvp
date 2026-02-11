@@ -1,4 +1,5 @@
 import { supabase } from '../db';
+import { getMiniAppUrl } from '../botInstance';
 import { bot } from '../botInstance';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
@@ -218,7 +219,7 @@ export class DraftService {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '📱 Review Draft', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${dealId}` }]
+                                [{ text: '📱 Review Draft', url: getMiniAppUrl(`deal_${dealId}`) }]
                             ]
                         }
                     }
@@ -241,7 +242,7 @@ export class DraftService {
                             parse_mode: 'Markdown',
                             reply_markup: {
                                 inline_keyboard: [
-                                    [{ text: '📱 View Partnership', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }]
+                                    [{ text: '📱 View Partnership', url: getMiniAppUrl(`owner_deal_${dealId}`) }]
                                 ]
                             }
                         }

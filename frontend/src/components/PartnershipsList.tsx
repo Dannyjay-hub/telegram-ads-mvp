@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, Eye, Calendar, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react'
 import { API_URL, getHeaders, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
-import { openTelegramLink } from '@/lib/telegram'
+import { openTelegramLink, getBotUrl, getBotDeepLinkUrl } from '@/lib/telegram'
 import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
 import { TimePickerModal } from './TimePickerModal'
 
@@ -152,13 +152,13 @@ export function PartnershipsList() {
 
     const openBot = () => {
         haptic.light()
-        openTelegramLink('https://t.me/DanielAdsMVP_bot')
+        openTelegramLink(getBotUrl())
     }
 
     // Deep link to bot for specific actions
     const openBotDeepLink = (path: string) => {
         haptic.light()
-        openTelegramLink(`https://t.me/DanielAdsMVP_bot?start=${path}`)
+        openTelegramLink(getBotDeepLinkUrl(path))
     }
 
     // Open time picker with existing proposal if any

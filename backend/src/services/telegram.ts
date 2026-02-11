@@ -102,8 +102,8 @@ export async function getChannelStats(channelId: string | number) {
             username: chat.username || undefined,
             description: chat.description || undefined,
             photoUrl: photoUrl,
-            // MVP Heuristic: Avg Views is roughly 15-25% of subscribers for active channels
-            avg_views: Math.floor(count * (0.15 + Math.random() * 0.1))
+            // Real avg views will come from MTProto GetBroadcastStats
+            avg_views: 0
         };
 
     } catch (e: any) {

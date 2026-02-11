@@ -4,12 +4,13 @@ import { Rocket, ListChecks, Store, Handshake, MessageCircle, ExternalLink } fro
 import { GlassCard, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { openTelegramLink } from '@/lib/telegram'
+import { getBotUrl } from '@/lib/telegram'
 
 export function AdvertiserCard() {
     const navigate = useNavigate()
 
     const openBot = () => {
-        openTelegramLink('https://t.me/DanielAdsMVP_bot')
+        openTelegramLink(getBotUrl())
     }
 
     const actions = [

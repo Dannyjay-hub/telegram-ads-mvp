@@ -17,8 +17,9 @@ import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRep
  *  - approve_draft_{dealId} - Approve the draft
  *  - changes_draft_{dealId} - Request changes
  */
+import { getMiniAppUrl, getBotDeepLink } from '../botInstance';
 
-const MINI_APP_URL = 'https://t.me/DanielAdsMVP_bot/marketplace';
+const MINI_APP_URL = getMiniAppUrl();
 
 export function registerPostEscrowHandlers(bot: Bot<Context>) {
     const draftService = new DraftService();
@@ -403,7 +404,7 @@ async function handleSubmitDraft(
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [[
-                                { text: '👁 Review Draft', url: `https://t.me/DanielAdsMVP_bot?start=review_${dealId}` }
+                                { text: '👁 Review Draft', url: getBotDeepLink(`review_${dealId}`) }
                             ]]
                         }
                     }
@@ -543,7 +544,7 @@ async function handleFeedbackReceived(
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [[
-                                        { text: '📝 Revise Draft', url: `https://t.me/DanielAdsMVP_bot?start=draft_${dealId}` }
+                                        { text: '📝 Revise Draft', url: getBotDeepLink(`draft_${dealId}`) }
                                     ]]
                                 }
                             }
@@ -654,7 +655,7 @@ async function handleChatMessage(
                     parse_mode: 'Markdown',
                     reply_markup: {
                         inline_keyboard: [[
-                            { text: '💬 Reply', url: `https://t.me/DanielAdsMVP_bot?start=chat_${dealId}` }
+                            { text: '💬 Reply', url: getBotDeepLink(`chat_${dealId}`) }
                         ]]
                     }
                 }

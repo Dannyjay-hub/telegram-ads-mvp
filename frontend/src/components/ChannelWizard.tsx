@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus, Pencil, Wallet } from 'lucide-react'
 import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { showAlert, showConfirm, openTelegramLink, showSuccess, showError } from '@/lib/telegram'
+import { showAlert, showConfirm, openTelegramLink, showSuccess, showError, getBotUrl, BOT_USERNAME } from '@/lib/telegram'
 import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons'
 import { useTonWallet } from '@/hooks/useTonWallet'
 import { parseTagArray } from '@/lib/parseTagArray'
@@ -372,7 +372,7 @@ export function ChannelWizard() {
                                 <div className="bg-blue-500/20 border border-blue-500/30 p-4 rounded-lg space-y-3">
                                     <h3 className="font-bold text-blue-100">1. Setup Instructions</h3>
                                     <p className="text-sm text-blue-50 font-medium leading-relaxed">
-                                        Add our bot <span className="text-blue-300 hover:text-blue-200 cursor-pointer underline font-bold" onClick={() => openTelegramLink('https://t.me/DanielAdsMVP_bot')}>@DanielAdsMVP_bot</span> as an Administrator to your channel with permission to <b>Post Messages</b> and <b>Stories</b>.
+                                        Add our bot <span className="text-blue-300 hover:text-blue-200 cursor-pointer underline font-bold" onClick={() => openTelegramLink(getBotUrl())}>@{BOT_USERNAME}</span> as an Administrator to your channel with permission to <b>Post Messages</b> and <b>Stories</b>.
                                     </p>
                                 </div>
 

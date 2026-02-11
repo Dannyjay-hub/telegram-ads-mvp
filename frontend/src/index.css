@@ -144,18 +144,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
-    overflow: hidden;
-    height: 100%;
-  }
-
-  html {
-    overflow: hidden;
-    height: 100%;
-  }
-
-  #root {
-    height: 100%;
-    overflow: hidden;
+    /* Prevent iOS rubber-band bounce without blocking scroll */
   }
 }
 

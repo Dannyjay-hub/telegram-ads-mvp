@@ -1,5 +1,6 @@
-import { bot } from '../botInstance';
+import { bot, getMiniAppUrl } from '../botInstance';
 
+const MINI_APP_URL = getMiniAppUrl();
 /**
  * NotificationService - Handles sending Telegram bot notifications to users
  * 
@@ -10,8 +11,6 @@ import { bot } from '../botInstance';
  * within a 30-second window (prevents double-clicks, race conditions)
  */
 
-// Mini App URL - update this if bot username or app short name changes
-const MINI_APP_URL = 'https://t.me/DanielAdsMVP_bot/marketplace';
 
 // ========== NOTIFICATION DEDUPLICATION ==========
 // Prevents duplicate notifications within a time window
