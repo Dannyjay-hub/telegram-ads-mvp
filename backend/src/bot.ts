@@ -206,6 +206,80 @@ if (bot) {
 
     // 6. Text Handler - Relay Logic
 
+    // 7. Deal Rating Callback Handler
+    bot.on('callback_query:data', async (ctx) => {
+        const data = ctx.callbackQuery.data;
+        if (!data.startsWith('rate_deal:')) return;
+
+        const parts = data.split(':');
+        if (parts.length !== 3) return;
+
+        const dealId = parts[1];
+        const rating = parseInt(parts[2], 10);
+
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+            await ctx.answerCallbackQuery({ text: 'Invalid rating' });
+            return;
+        }
+
+        try {
+            const { supabase } = await import('./db');
+
+            // Check if already rated
+            const { data: deal } = await (supabase as any)
+                .from('deals')
+                .select('id, rating, channel_id')
+                .eq('id', dealId)
+                .single();
+
+            if (!deal) {
+                await ctx.answerCallbackQuery({ text: 'Deal not found' });
+                return;
+            }
+
+            if (deal.rating) {
+                await ctx.answerCallbackQuery({ text: `Already rated ${deal.rating} ⭐` });
+                return;
+            }
+
+            // Save rating to deal
+            await (supabase as any)
+                .from('deals')
+                .update({ rating })
+                .eq('id', dealId);
+
+            // Update channel avg_rating and total_ratings
+            const { data: channelRatings } = await (supabase as any)
+                .from('deals')
+                .select('rating')
+                .eq('channel_id', deal.channel_id)
+                .not('rating', 'is', null);
+
+            if (channelRatings && channelRatings.length > 0) {
+                const avg = channelRatings.reduce((sum: number, d: any) => sum + d.rating, 0) / channelRatings.length;
+                await (supabase as any)
+                    .from('channels')
+                    .update({
+                        avg_rating: Math.round(avg * 100) / 100,
+                        total_ratings: channelRatings.length
+                    })
+                    .eq('id', deal.channel_id);
+            }
+
+            // Edit the message to show the selected rating and remove buttons
+            const stars = '⭐'.repeat(rating);
+            await ctx.editMessageText(
+                `✅ **Deal Completed!**\n\nThe 24-hour monitoring period has ended. Your post stayed live and funds have been released to the channel owner.\n\nYour rating: ${stars} (${rating}/5)\n\nThank you for using our platform!`,
+                { parse_mode: 'Markdown' }
+            );
+
+            await ctx.answerCallbackQuery({ text: `Rated ${rating} ⭐ — Thank you!` });
+        } catch (e) {
+            console.error('Rating error:', e);
+            await ctx.answerCallbackQuery({ text: 'Failed to save rating' });
+        }
+    });
+
     // Error handling
     bot.catch((err) => {
         console.error('Bot error:', err);

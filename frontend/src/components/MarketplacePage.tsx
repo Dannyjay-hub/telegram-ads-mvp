@@ -176,12 +176,12 @@ export function MarketplacePage() {
                                 {/* Stats Row */}
                                 <div className="flex items-center gap-3 text-[13px] text-muted-foreground mb-3">
                                     {/* Rating */}
-                                    {(channel as any).rating ? (
+                                    {(channel as any).avg_rating ? (
                                         <span className="flex items-center gap-1">
                                             <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                                            {(channel as any).rating.toFixed(1)}
+                                            {Number((channel as any).avg_rating).toFixed(1)}
                                             <span className="text-muted-foreground/60">
-                                                ({(channel as any).ratingCount || 0})
+                                                ({(channel as any).total_ratings || 0})
                                             </span>
                                         </span>
                                     ) : (
