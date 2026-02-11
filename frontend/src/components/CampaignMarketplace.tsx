@@ -134,6 +134,23 @@ export function CampaignMarketplace() {
                     />
                 </div>
 
+                {/* Channel Selector (Channel Owners) */}
+                {userChannels.length > 0 && (
+                    <div className="mb-3">
+                        <select
+                            className="w-full bg-transparent border border-input rounded-md px-3 py-2 text-sm"
+                            value={selectedChannel || ''}
+                            onChange={e => setSelectedChannel(e.target.value)}
+                        >
+                            {userChannels.map(ch => (
+                                <option key={ch.id} value={ch.id}>
+                                    {ch.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 {/* Filter + Sort Row */}
                 <div className="flex items-center justify-between gap-3 mb-2">
                     {/* Budget Filter */}
@@ -241,26 +258,8 @@ export function CampaignMarketplace() {
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto pb-20" style={{ overscrollBehavior: 'contain' }}>
+            <div className="flex-1 overflow-y-auto scrollbar-hide pb-4">
                 <div className="space-y-3">
-                    {/* Channel Selector */}
-                    {userChannels.length > 0 && (
-                        <GlassCard className="p-3">
-                            <label className="text-xs font-medium text-muted-foreground mb-2 block">Apply as:</label>
-                            <select
-                                className="w-full bg-transparent border border-input rounded-md px-3 py-2 text-sm"
-                                value={selectedChannel || ''}
-                                onChange={e => setSelectedChannel(e.target.value)}
-                            >
-                                {userChannels.map(ch => (
-                                    <option key={ch.id} value={ch.id}>
-                                        {ch.title}
-                                    </option>
-                                ))}
-                            </select>
-                        </GlassCard>
-                    )}
-
                     {/* Empty State for No Channels */}
                     {userChannels.length === 0 && (
                         <GlassCard className="p-4 text-center">

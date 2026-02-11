@@ -167,6 +167,17 @@
   @apply bg-card rounded-[14px] p-4 border border-border/50;
 }
 
+/* Scrollbar-hide utility: hides scrollbar, prevents overscroll bounce */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  overscroll-behavior-y: contain;
+}
+
 /* Telegram Button Styles */
 .tg-button {
   @apply h-[50px] rounded-[14px] text-[17px] font-semibold px-4;

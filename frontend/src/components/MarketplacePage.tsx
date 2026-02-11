@@ -116,7 +116,7 @@ export function MarketplacePage() {
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto pb-20">
+            <div className="flex-1 overflow-y-auto scrollbar-hide pb-4">
                 <div className="space-y-3">
                     {loading ? (
                         // Loading Skeletons

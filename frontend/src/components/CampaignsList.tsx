@@ -104,130 +104,136 @@ export function CampaignsList() {
     }
 
     return (
-        <div className="space-y-6 pb-24">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-bold">Your Campaigns</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
-                    </p>
-                </div>
-                <Button onClick={() => navigate('/campaign/create')} size="sm">
-                    <Plus className="w-4 h-4 mr-1" />
-                    New
-                </Button>
-            </div>
-
-            {error && (
-                <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                    {error}
-                </div>
-            )}
-
-            {campaigns.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground border border-dashed border-white/10 rounded-xl">
-                    <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
-                    <h3 className="font-bold text-lg mb-2">No campaigns yet</h3>
-                    <p className="mb-4 text-sm max-w-xs mx-auto">
-                        Create your first campaign to start promoting your product to channel owners.
-                    </p>
-                    <Button onClick={() => navigate('/campaign/create')}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Campaign
+        <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
+            {/* Pinned Header */}
+            <div className="flex-shrink-0 pb-4">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <h1 className="text-xl font-bold">Your Campaigns</h1>
+                        <p className="text-sm text-muted-foreground">
+                            {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
+                        </p>
+                    </div>
+                    <Button onClick={() => navigate('/campaign/create')} size="sm">
+                        <Plus className="w-4 h-4 mr-1" />
+                        New
                     </Button>
                 </div>
-            ) : (
-                <div className="space-y-3">
-                    {campaigns.map(campaign => {
-                        // Calculate effective status (account for expired campaigns still marked as 'active')
-                        let effectiveStatus = campaign.status
-                        if (campaign.status === 'active' && campaign.expiresAt) {
-                            if (new Date(campaign.expiresAt) < new Date()) {
-                                effectiveStatus = 'expired'
-                            }
-                        }
-                        const statusConfig = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.draft
-                        const timeLeft = getTimeLeft(campaign.expiresAt)
+            </div>
 
-                        return (
-                            <GlassCard
-                                key={campaign.id}
-                                className="cursor-pointer hover:bg-white/5 transition-all p-4"
-                                onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                            >
-                                <div className="flex items-start justify-between gap-3 mb-3">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-bold text-lg truncate">{campaign.title || 'Untitled Campaign'}</h3>
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusConfig.color} flex items-center gap-1`}>
-                                                <statusConfig.icon className="w-3 h-3" />
-                                                {statusConfig.label}
+            {/* Scrollable Campaign List */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {error && (
+                    <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                        {error}
+                    </div>
+                )}
+
+                {campaigns.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground border border-dashed border-white/10 rounded-xl">
+                        <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                        <h3 className="font-bold text-lg mb-2">No campaigns yet</h3>
+                        <p className="mb-4 text-sm max-w-xs mx-auto">
+                            Create your first campaign to start promoting your product to channel owners.
+                        </p>
+                        <Button onClick={() => navigate('/campaign/create')}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Campaign
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {campaigns.map(campaign => {
+                            // Calculate effective status (account for expired campaigns still marked as 'active')
+                            let effectiveStatus = campaign.status
+                            if (campaign.status === 'active' && campaign.expiresAt) {
+                                if (new Date(campaign.expiresAt) < new Date()) {
+                                    effectiveStatus = 'expired'
+                                }
+                            }
+                            const statusConfig = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.draft
+                            const timeLeft = getTimeLeft(campaign.expiresAt)
+
+                            return (
+                                <GlassCard
+                                    key={campaign.id}
+                                    className="cursor-pointer hover:bg-white/5 transition-all p-4"
+                                    onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                                >
+                                    <div className="flex items-start justify-between gap-3 mb-3">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="font-bold text-lg truncate">{campaign.title || 'Untitled Campaign'}</h3>
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusConfig.color} flex items-center gap-1`}>
+                                                    <statusConfig.icon className="w-3 h-3" />
+                                                    {statusConfig.label}
+                                                </span>
+                                            </div>
+
+                                            <p className="text-sm text-muted-foreground line-clamp-1">
+                                                {campaign.brief}
+                                            </p>
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                                        <div className="bg-white/5 rounded p-2 flex flex-col">
+                                            <span className="text-muted-foreground mb-0.5">Budget</span>
+                                            <span className="font-mono font-bold text-primary">
+                                                {campaign.totalBudget} {campaign.currency}
                                             </span>
                                         </div>
-
-                                        <p className="text-sm text-muted-foreground line-clamp-1">
-                                            {campaign.brief}
-                                        </p>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                                    <div className="bg-white/5 rounded p-2 flex flex-col">
-                                        <span className="text-muted-foreground mb-0.5">Budget</span>
-                                        <span className="font-mono font-bold text-primary">
-                                            {campaign.totalBudget} {campaign.currency}
-                                        </span>
-                                    </div>
-                                    <div className="bg-white/5 rounded p-2 flex flex-col">
-                                        <span className="text-muted-foreground mb-0.5">Slots</span>
-                                        <span className="font-medium">
-                                            {campaign.slotsFilled} / {campaign.slots}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
-                                    <span className={`capitalize px-2 py-0.5 rounded-full ${campaign.campaignType === 'open' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
-                                        }`}>
-                                        {campaign.campaignType} Campaign
-                                    </span>
-                                    {campaign.status === 'draft' ? (
-                                        <div className="flex gap-1.5">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="h-7 px-3 gap-1"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    navigate('/campaign/create', { state: { resumeDraft: campaign } })
-                                                }}
-                                            >
-                                                <Play className="w-3 h-3" />
-                                                Resume
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                                                onClick={(e) => deleteDraft(campaign.id, e)}
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </Button>
+                                        <div className="bg-white/5 rounded p-2 flex flex-col">
+                                            <span className="text-muted-foreground mb-0.5">Slots</span>
+                                            <span className="font-medium">
+                                                {campaign.slotsFilled} / {campaign.slots}
+                                            </span>
                                         </div>
-                                    ) : timeLeft && campaign.status === 'active' && (
-                                        <span className="flex items-center gap-1 text-amber-400">
-                                            <Clock className="w-3 h-3" />
-                                            {timeLeft}
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+                                        <span className={`capitalize px-2 py-0.5 rounded-full ${campaign.campaignType === 'open' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
+                                            }`}>
+                                            {campaign.campaignType} Campaign
                                         </span>
-                                    )}
-                                </div>
-                            </GlassCard>
-                        )
-                    })}
-                </div>
-            )}
+                                        {campaign.status === 'draft' ? (
+                                            <div className="flex gap-1.5">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-7 px-3 gap-1"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        navigate('/campaign/create', { state: { resumeDraft: campaign } })
+                                                    }}
+                                                >
+                                                    <Play className="w-3 h-3" />
+                                                    Resume
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                                    onClick={(e) => deleteDraft(campaign.id, e)}
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        ) : timeLeft && campaign.status === 'active' && (
+                                            <span className="flex items-center gap-1 text-amber-400">
+                                                <Clock className="w-3 h-3" />
+                                                {timeLeft}
+                                            </span>
+                                        )}
+                                    </div>
+                                </GlassCard>
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

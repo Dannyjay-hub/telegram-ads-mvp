@@ -240,292 +240,297 @@ export function ChannelOwnerPartnerships() {
     }
 
     return (
-        <div className="space-y-4">
-            {/* Tabs */}
-            <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
-                <Button
-                    variant={activeTab === 'pending' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => { haptic.light(); setActiveTab('pending') }}
-                    className={`flex-1 ${activeTab === 'pending' ? '' : 'text-muted-foreground'}`}
-                >
-                    Pending {pendingDeals.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded-full text-xs">{pendingDeals.length}</span>}
-                </Button>
-                <Button
-                    variant={activeTab === 'active' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => { haptic.light(); setActiveTab('active') }}
-                    className={`flex-1 ${activeTab === 'active' ? '' : 'text-muted-foreground'}`}
-                >
-                    Active ({activeDeals.length})
-                </Button>
-                <Button
-                    variant={activeTab === 'ended' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => { haptic.light(); setActiveTab('ended') }}
-                    className={`flex-1 ${activeTab === 'ended' ? '' : 'text-muted-foreground'}`}
-                >
-                    Ended ({endedDeals.length})
-                </Button>
+        <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
+            {/* Pinned Tabs */}
+            <div className="flex-shrink-0 pb-3">
+                <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
+                    <Button
+                        variant={activeTab === 'pending' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => { haptic.light(); setActiveTab('pending') }}
+                        className={`flex-1 ${activeTab === 'pending' ? '' : 'text-muted-foreground'}`}
+                    >
+                        Pending {pendingDeals.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded-full text-xs">{pendingDeals.length}</span>}
+                    </Button>
+                    <Button
+                        variant={activeTab === 'active' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => { haptic.light(); setActiveTab('active') }}
+                        className={`flex-1 ${activeTab === 'active' ? '' : 'text-muted-foreground'}`}
+                    >
+                        Active ({activeDeals.length})
+                    </Button>
+                    <Button
+                        variant={activeTab === 'ended' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => { haptic.light(); setActiveTab('ended') }}
+                        className={`flex-1 ${activeTab === 'ended' ? '' : 'text-muted-foreground'}`}
+                    >
+                        Ended ({endedDeals.length})
+                    </Button>
+                </div>
             </div>
 
-            {displayDeals.length === 0 ? (
-                <GlassCard>
-                    <CardContent className="text-center py-10">
-                        <Handshake className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
-                        <p className="text-muted-foreground">
-                            {activeTab === 'pending' && 'No pending requests'}
-                            {activeTab === 'active' && 'No active partnerships'}
-                            {activeTab === 'ended' && 'No ended partnerships'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            Advertisers will send requests here
-                        </p>
-                    </CardContent>
-                </GlassCard>
-            ) : (
-                <div className="space-y-3">
-                    {displayDeals.map(deal => (
-                        <GlassCard key={deal.id} className="p-4">
-                            <div className="flex flex-col gap-3">
-                                {/* Header: Advertiser + Status */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm">
-                                            <User className="w-4 h-4" />
+            {/* Scrollable Deal List */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {displayDeals.length === 0 ? (
+                    <GlassCard>
+                        <CardContent className="text-center py-10">
+                            <Handshake className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                            <p className="text-muted-foreground">
+                                {activeTab === 'pending' && 'No pending requests'}
+                                {activeTab === 'active' && 'No active partnerships'}
+                                {activeTab === 'ended' && 'No ended partnerships'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Advertisers will send requests here
+                            </p>
+                        </CardContent>
+                    </GlassCard>
+                ) : (
+                    <div className="space-y-3">
+                        {displayDeals.map(deal => (
+                            <GlassCard key={deal.id} className="p-4">
+                                <div className="flex flex-col gap-3">
+                                    {/* Header: Advertiser + Status */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm">
+                                                <User className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm">{getAdvertiserName(deal)}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    for {deal.channel?.title || 'your channel'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-medium text-sm">{getAdvertiserName(deal)}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                for {deal.channel?.title || 'your channel'}
+                                        <StatusBadge status={deal.status} />
+                                    </div>
+
+                                    {/* Brief */}
+                                    {deal.briefText && (
+                                        <p className="text-sm text-muted-foreground bg-white/5 rounded p-2 line-clamp-2">
+                                            {deal.briefText}
+                                        </p>
+                                    )}
+
+                                    {/* Price */}
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <span className="flex items-center gap-1 text-green-400 font-semibold">
+                                            <DollarSign className="w-4 h-4" />
+                                            {deal.priceAmount} {deal.priceCurrency}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {new Date(deal.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+
+                                    {/* Actions based on status */}
+                                    {/* Pending: Channel applied to closed campaign, waiting for advertiser */}
+                                    {deal.status === 'pending' && (
+                                        <div className="pt-2 border-t border-white/10">
+                                            <p className="text-sm text-orange-400 flex items-center gap-1">
+                                                <Clock className="w-4 h-4" />
+                                                Waiting for advertiser to accept your application
                                             </p>
                                         </div>
-                                    </div>
-                                    <StatusBadge status={deal.status} />
-                                </div>
+                                    )}
 
-                                {/* Brief */}
-                                {deal.briefText && (
-                                    <p className="text-sm text-muted-foreground bg-white/5 rounded p-2 line-clamp-2">
-                                        {deal.briefText}
-                                    </p>
-                                )}
+                                    {/* Funded: Accept/Reject */}
+                                    {deal.status === 'funded' && (
+                                        <div className="flex gap-2 pt-2 border-t border-white/10">
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                                onClick={() => handleApprove(deal.id, false)}
+                                                disabled={processingId === deal.id}
+                                            >
+                                                {processingId === deal.id && processingAction === 'accept' ? (
+                                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                                ) : (
+                                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                                )}
+                                                {processingId === deal.id && processingAction === 'accept' ? 'Processing...' : 'Accept'}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                                onClick={() => handleApprove(deal.id, true)}
+                                                disabled={processingId === deal.id}
+                                            >
+                                                {processingId === deal.id && processingAction === 'reject' ? (
+                                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                                ) : (
+                                                    <XCircle className="w-4 h-4 mr-1" />
+                                                )}
+                                                {processingId === deal.id && processingAction === 'reject' ? 'Processing...' : 'Reject'}
+                                            </Button>
+                                        </div>
+                                    )}
 
-                                {/* Price */}
-                                <div className="flex items-center gap-4 text-sm">
-                                    <span className="flex items-center gap-1 text-green-400 font-semibold">
-                                        <DollarSign className="w-4 h-4" />
-                                        {deal.priceAmount} {deal.priceCurrency}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                        {new Date(deal.createdAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-
-                                {/* Actions based on status */}
-                                {/* Pending: Channel applied to closed campaign, waiting for advertiser */}
-                                {deal.status === 'pending' && (
-                                    <div className="pt-2 border-t border-white/10">
-                                        <p className="text-sm text-orange-400 flex items-center gap-1">
-                                            <Clock className="w-4 h-4" />
-                                            Waiting for advertiser to accept your application
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Funded: Accept/Reject */}
-                                {deal.status === 'funded' && (
-                                    <div className="flex gap-2 pt-2 border-t border-white/10">
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            className="flex-1 bg-green-600 hover:bg-green-700"
-                                            onClick={() => handleApprove(deal.id, false)}
-                                            disabled={processingId === deal.id}
-                                        >
-                                            {processingId === deal.id && processingAction === 'accept' ? (
-                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                            ) : (
-                                                <CheckCircle className="w-4 h-4 mr-1" />
-                                            )}
-                                            {processingId === deal.id && processingAction === 'accept' ? 'Processing...' : 'Accept'}
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
-                                            onClick={() => handleApprove(deal.id, true)}
-                                            disabled={processingId === deal.id}
-                                        >
-                                            {processingId === deal.id && processingAction === 'reject' ? (
-                                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                            ) : (
-                                                <XCircle className="w-4 h-4 mr-1" />
-                                            )}
-                                            {processingId === deal.id && processingAction === 'reject' ? 'Processing...' : 'Reject'}
-                                        </Button>
-                                    </div>
-                                )}
-
-                                {/* Draft Pending: Create Draft button */}
-                                {(deal.status === 'draft_pending' || deal.status === 'changes_requested') && (
-                                    <div className="flex gap-2 pt-2 border-t border-white/10">
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            className="flex-1 bg-blue-600 hover:bg-blue-700"
-                                            onClick={() => openBotDeepLink(`draft_${deal.id}`)}
-                                        >
-                                            <Send className="w-4 h-4 mr-1" />
-                                            {deal.status === 'changes_requested' ? 'Edit Draft' : 'Create Draft'}
-                                        </Button>
-                                    </div>
-                                )}
+                                    {/* Draft Pending: Create Draft button */}
+                                    {(deal.status === 'draft_pending' || deal.status === 'changes_requested') && (
+                                        <div className="flex gap-2 pt-2 border-t border-white/10">
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                                onClick={() => openBotDeepLink(`draft_${deal.id}`)}
+                                            >
+                                                <Send className="w-4 h-4 mr-1" />
+                                                {deal.status === 'changes_requested' ? 'Edit Draft' : 'Create Draft'}
+                                            </Button>
+                                        </div>
+                                    )}
 
 
-                                {/* Draft Submitted: Waiting message */}
-                                {deal.status === 'draft_submitted' && (
-                                    <div className="flex items-center gap-2 pt-2 border-t border-white/10 text-purple-400 text-sm">
-                                        <Eye className="w-4 h-4" />
-                                        <span>Waiting for advertiser review</span>
-                                    </div>
-                                )}
+                                    {/* Draft Submitted: Waiting message */}
+                                    {deal.status === 'draft_submitted' && (
+                                        <div className="flex items-center gap-2 pt-2 border-t border-white/10 text-purple-400 text-sm">
+                                            <Eye className="w-4 h-4" />
+                                            <span>Waiting for advertiser review</span>
+                                        </div>
+                                    )}
 
-                                {/* Scheduling: Channel owner waits for advertiser to propose first */}
-                                {deal.status === 'scheduling' && (
-                                    <div className="pt-2 border-t border-white/10 space-y-2">
-                                        {!deal.proposedPostTime ? (
-                                            /* No time proposed yet - waiting for advertiser */
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                                <Clock className="w-4 h-4" />
-                                                Waiting for advertiser to propose a time
-                                            </div>
-                                        ) : deal.timeProposedBy !== 'channel_owner' ? (
-                                            <>
-                                                <div className="text-sm text-cyan-400">
-                                                    Advertiser proposed: {displayTime(deal.proposedPostTime)}
+                                    {/* Scheduling: Channel owner waits for advertiser to propose first */}
+                                    {deal.status === 'scheduling' && (
+                                        <div className="pt-2 border-t border-white/10 space-y-2">
+                                            {!deal.proposedPostTime ? (
+                                                /* No time proposed yet - waiting for advertiser */
+                                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                    <Clock className="w-4 h-4" />
+                                                    Waiting for advertiser to propose a time
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        variant="default"
-                                                        size="sm"
-                                                        className="flex-1 bg-green-600 hover:bg-green-700"
-                                                        onClick={() => openTimePicker(deal.id)}
-                                                    >
-                                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                                        Accept
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="flex-1"
-                                                        onClick={() => openTimePicker(deal.id)}
-                                                    >
-                                                        <Calendar className="w-4 h-4 mr-1" />
-                                                        Counter
-                                                    </Button>
+                                            ) : deal.timeProposedBy !== 'channel_owner' ? (
+                                                <>
+                                                    <div className="text-sm text-cyan-400">
+                                                        Advertiser proposed: {displayTime(deal.proposedPostTime)}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="default"
+                                                            size="sm"
+                                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                                            onClick={() => openTimePicker(deal.id)}
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 mr-1" />
+                                                            Accept
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="flex-1"
+                                                            onClick={() => openTimePicker(deal.id)}
+                                                        >
+                                                            <Calendar className="w-4 h-4 mr-1" />
+                                                            Counter
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                    <Clock className="w-4 h-4" />
+                                                    Waiting for advertiser to accept your counter
                                                 </div>
-                                            </>
-                                        ) : (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                                <Clock className="w-4 h-4" />
-                                                Waiting for advertiser to accept your counter
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                            )}
+                                        </div>
+                                    )}
 
-                                {/* Scheduled: Show countdown */}
-                                {deal.status === 'scheduled' && deal.agreedPostTime && (
-                                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm">
-                                        <p className="text-indigo-400 flex items-center gap-1">
-                                            <Calendar className="w-4 h-4" />
-                                            Scheduled for {displayTime(deal.agreedPostTime)}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Posting {formatCountdown(deal.agreedPostTime)}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Monitoring: Warning message */}
-                                {deal.status === 'monitoring' && (
-                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm">
-                                        <p className="text-yellow-400 flex items-center gap-1">
-                                            <AlertTriangle className="w-4 h-4" />
-                                            Post is LIVE - Don't delete for 24h
-                                        </p>
-                                        {deal.monitoringEndAt && (
+                                    {/* Scheduled: Show countdown */}
+                                    {deal.status === 'scheduled' && deal.agreedPostTime && (
+                                        <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm">
+                                            <p className="text-indigo-400 flex items-center gap-1">
+                                                <Calendar className="w-4 h-4" />
+                                                Scheduled for {displayTime(deal.agreedPostTime)}
+                                            </p>
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                Ends: {displayTime(deal.monitoringEndAt)}
+                                                Posting {formatCountdown(deal.agreedPostTime)}
                                             </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Failed to Post: Report issue */}
-                                {deal.status === 'failed_to_post' && (
-                                    <div className="pt-2 border-t border-white/10 space-y-2">
-                                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center gap-2">
-                                            <AlertTriangle className="w-4 h-4" />
-                                            Post failed - contact support
                                         </div>
+                                    )}
+
+                                    {/* Monitoring: Warning message */}
+                                    {deal.status === 'monitoring' && (
+                                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm">
+                                            <p className="text-yellow-400 flex items-center gap-1">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Post is LIVE - Don't delete for 24h
+                                            </p>
+                                            {deal.monitoringEndAt && (
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Ends: {displayTime(deal.monitoringEndAt)}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Failed to Post: Report issue */}
+                                    {deal.status === 'failed_to_post' && (
+                                        <div className="pt-2 border-t border-white/10 space-y-2">
+                                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Post failed - contact support
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full border-red-500/50 text-red-400"
+                                                onClick={openSupport}
+                                            >
+                                                Report Issue
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {/* Disputed warning */}
+                                    {deal.status === 'disputed' && (
+                                        <div className="flex items-center gap-2 text-red-400 bg-red-500/10 rounded p-2 text-sm">
+                                            <AlertTriangle className="w-4 h-4" />
+                                            <span>This deal is disputed - action required</span>
+                                        </div>
+                                    )}
+
+                                    {/* Posted: Shows ad is live */}
+                                    {deal.status === 'posted' && (
+                                        <div className="flex items-center gap-1 text-teal-400 text-sm pt-2 border-t border-white/10">
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span>Ad is live on channel</span>
+                                        </div>
+                                    )}
+
+                                    {/* Last updated indicator */}
+                                    <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+                                        <span>Updated {formatRelativeTime(lastFetchedAt)}</span>
                                         <Button
-                                            variant="outline"
                                             size="sm"
-                                            className="w-full border-red-500/50 text-red-400"
-                                            onClick={openSupport}
+                                            variant="ghost"
+                                            onClick={openBot}
+                                            className="text-blue-400 h-6 px-2"
                                         >
-                                            Report Issue
+                                            <MessageCircle className="w-3 h-3 mr-1" />
+                                            Chat
                                         </Button>
                                     </div>
-                                )}
-
-                                {/* Disputed warning */}
-                                {deal.status === 'disputed' && (
-                                    <div className="flex items-center gap-2 text-red-400 bg-red-500/10 rounded p-2 text-sm">
-                                        <AlertTriangle className="w-4 h-4" />
-                                        <span>This deal is disputed - action required</span>
-                                    </div>
-                                )}
-
-                                {/* Posted: Shows ad is live */}
-                                {deal.status === 'posted' && (
-                                    <div className="flex items-center gap-1 text-teal-400 text-sm pt-2 border-t border-white/10">
-                                        <CheckCircle className="w-4 h-4" />
-                                        <span>Ad is live on channel</span>
-                                    </div>
-                                )}
-
-                                {/* Last updated indicator */}
-                                <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
-                                    <span>Updated {formatRelativeTime(lastFetchedAt)}</span>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={openBot}
-                                        className="text-blue-400 h-6 px-2"
-                                    >
-                                        <MessageCircle className="w-3 h-3 mr-1" />
-                                        Chat
-                                    </Button>
                                 </div>
-                            </div>
-                        </GlassCard>
-                    ))}
-                </div>
-            )}
+                            </GlassCard>
+                        ))}
+                    </div>
+                )}
 
-            {/* Time Picker Modal */}
-            <TimePickerModal
-                open={timePickerDealId !== null}
-                onClose={() => setTimePickerDealId(null)}
-                dealId={timePickerDealId || ''}
-                existingProposal={schedulingProposal}
-                userRole="channel_owner"
-                onPropose={handleProposeTime}
-                onAccept={handleAcceptTime}
-            />
+                {/* Time Picker Modal */}
+                <TimePickerModal
+                    open={timePickerDealId !== null}
+                    onClose={() => setTimePickerDealId(null)}
+                    dealId={timePickerDealId || ''}
+                    existingProposal={schedulingProposal}
+                    userRole="channel_owner"
+                    onPropose={handleProposeTime}
+                    onAccept={handleAcceptTime}
+                />
+            </div>
         </div>
     )
 }

@@ -18,7 +18,7 @@ export function MarketplaceContainer() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-60px)]">
+        <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
             {/* Sticky Tabs - No "Marketplace" title */}
             <div className="flex-shrink-0 bg-[--tg-theme-bg-color] pb-3">
                 {/* P2P Style Toggle */}
@@ -50,7 +50,7 @@ export function MarketplaceContainer() {
             </div>
 
             {/* Content Area - Scrollable */}
-            <div className="flex-1 overflow-y-auto min-h-0" style={{ overscrollBehavior: 'contain' }}>
+            <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
                 {activeTab === 'channels' ? (
                     <MarketplacePage />
                 ) : (

@@ -32,80 +32,85 @@ export function MyChannelsPage() {
     }
 
     return (
-        <div className="pb-20 space-y-6">
-            {/* Header - back navigation handled by Telegram native BackButton */}
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">My Channels</h1>
-                <Button onClick={() => navigate('/channels/new')} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
-                    <Plus className="w-4 h-4 mr-2" /> Add New
-                </Button>
+        <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
+            {/* Pinned Header */}
+            <div className="flex-shrink-0 pb-4">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">My Channels</h1>
+                    <Button onClick={() => navigate('/channels/new')} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
+                        <Plus className="w-4 h-4 mr-2" /> Add New
+                    </Button>
+                </div>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center py-10"><Loader2 className="animate-spin" /></div>
-            ) : channels.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground border border-dashed border-white/10 rounded-xl">
-                    <p className="mb-4">You haven't listed any channels yet.</p>
-                    <Button onClick={() => navigate('/channels/new')}>List Your First Channel</Button>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {channels.map(channel => (
-                        <GlassCard key={channel.id} className="p-4">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="font-bold text-lg">{channel.title}</h3>
-                                    <button
-                                        onClick={() => {
-                                            const url = `https://t.me/${channel.username}`;
-                                            if ((window as any).Telegram?.WebApp?.openTelegramLink) {
-                                                (window as any).Telegram.WebApp.openTelegramLink(url);
-                                            } else {
-                                                window.open(url, '_blank');
-                                            }
-                                        }}
-                                        className="text-sm text-primary hover:underline text-left"
-                                    >
-                                        @{channel.username}
-                                    </button>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <div className={`px-2 py-1 rounded text-xs font-bold ${channel.isActive ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
-                                        {channel.isActive ? 'Active' : 'Pending'}
+            {/* Scrollable Channel List */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {loading ? (
+                    <div className="flex justify-center py-10"><Loader2 className="animate-spin" /></div>
+                ) : channels.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground border border-dashed border-white/10 rounded-xl">
+                        <p className="mb-4">You haven't listed any channels yet.</p>
+                        <Button onClick={() => navigate('/channels/new')}>List Your First Channel</Button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {channels.map(channel => (
+                            <GlassCard key={channel.id} className="p-4">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="font-bold text-lg">{channel.title}</h3>
+                                        <button
+                                            onClick={() => {
+                                                const url = `https://t.me/${channel.username}`;
+                                                if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+                                                    (window as any).Telegram.WebApp.openTelegramLink(url);
+                                                } else {
+                                                    window.open(url, '_blank');
+                                                }
+                                            }}
+                                            className="text-sm text-primary hover:underline text-left"
+                                        >
+                                            @{channel.username}
+                                        </button>
                                     </div>
-                                    <div className="text-sm font-semibold text-muted-foreground flex flex-col items-end">
-                                        <span className="text-[10px] uppercase tracking-wider opacity-70">Packages</span>
-                                        <span>{channel.rateCard?.length || 0}</span>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className={`px-2 py-1 rounded text-xs font-bold ${channel.isActive ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                                            {channel.isActive ? 'Active' : 'Pending'}
+                                        </div>
+                                        <div className="text-sm font-semibold text-muted-foreground flex flex-col items-end">
+                                            <span className="text-[10px] uppercase tracking-wider opacity-70">Packages</span>
+                                            <span>{channel.rateCard?.length || 0}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex gap-2 mb-4">
-                                {!channel.isActive ? (
-                                    <Button
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                                        onClick={() => navigate(`/channels/edit/${channel.id}`, { state: { from: '/channels/my' } })}
-                                    >
-                                        Complete Draft
-                                    </Button>
-                                ) : (
-                                    <>
-                                        <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/${channel.id}/view`, { state: { from: '/channels/my' } })}>
-                                            View
+                                <div className="flex gap-2 mb-4">
+                                    {!channel.isActive ? (
+                                        <Button
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                            onClick={() => navigate(`/channels/edit/${channel.id}`, { state: { from: '/channels/my' } })}
+                                        >
+                                            Complete Draft
                                         </Button>
-                                        <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/edit/${channel.id}`, { state: { from: '/channels/my' } })}>
-                                            <Settings className="w-3 h-3 mr-1" /> Settings
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
+                                    ) : (
+                                        <>
+                                            <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/${channel.id}/view`, { state: { from: '/channels/my' } })}>
+                                                View
+                                            </Button>
+                                            <Button variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/channels/edit/${channel.id}`, { state: { from: '/channels/my' } })}>
+                                                <Settings className="w-3 h-3 mr-1" /> Settings
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
 
-                            {/* Analytics Section */}
-                            <ChannelAnalyticsCard channel={channel} onSync={loadChannels} />
-                        </GlassCard>
-                    ))}
-                </div>
-            )}
+                                {/* Analytics Section */}
+                                <ChannelAnalyticsCard channel={channel} onSync={loadChannels} />
+                            </GlassCard>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
