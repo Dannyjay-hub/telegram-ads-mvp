@@ -56,15 +56,40 @@ export async function getChannelStats(channelId: string | number) {
             throw new Error('The ID provided is not a channel');
         }
 
-        // 3. Get Channel Photo URL
+        // 3. Get Channel Photo - download and upload to Supabase Storage for a permanent URL
         let photoUrl: string | null = null;
         if (chat.photo) {
             try {
-                // Get the file path for the photo
                 const file = await bot.api.getFile(chat.photo.big_file_id);
                 if (file.file_path) {
-                    // Construct the Telegram file URL
-                    photoUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+                    const telegramFileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+
+                    // Download the photo bytes
+                    const photoResponse = await fetch(telegramFileUrl);
+                    if (photoResponse.ok) {
+                        const photoBuffer = Buffer.from(await photoResponse.arrayBuffer());
+
+                        // Upload to Supabase Storage
+                        const { supabase } = await import('../db');
+                        const fileName = `channel_${String(channelId).replace('-', 'n')}_${Date.now()}.jpg`;
+
+                        const { error: uploadError } = await supabase.storage
+                            .from('channel-photos')
+                            .upload(fileName, photoBuffer, {
+                                contentType: 'image/jpeg',
+                                upsert: true
+                            });
+
+                        if (!uploadError) {
+                            const { data: urlData } = supabase.storage
+                                .from('channel-photos')
+                                .getPublicUrl(fileName);
+                            photoUrl = urlData.publicUrl;
+                        } else {
+                            console.warn('Storage upload failed, using Telegram URL as fallback:', uploadError.message);
+                            photoUrl = telegramFileUrl;
+                        }
+                    }
                 }
             } catch (photoError) {
                 console.warn('Could not fetch channel photo:', photoError);
