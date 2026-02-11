@@ -12,8 +12,10 @@ const channelRepository = new SupabaseChannelRepository();
 // Master hot wallet address for escrow payments (same as in DealService)
 const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || 'EQA...your-wallet...';
 
-// Platform fee percentage (5%)
-const PLATFORM_FEE_PERCENT = 0.05;
+// Flat platform fees (covers network costs for sending/releasing/refunding)
+// Fee is charged in the same currency as the payment
+const PLATFORM_FEE_TON = 0.01;   // 0.01 TON for native TON payments
+const PLATFORM_FEE_USDT = 0.1;   // 0.1 USDT for USDT payments (Jetton gas is ~0.05 TON)
 
 // Simple in-memory deduplication cache to prevent duplicate draft creation
 // Key: `${advertiserId}:${title}`, Value: timestamp of last request
@@ -122,9 +124,9 @@ campaigns.post('/', async (c) => {
             console.log(`[Campaigns] Created new campaign ${campaign.id}`);
         }
 
-        // Calculate platform fee
-        const platformFee = Math.round(body.totalBudget * PLATFORM_FEE_PERCENT * 100) / 100;
-        const totalWithFee = Math.round((body.totalBudget + platformFee) * 100) / 100;
+        // Calculate flat platform fee based on currency
+        const platformFee = normalizedCurrency === 'USDT' ? PLATFORM_FEE_USDT : PLATFORM_FEE_TON;
+        const totalWithFee = Math.round((body.totalBudget + platformFee) * 1e9) / 1e9; // avoid floating point issues
 
         // Return campaign with payment instructions including fee breakdown
         return c.json({
@@ -135,7 +137,7 @@ campaigns.post('/', async (c) => {
                 amount: totalWithFee,
                 budgetAmount: body.totalBudget,
                 platformFee: platformFee,
-                feePercent: PLATFORM_FEE_PERCENT * 100,
+                feeCurrency: 'TON',
                 expiresAt: paymentExpiresAt.toISOString()
             }
         }, 201);

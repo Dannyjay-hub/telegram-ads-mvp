@@ -192,8 +192,16 @@ export class TonPaymentService {
 
         // Extract and clean comment (trim whitespace)
         const comment = (transfer.comment || '').trim();
-        if (!comment || !comment.startsWith('deal_')) {
+        if (!comment) return;
+
+        // Only process deal_ and campaign_ memos
+        if (!comment.startsWith('deal_') && !comment.startsWith('campaign_')) {
             return;
+        }
+
+        // ✅ IDEMPOTENCY: Skip if already processed (in-memory check)
+        if (this.processedJettonTxHashes.has(eventId)) {
+            return; // Silent skip
         }
 
         const tonAmount = Number(transfer.amount || 0) / 1e9;
@@ -203,12 +211,28 @@ export class TonPaymentService {
         console.log(`  From: ${transfer.sender?.address}`);
 
         try {
-            await this.dealService.confirmPayment(comment, eventId);
-            console.log(`✅ TonPaymentService: Payment confirmed for ${comment}`);
+            if (comment.startsWith('campaign_')) {
+                const campaign = await this.campaignRepo.findByPaymentMemo(comment);
+                if (!campaign) {
+                    console.error(`TonPaymentService: Campaign not found for memo: ${comment}`);
+                    return;
+                }
+                if (campaign.escrowDeposited && campaign.escrowDeposited > 0) {
+                    this.markAsProcessed(eventId);
+                    return;
+                }
+                await this.campaignRepo.confirmEscrowDeposit(campaign.id, tonAmount, eventId);
+                this.markAsProcessed(eventId);
+                console.log(`✅ TonPaymentService: TON campaign payment confirmed for ${comment}`);
+            } else {
+                await this.dealService.confirmPayment(comment, eventId);
+                this.markAsProcessed(eventId);
+                console.log(`✅ TonPaymentService: Payment confirmed for ${comment}`);
+            }
         } catch (error: any) {
             // Silently ignore deals that are already processed
             if (error.message.includes('not in') && error.message.includes('status')) {
-                // Already processed - don't spam logs
+                this.markAsProcessed(eventId); // Stop re-logging
             } else {
                 console.error(`❌ TonPaymentService: Error confirming ${comment}:`, error.message);
             }

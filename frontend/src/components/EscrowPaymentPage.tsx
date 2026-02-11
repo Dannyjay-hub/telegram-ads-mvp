@@ -33,7 +33,7 @@ export function EscrowPaymentPage() {
 
     // Campaign and payment instructions passed from wizard
     const [campaign] = useState<Campaign | null>(location.state?.campaign || null)
-    const [paymentInstructions] = useState<{ address: string; memo: string; amount: number; budgetAmount?: number; platformFee?: number; feePercent?: number; expiresAt?: string } | null>(
+    const [paymentInstructions] = useState<{ address: string; memo: string; amount: number; budgetAmount?: number; platformFee?: number; feeCurrency?: string; expiresAt?: string } | null>(
         location.state?.paymentInstructions || null
     )
     const [loading, setLoading] = useState(false)
@@ -236,7 +236,7 @@ export function EscrowPaymentPage() {
                             <span className="font-medium">{paymentInstructions.budgetAmount} {campaign.currency}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Platform Fee ({paymentInstructions.feePercent}%)</span>
+                            <span className="text-muted-foreground">Network Fee</span>
                             <span className="font-medium">{paymentInstructions.platformFee} {campaign.currency}</span>
                         </div>
                         <div className="border-t border-white/10 pt-2 flex items-center justify-between">

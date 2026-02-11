@@ -139,47 +139,41 @@ export class MonitoringService {
      * @returns Array of ISO timestamp strings
      */
     generateRandomCheckTimes(postedAt: Date, monitoringDurationHours: number): string[] {
-        // Scale checks based on duration: roughly 1 check per 3 hours
-        // With random variance (±1) for unpredictability
-        // Minimum 3 checks for any duration
-        const baseChecks = Math.max(3, Math.floor(monitoringDurationHours / 3));
-        const variance = Math.floor(Math.random() * 3) - 1;  // -1, 0, or +1
-        const numRandomChecks = Math.max(3, baseChecks + variance);
-
-        // Examples:
-        // 6h  → base 2, min 3 → 3 checks
-        // 12h → base 4 ± 1 → 3-5 checks  
-        // 20h → base 6 ± 1 → 5-7 checks
-        // 24h → base 8 ± 1 → 7-9 checks
+        // Formula: random checks = ceil(duration / 3), plus final check at end
+        // 5h  → ceil(5/3) = 2 random + 1 final = 3 checks
+        // 6h  → ceil(6/3) = 2 random + 1 final = 3 checks
+        // 17h → ceil(17/3) = 6 random + 1 final = 7 checks
+        // 24h → ceil(24/3) = 8 random + 1 final = 9 checks
+        const numRandomChecks = Math.ceil(monitoringDurationHours / 3);
 
         const startTime = postedAt.getTime();
         const endTime = startTime + (monitoringDurationHours * 60 * 60 * 1000);
 
-        // Generate random times, leaving buffer at start (15 min) and before end (30 min)
-        const minBuffer = 15 * 60 * 1000;  // 15 min after post
-        const maxBuffer = 30 * 60 * 1000;  // 30 min before end (for final check)
+        // Random checks within window: 10 min after post to 10 min before end
+        const minBuffer = 10 * 60 * 1000;  // 10 min after post
+        const maxBuffer = 10 * 60 * 1000;  // 10 min before end
         const randomWindow = endTime - startTime - minBuffer - maxBuffer;
 
         const checkTimes: number[] = [];
 
         for (let i = 0; i < numRandomChecks; i++) {
-            // Generate random time within window
+            // Truly random time within the window
             const randomOffset = Math.floor(Math.random() * randomWindow);
             const checkTime = startTime + minBuffer + randomOffset;
             checkTimes.push(checkTime);
         }
 
-        // Sort and remove duplicates (within 5 min of each other)
+        // Sort and remove duplicates (within 10 min of each other)
         checkTimes.sort((a, b) => a - b);
         const uniqueCheckTimes: number[] = [];
         for (const time of checkTimes) {
             if (uniqueCheckTimes.length === 0 ||
-                time - uniqueCheckTimes[uniqueCheckTimes.length - 1] > 5 * 60 * 1000) {
+                time - uniqueCheckTimes[uniqueCheckTimes.length - 1] > 10 * 60 * 1000) {
                 uniqueCheckTimes.push(time);
             }
         }
 
-        // Always add final check at monitoring end
+        // Always add final check at exact monitoring end (triggers fund release)
         uniqueCheckTimes.push(endTime);
 
         return uniqueCheckTimes.map(t => new Date(t).toISOString());
@@ -335,7 +329,7 @@ export class MonitoringService {
         const { data: fullDeal, error: dealError } = await (supabase as any)
             .from('deals')
             .select(`
-                id, amount, currency, channel_id, channel_owner_wallet
+                id, price_amount, price_currency, channel_id, channel_owner_wallet
             `)
             .eq('id', deal.id)
             .single();
@@ -360,18 +354,18 @@ export class MonitoringService {
             ownerWalletAddress = ownerData?.users?.ton_wallet_address;
         }
 
-        if (ownerWalletAddress && fullDeal.amount > 0) {
+        if (ownerWalletAddress && fullDeal.price_amount > 0) {
             // Import the payout service dynamically to avoid circular deps
             const { tonPayoutService } = await import('./TonPayoutService');
 
-            console.log(`[MonitoringService] Queueing payout: ${fullDeal.amount} ${fullDeal.currency} to ${ownerWalletAddress}`);
+            console.log(`[MonitoringService] Queueing payout: ${fullDeal.price_amount} ${fullDeal.price_currency} to ${ownerWalletAddress}`);
 
             try {
                 await tonPayoutService.queuePayout(
                     deal.id,
                     ownerWalletAddress,
-                    fullDeal.amount,
-                    fullDeal.currency || 'TON'
+                    fullDeal.price_amount,
+                    fullDeal.price_currency || 'TON'
                 );
                 console.log(`[MonitoringService] Payout queued successfully`);
             } catch (payoutError) {
