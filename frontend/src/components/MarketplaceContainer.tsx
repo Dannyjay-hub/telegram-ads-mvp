@@ -50,7 +50,7 @@ export function MarketplaceContainer() {
             </div>
 
             {/* Content Area - Scrollable */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0" style={{ overscrollBehavior: 'contain' }}>
                 {activeTab === 'channels' ? (
                     <MarketplacePage />
                 ) : (
