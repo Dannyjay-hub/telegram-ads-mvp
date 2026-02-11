@@ -139,44 +139,50 @@ export class MonitoringService {
      * @returns Array of ISO timestamp strings
      */
     generateRandomCheckTimes(postedAt: Date, monitoringDurationHours: number): string[] {
-        // Formula: random checks = ceil(duration / 3), plus final check at end
-        // 5h  → ceil(5/3) = 2 random + 1 final = 3 checks
-        // 6h  → ceil(6/3) = 2 random + 1 final = 3 checks
-        // 17h → ceil(17/3) = 6 random + 1 final = 7 checks
-        // 24h → ceil(24/3) = 8 random + 1 final = 9 checks
-        const numRandomChecks = Math.ceil(monitoringDurationHours / 3);
+        // Time-band approach: divide duration into equal bands, pick one random time per band
+        // This guarantees even distribution — no clustering
+        //
+        // Formula: numBands = ceil(duration / 3)
+        // Each band = duration / numBands hours wide
+        // One random check per band + 1 final at exact end
+        //
+        // Examples:
+        // 5h  → 2 bands of 2.5h → 2 random + final = 3 checks
+        // 6h  → 2 bands of 3h   → 2 random + final = 3 checks
+        // 17h → 6 bands of ~2.8h → 6 random + final = 7 checks
+        // 24h → 8 bands of 3h   → 8 random + final = 9 checks
+        const numBands = Math.ceil(monitoringDurationHours / 3);
 
         const startTime = postedAt.getTime();
-        const endTime = startTime + (monitoringDurationHours * 60 * 60 * 1000);
-
-        // Random checks within window: 10 min after post to 10 min before end
-        const minBuffer = 10 * 60 * 1000;  // 10 min after post
-        const maxBuffer = 10 * 60 * 1000;  // 10 min before end
-        const randomWindow = endTime - startTime - minBuffer - maxBuffer;
+        const totalDurationMs = monitoringDurationHours * 60 * 60 * 1000;
+        const endTime = startTime + totalDurationMs;
+        const bandDurationMs = totalDurationMs / numBands;
 
         const checkTimes: number[] = [];
 
-        for (let i = 0; i < numRandomChecks; i++) {
-            // Truly random time within the window
-            const randomOffset = Math.floor(Math.random() * randomWindow);
-            const checkTime = startTime + minBuffer + randomOffset;
-            checkTimes.push(checkTime);
-        }
+        for (let i = 0; i < numBands; i++) {
+            const bandStart = startTime + (i * bandDurationMs);
+            const bandEnd = bandStart + bandDurationMs;
 
-        // Sort and remove duplicates (within 10 min of each other)
-        checkTimes.sort((a, b) => a - b);
-        const uniqueCheckTimes: number[] = [];
-        for (const time of checkTimes) {
-            if (uniqueCheckTimes.length === 0 ||
-                time - uniqueCheckTimes[uniqueCheckTimes.length - 1] > 10 * 60 * 1000) {
-                uniqueCheckTimes.push(time);
+            // Add 5 min buffer from band edges to avoid clustering at boundaries
+            const buffer = Math.min(5 * 60 * 1000, bandDurationMs * 0.1);
+            const safeStart = bandStart + buffer;
+            const safeEnd = bandEnd - buffer;
+            const safeRange = safeEnd - safeStart;
+
+            if (safeRange > 0) {
+                const randomOffset = Math.floor(Math.random() * safeRange);
+                checkTimes.push(safeStart + randomOffset);
+            } else {
+                // Band too small for buffer — just pick midpoint
+                checkTimes.push(bandStart + bandDurationMs / 2);
             }
         }
 
         // Always add final check at exact monitoring end (triggers fund release)
-        uniqueCheckTimes.push(endTime);
+        checkTimes.push(endTime);
 
-        return uniqueCheckTimes.map(t => new Date(t).toISOString());
+        return checkTimes.map(t => new Date(t).toISOString());
     }
 
     /**

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 import { DealService } from '../services/DealService';
+import { supabase } from '../db';
 
 const app = new Hono();
 
@@ -325,6 +326,102 @@ app.post('/:id/initialize-draft', async (c) => {
         return c.json({ success: true });
     } catch (e: any) {
         return c.json({ error: e.message }, 400);
+    }
+});
+
+// ============================================
+// ADMIN / RECOVERY ENDPOINTS
+// ============================================
+
+// GET /deals/admin/orphaned - Find released deals whose payout failed
+app.get('/admin/orphaned', async (c) => {
+    try {
+        const { data: releasedDeals, error: dealsError } = await supabase
+            .from('deals')
+            .select('id, price_amount, price_currency, channel_id, status, status_updated_at')
+            .eq('status', 'released');
+
+        if (dealsError || !releasedDeals?.length) {
+            return c.json({ orphaned: [], count: 0 });
+        }
+
+        // Check which have pending_payouts
+        const dealIds = releasedDeals.map((d: any) => d.id);
+        const { data: payouts } = await supabase
+            .from('pending_payouts' as any)
+            .select('deal_id, status')
+            .in('deal_id', dealIds);
+
+        const paidDealIds = new Set((payouts || []).map((p: any) => p.deal_id));
+        const orphaned = releasedDeals.filter((d: any) => !paidDealIds.has(d.id));
+
+        return c.json({
+            orphaned,
+            count: orphaned.length,
+            totalReleased: releasedDeals.length,
+            withPayout: paidDealIds.size
+        });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
+// POST /deals/admin/retrigger-payout - Re-trigger payout for a specific deal
+app.post('/admin/retrigger-payout', async (c) => {
+    try {
+        const { dealId } = await c.req.json();
+        if (!dealId) {
+            return c.json({ error: 'dealId is required' }, 400);
+        }
+
+        // Fetch deal with correct column names
+        const { data: deal, error: dealError } = await supabase
+            .from('deals')
+            .select('id, price_amount, price_currency, channel_id, status, channel_owner_wallet')
+            .eq('id', dealId)
+            .single();
+
+        if (dealError || !deal) {
+            return c.json({ error: `Deal not found: ${dealError?.message}` }, 404);
+        }
+
+        if (deal.status !== 'released') {
+            return c.json({ error: `Deal is in '${deal.status}' status, not 'released'` }, 400);
+        }
+
+        // Get wallet address
+        let walletAddress = (deal as any).channel_owner_wallet;
+
+        if (!walletAddress) {
+            const { data: ownerData } = await supabase
+                .from('channel_admins' as any)
+                .select('users(ton_wallet_address)')
+                .eq('channel_id', (deal as any).channel_id)
+                .eq('is_owner', true)
+                .single();
+
+            walletAddress = (ownerData as any)?.users?.ton_wallet_address;
+        }
+
+        if (!walletAddress) {
+            return c.json({ error: 'No wallet address found for channel owner' }, 400);
+        }
+
+        // Queue the payout
+        const { tonPayoutService } = await import('../services/TonPayoutService');
+        await tonPayoutService.queuePayout(
+            dealId,
+            walletAddress,
+            (deal as any).price_amount,
+            (deal as any).price_currency || 'TON'
+        );
+
+        return c.json({
+            success: true,
+            message: `Payout queued: ${(deal as any).price_amount} ${(deal as any).price_currency} to ${walletAddress}`
+        });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
     }
 });
 
