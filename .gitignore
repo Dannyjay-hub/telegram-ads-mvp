@@ -61,3 +61,8 @@ files/
 # Local testing/temp files
 *.tmp
 *.temp
+
+# Internal docs (contain personal IDs/paths)
+docs/CONTEXT_TRANSFER.md
+docs/DIAGNOSTIC_GUIDE.md
+docs/TESTNET_SETUP_PLAN.md
