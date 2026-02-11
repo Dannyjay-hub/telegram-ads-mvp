@@ -278,9 +278,9 @@ export async function notifyDealStatusChange(
 
     const statusMessages: Record<string, { emoji: string; title: string; body: string }> = {
         approved: {
-            emoji: '🎉',
-            title: 'Deal Approved!',
-            body: `Your deal with **${channelTitle}** has been approved! The channel will post your content soon.`
+            emoji: '✅',
+            title: 'Draft Approved - Action Required',
+            body: `The advertiser approved your draft for **${channelTitle}**!\n\nPlease go to the app to **schedule the post**.`
         },
         rejected: {
             emoji: '❌',

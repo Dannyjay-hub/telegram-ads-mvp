@@ -385,13 +385,66 @@ export class DealService {
             return this.dealRepo.updateStatus(dealId, 'draft_pending');
         }
 
-        // Channel owner approves a funded deal
+        // Channel owner approves a funded deal → go to draft phase (NOT approved)
         if (deal.status === 'funded') {
-            // Notify advertiser about approval
+            // Notify advertiser that deal was accepted, draft phase starting
             if (advertiserTelegramId) {
-                await notifyDealStatusChange(advertiserTelegramId, dealId, channelTitle, 'approved');
+                try {
+                    const { bot } = await import('../botInstance');
+                    if (bot) {
+                        await bot.api.sendMessage(
+                            advertiserTelegramId,
+                            `✅ **Deal Accepted!**\n\n` +
+                            `**${channelTitle}** accepted your deal!\n` +
+                            `They'll create a draft post for your review.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: '📋 View Details', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=deal_${dealId}` }]
+                                    ]
+                                }
+                            }
+                        );
+                    }
+                } catch (notifErr) {
+                    console.error('DealService: Advertiser notification failed:', notifErr);
+                }
             }
-            return this.dealRepo.updateStatus(dealId, 'approved');
+
+            // Notify channel owner to create draft (same as campaign application flow)
+            try {
+                const { data: ownerData } = await (supabase as any)
+                    .from('channel_admins')
+                    .select('users(telegram_id)')
+                    .eq('channel_id', deal.channelId)
+                    .eq('is_owner', true)
+                    .single();
+                const ownerTelegramId = ownerData?.users?.telegram_id;
+                if (ownerTelegramId) {
+                    const { bot } = await import('../botInstance');
+                    if (bot) {
+                        await bot.api.sendMessage(
+                            ownerTelegramId,
+                            `✅ **Deal Confirmed!**\n\n` +
+                            `Your channel **${channelTitle}** has a new paid deal.\n` +
+                            `Please create a draft post based on the brief.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: '📝 Create Draft', url: `https://t.me/DanielAdsMVP_bot/marketplace?startapp=owner_deal_${dealId}` }]
+                                    ]
+                                }
+                            }
+                        );
+                    }
+                }
+            } catch (notifErr) {
+                console.error('DealService: Channel owner draft notification failed:', notifErr);
+            }
+
+            return this.dealRepo.updateStatus(dealId, 'draft_pending');
         }
 
         // Legacy flow
