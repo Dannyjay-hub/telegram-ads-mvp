@@ -144,22 +144,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
-    /* Prevent iOS rubber-band bounce */
-  }
-
-  html {
-    overflow: hidden;
-    /* Prevent entire page drag — only inner containers scroll */
-    height: 100%;
-  }
-
-  html body {
-    height: 100%;
-  }
-
-  #root {
-    height: 100%;
-    overflow: hidden;
+    /* Prevent iOS rubber-band bounce without blocking scroll */
   }
 }
 
