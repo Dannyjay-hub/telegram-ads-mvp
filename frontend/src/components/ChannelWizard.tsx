@@ -218,8 +218,9 @@ export function ChannelWizard() {
                     setLoading(false);
                     return;
                 }
-                // Wallet required for publishing (not drafts)
-                if (!walletConnected || !walletAddress) {
+                // Wallet required for publishing (not drafts) — only for owners
+                // PR managers editing the channel don't need to connect wallet
+                if ((!id || isOwner) && (!walletConnected || !walletAddress)) {
                     showAlert('Please connect your TON wallet to receive payouts before publishing.');
                     setLoading(false);
                     return;
@@ -1002,65 +1003,67 @@ export function ChannelWizard() {
                                 )}
                             </GlassCard>
 
-                            {/* ===== PAYOUT WALLET ===== */}
-                            <GlassCard className="p-6 space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                                        <Wallet className="w-5 h-5 text-white" />
+                            {/* ===== PAYOUT WALLET (owner only) ===== */}
+                            {(!id || isOwner) && (
+                                <GlassCard className="p-6 space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                            <Wallet className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-white">Payout Wallet</h3>
+                                            <p className="text-xs text-muted-foreground">Where you'll receive payments for deals</p>
+                                        </div>
+                                        {walletConnected && (
+                                            <div className="ml-auto flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
+                                                <Check className="w-3 h-3" />
+                                                Connected
+                                            </div>
+                                        )}
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold text-white">Payout Wallet</h3>
-                                        <p className="text-xs text-muted-foreground">Where you'll receive payments for deals</p>
-                                    </div>
-                                    {walletConnected && (
-                                        <div className="ml-auto flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
-                                            <Check className="w-3 h-3" />
-                                            Connected
+
+                                    {walletConnected ? (
+                                        <div className="space-y-3">
+                                            <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                                                <p className="text-xs text-muted-foreground mb-1">Connected Wallet</p>
+                                                <p className="font-mono text-sm text-white">{formatAddress(walletAddress)}</p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full border-white/10 text-muted-foreground hover:text-white"
+                                                onClick={disconnectWallet}
+                                            >
+                                                Change Wallet
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                                                <p className="text-sm text-amber-200">
+                                                    <strong>Required to publish.</strong> Connect your TON wallet to receive payouts when deals are completed.
+                                                </p>
+                                            </div>
+                                            <Button
+                                                className="w-full h-11 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                                                onClick={connectWallet}
+                                                disabled={walletLoading}
+                                            >
+                                                {walletLoading ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                ) : (
+                                                    <Wallet className="w-4 h-4 mr-2" />
+                                                )}
+                                                Connect TON Wallet
+                                            </Button>
                                         </div>
                                     )}
-                                </div>
 
-                                {walletConnected ? (
-                                    <div className="space-y-3">
-                                        <div className="bg-black/20 border border-white/10 rounded-lg p-3">
-                                            <p className="text-xs text-muted-foreground mb-1">Connected Wallet</p>
-                                            <p className="font-mono text-sm text-white">{formatAddress(walletAddress)}</p>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full border-white/10 text-muted-foreground hover:text-white"
-                                            onClick={disconnectWallet}
-                                        >
-                                            Change Wallet
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-                                            <p className="text-sm text-amber-200">
-                                                <strong>Required to publish.</strong> Connect your TON wallet to receive payouts when deals are completed.
-                                            </p>
-                                        </div>
-                                        <Button
-                                            className="w-full h-11 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                                            onClick={connectWallet}
-                                            disabled={walletLoading}
-                                        >
-                                            {walletLoading ? (
-                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                            ) : (
-                                                <Wallet className="w-4 h-4 mr-2" />
-                                            )}
-                                            Connect TON Wallet
-                                        </Button>
-                                    </div>
-                                )}
-
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    💡 This wallet will receive payouts for all deals on this channel. You can change it anytime from channel settings.
-                                </p>
-                            </GlassCard>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        💡 This wallet will receive payouts for all deals on this channel. You can change it anytime from channel settings.
+                                    </p>
+                                </GlassCard>
+                            )}
 
                             <div className="flex gap-4">
                                 <Button
