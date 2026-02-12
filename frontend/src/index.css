@@ -232,9 +232,13 @@
 }
 
 .add-channel-page {
+  height: 100%;
+  width: 100%;
+  min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  align-items: center;
   animation: addChannelFadeIn 0.3s ease-in-out;
 }
 
@@ -287,7 +291,7 @@
 
 .add-channel-subtitle {
   font-size: 15px;
-  font-weight: 400;
+  font-weight: 500;
   color: hsl(var(--muted-foreground));
   line-height: 1.5;
   margin-bottom: 8px;

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Lottie from 'lottie-react'
 import { verifyChannelPermissions, API_URL, getHeaders, apiFetch } from '@/api'
-import { openTelegramLink, getBotUrl, BOT_USERNAME } from '@/lib/telegram'
+import { openTelegramLink, getBotUrl } from '@/lib/telegram'
 import { TelegramMainButton } from '@/components/TelegramMainButton'
 import { haptic } from '@/utils/haptic'
 
@@ -262,8 +262,8 @@ export function AddChannelPage() {
                             Add Bot to Your Channel
                         </h1>
                         <p className="add-channel-subtitle">
-                            Our bot <strong>@{BOT_USERNAME}</strong> requires admin access to post ads.
-                            It can only post messages — it can't read your content or manage your channel.
+                            Our bot requires admin access to post ads in your channel.
+                            Telegram bots can't read messages or manage your channel.
                         </p>
 
                         {/* Error Banners */}
