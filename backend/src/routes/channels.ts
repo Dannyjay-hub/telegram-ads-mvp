@@ -810,6 +810,25 @@ app.delete('/:id', async (c) => {
             return c.json({ error: 'Only the channel owner can delete the channel' }, 403);
         }
 
+        // SAFETY CHECK: Block deletion if channel has active deals
+        const activeStates = [
+            'funded', 'draft_pending', 'draft_submitted', 'changes_requested',
+            'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'in_progress'
+        ] as const;
+        const { data: activeDeals, error: dealsError } = await supabase
+            .from('deals')
+            .select('id, status')
+            .eq('channel_id', id)
+            .in('status', activeStates as any);
+
+        if (!dealsError && activeDeals && activeDeals.length > 0) {
+            console.log(`[DELETE channel] BLOCKED — ${activeDeals.length} active deal(s):`, activeDeals.map((d: any) => `${d.id} (${d.status})`));
+            return c.json({
+                error: `Cannot delete channel with ${activeDeals.length} active deal(s). Complete or cancel all deals first.`,
+                activeDeals: activeDeals.length
+            }, 403);
+        }
+
         await channelRepo.delete(id);
         console.log('[DELETE channel] Channel deleted successfully');
         return c.json({ success: true });

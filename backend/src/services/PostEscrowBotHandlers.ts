@@ -442,27 +442,78 @@ async function handleApproveDraft(
     try {
         await draftService.approveDraft(dealId);
 
-        await ctx.editMessageText(
-            `✅ **Draft Approved!**\n\n` +
-            `Now set the posting time in the mini app.`,
-            {
+        const approvedText = `✅ **Draft Approved!**\n\nNow set the posting time in the mini app.`;
+        const replyMarkup = {
+            inline_keyboard: [[
+                { text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }
+            ]]
+        };
+
+        // Check message type to use correct edit method
+        const msg = ctx.callbackQuery?.message;
+        try {
+            if (msg && ('photo' in msg || 'video' in msg || 'animation' in msg)) {
+                // Photo/video message → edit caption
+                await ctx.editMessageCaption({
+                    caption: approvedText,
+                    parse_mode: 'Markdown',
+                    reply_markup: replyMarkup
+                });
+            } else {
+                // Text message → edit text
+                await ctx.editMessageText(approvedText, {
+                    parse_mode: 'Markdown',
+                    reply_markup: replyMarkup
+                });
+            }
+        } catch {
+            // Fallback: send new message if edit fails for any reason
+            await ctx.reply(approvedText, {
                 parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [[
-                        { text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }
-                    ]]
+                reply_markup: replyMarkup
+            });
+        }
+
+        // Notify channel owner that draft was approved
+        const deal = await draftService.getDealWithDraft(dealId);
+        if (deal?.channel_id) {
+            const { data: ownerAdmin } = await supabase
+                .from('channel_admins')
+                .select('users(telegram_id)')
+                .eq('channel_id', deal.channel_id)
+                .eq('is_owner', true)
+                .single();
+
+            const ownerTelegramId = (ownerAdmin as any)?.users?.telegram_id;
+            if (ownerTelegramId) {
+                try {
+                    await bot.api.sendMessage(
+                        ownerTelegramId,
+                        `✅ **Draft Approved!**\n\n` +
+                        `The advertiser approved your draft for **${deal.channel?.title || 'your channel'}**.` +
+                        `\n\nPlease go to the app to **schedule the post**.`,
+                        {
+                            parse_mode: 'Markdown',
+                            reply_markup: {
+                                inline_keyboard: [[
+                                    { text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }
+                                ]]
+                            }
+                        }
+                    );
+                } catch (notifErr) {
+                    console.warn('[PostEscrowBotHandlers] Failed to notify channel owner of approval:', notifErr);
                 }
             }
-        );
-
-        // Notify channel owner
-        const deal = await draftService.getDealWithDraft(dealId);
-        // We need to get channel owner's telegram ID - this requires joining through channel_admins
-        // For now, we'll add this notification logic later
+        }
 
     } catch (error: any) {
         console.error('[PostEscrowBotHandlers] Error approving draft:', error);
-        await ctx.editMessageText(`❌ Failed to approve draft. Please try again.`);
+        try {
+            await ctx.editMessageText(`❌ Failed to approve draft. Please try again.`);
+        } catch {
+            await ctx.reply(`❌ Failed to approve draft. Please try again.`);
+        }
     }
 }
 
