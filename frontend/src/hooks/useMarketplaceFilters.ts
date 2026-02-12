@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { Channel } from '@/lib/api';
+import type { Channel } from '@/api';
 import { parseTagArray } from '@/lib/parseTagArray';
 
 /**

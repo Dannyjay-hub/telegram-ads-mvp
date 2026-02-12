@@ -1,12 +1,12 @@
 
 import { useEffect, useState } from 'react'
-import { getMyChannels, type Channel } from '@/lib/api'
+import { getMyChannels, type Channel } from '@/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Settings, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { ChannelAnalyticsCard } from './ChannelAnalyticsCard'
+import { ChannelAnalyticsCard } from '@/components/ChannelAnalyticsCard'
 
 export function MyChannelsPage() {
     const { user } = useTelegram();

@@ -5,7 +5,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, Users } from 'lucide-react';
 import { useState } from 'react';
-import { API_URL, getHeaders, apiFetch } from '@/lib/api';
+import { API_URL, getHeaders, apiFetch } from '@/api';
 import { showSuccess, showError } from '@/lib/telegram';
 
 interface AnalyticsProps {

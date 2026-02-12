@@ -4,7 +4,7 @@ import { useTonWallet } from '@/hooks/useTonWallet'
 import { Info, Wallet, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-import { API_URL, getHeaders, apiFetch } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/api'
 import { TON_TOKEN, USDT_TOKEN } from '@/lib/jettons'
 
 // Temporary GlassCard component if not found

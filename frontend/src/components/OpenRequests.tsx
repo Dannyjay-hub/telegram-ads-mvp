@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getBriefs, applyToBrief, type PublicBrief } from '@/lib/api'
+import { getBriefs, applyToBrief, type PublicBrief } from '@/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

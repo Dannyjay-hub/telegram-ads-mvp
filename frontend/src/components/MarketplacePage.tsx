@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getMarketplaceChannels, type Channel } from '@/lib/api'
+import { getMarketplaceChannels, type Channel } from '@/api'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MessageCircle, Star } from 'lucide-react'

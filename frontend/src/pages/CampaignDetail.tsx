@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Loader2 } from 'lucide-react'
 
-import { API_URL, getHeaders, apiFetch } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/api'
 
 interface Campaign {
     id: string

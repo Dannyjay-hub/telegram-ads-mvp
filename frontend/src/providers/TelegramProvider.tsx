@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import WebApp from '@twa-dev/sdk';
-import { authenticateWithTelegram, setAuthToken, type User } from '@/lib/api';
+import { authenticateWithTelegram, setAuthToken, type User } from '@/api';
 
 interface TelegramContextType {
     user: User | null;

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
 import { ChevronRight, Check, Users, Globe, Folder, Clock, Sparkles, Target, Save } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL, getHeaders, apiFetch } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/api'
 
 const STEPS = ['Basics', 'Budget', 'Targeting', 'Type', 'Review']
 const DRAFT_KEY = 'campaign_draft'

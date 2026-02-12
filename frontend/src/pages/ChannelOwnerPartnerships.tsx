@@ -1,21 +1,19 @@
-
 import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, Eye, Calendar, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react'
-import { API_URL, getHeaders, apiFetch, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
+import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye } from 'lucide-react'
+import { API_URL, getHeaders, apiFetch, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/api'
 import { haptic } from '@/utils/haptic'
 import { openTelegramLink, getBotUrl, getBotDeepLinkUrl } from '@/lib/telegram'
 import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
-import { TimePickerModal } from './TimePickerModal'
+import { TimePickerModal } from '@/components/TimePickerModal'
 
-// Deal with channel data
-interface DealWithChannel {
+// Deal with advertiser data
+interface DealWithDetails {
     id: string
     status: string
     priceAmount: number
     priceCurrency: string
-    paymentMemo?: string
     briefText?: string
     createdAt: string
     channel?: {
@@ -23,6 +21,12 @@ interface DealWithChannel {
         title: string
         username?: string
         photoUrl?: string
+    }
+    advertiser?: {
+        id: string
+        telegramId: number
+        firstName?: string
+        username?: string
     }
     // Post-escrow fields
     draftText?: string
@@ -35,13 +39,12 @@ interface DealWithChannel {
 
 // Status badge config
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-    draft: { label: 'Draft', color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
     pending: { label: 'Pending Approval', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
-    funded: { label: 'Payment Received', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-    draft_pending: { label: 'Creating Draft', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-    draft_submitted: { label: 'Review Draft', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
-    changes_requested: { label: 'Revising', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
-    approved: { label: 'Set Schedule', color: 'text-green-400', bgColor: 'bg-green-500/20' },
+    funded: { label: 'Pending Approval', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+    draft_pending: { label: 'Create Draft', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
+    draft_submitted: { label: 'Under Review', color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+    changes_requested: { label: 'Changes Needed', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+    approved: { label: 'Approved', color: 'text-green-400', bgColor: 'bg-green-500/20' },
     scheduling: { label: 'Setting Time', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
     scheduled: { label: 'Scheduled', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20' },
     rejected: { label: 'Rejected', color: 'text-red-400', bgColor: 'bg-red-500/20' },
@@ -53,11 +56,13 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
     cancelled: { label: 'Cancelled', color: 'text-red-400', bgColor: 'bg-red-500/20' },
     refunded: { label: 'Refunded', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
     pending_refund: { label: 'Refund Pending', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
-    disputed: { label: 'Disputed', color: 'text-orange-400', bgColor: 'bg-orange-500/20' }
+    disputed: { label: 'Disputed', color: 'text-red-400', bgColor: 'bg-red-500/20' }
 }
 
+type TabType = 'pending' | 'active' | 'ended'
+
 function StatusBadge({ status }: { status: string }) {
-    const config = statusConfig[status] || statusConfig.draft
+    const config = statusConfig[status] || { label: status, color: 'text-gray-400', bgColor: 'bg-gray-500/20' }
     return (
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color} ${config.bgColor}`}>
             {config.label}
@@ -65,35 +70,13 @@ function StatusBadge({ status }: { status: string }) {
     )
 }
 
-function CopyMemo({ memo }: { memo: string }) {
-    const [copied, setCopied] = useState(false)
-
-    const handleCopy = async (e: React.MouseEvent) => {
-        e.stopPropagation()
-        await navigator.clipboard.writeText(memo)
-        haptic.light()
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-    }
-
-    return (
-        <button
-            onClick={handleCopy}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-            <span className="font-mono">{memo}</span>
-            {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-        </button>
-    )
-}
-
-export function PartnershipsList() {
-    const [deals, setDeals] = useState<DealWithChannel[]>([])
+export function ChannelOwnerPartnerships() {
+    const [deals, setDeals] = useState<DealWithDetails[]>([])
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'completed'>('pending')
-    const [lastFetchedAt, setLastFetchedAt] = useState<Date>(new Date())
+    const [activeTab, setActiveTab] = useState<TabType>('pending')
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [processingAction, setProcessingAction] = useState<'accept' | 'reject' | null>(null)
+    const [lastFetchedAt, setLastFetchedAt] = useState<Date>(new Date())
     const [timePickerDealId, setTimePickerDealId] = useState<string | null>(null)
     const [schedulingProposal, setSchedulingProposal] = useState<{
         proposedTime: string;
@@ -102,7 +85,7 @@ export function PartnershipsList() {
 
     const loadDeals = useCallback(async () => {
         try {
-            const response = await apiFetch(`${API_URL}/deals/my`, {
+            const response = await apiFetch(`${API_URL}/deals/channel-owner`, {
                 headers: getHeaders()
             })
             if (response.ok) {
@@ -141,7 +124,7 @@ export function PartnershipsList() {
 
     // Polling for active transition states
     useEffect(() => {
-        const activeTransitionStates = ['draft_pending', 'scheduling', 'draft_submitted', 'changes_requested']
+        const activeTransitionStates = ['draft_pending', 'scheduling', 'draft_submitted']
         const hasActiveDeals = deals.some(d => activeTransitionStates.includes(d.status))
 
         if (hasActiveDeals) {
@@ -149,6 +132,42 @@ export function PartnershipsList() {
             return () => clearInterval(interval)
         }
     }, [deals, loadDeals])
+
+    const handleApprove = async (dealId: string, reject: boolean) => {
+        setProcessingId(dealId)
+        setProcessingAction(reject ? 'reject' : 'accept')
+        haptic.light()
+
+        try {
+            const response = await apiFetch(`${API_URL}/deals/${dealId}/approve`, {
+                method: 'POST',
+                headers: {
+                    ...getHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    is_advertiser: false,
+                    reject
+                })
+            })
+
+            if (response.ok) {
+                haptic.success()
+                // Refresh deals after action
+                await loadDeals()
+            } else {
+                const err = await response.json().catch(() => ({}))
+                console.error('Approve/Reject failed:', err)
+                haptic.error()
+            }
+        } catch (error) {
+            console.error('Failed to process deal:', error)
+            haptic.error()
+        } finally {
+            setProcessingId(null)
+            setProcessingAction(null)
+        }
+    }
 
     const openBot = () => {
         haptic.light()
@@ -176,7 +195,7 @@ export function PartnershipsList() {
     // Handle time proposal
     const handleProposeTime = async (time: Date) => {
         if (!timePickerDealId) return
-        await proposePostTime(timePickerDealId, time, 'advertiser')
+        await proposePostTime(timePickerDealId, time, 'channel_owner')
         await loadDeals()
     }
 
@@ -187,63 +206,35 @@ export function PartnershipsList() {
         await loadDeals()
     }
 
-    // Filter out drafts entirely - they're unpaid and shouldn't appear anywhere
-    const visibleDeals = deals.filter(d => d.status !== 'draft')
-
-    // Pending: ONLY accept/reject decisions
-    const pendingStatuses = ['pending']
-    // Active: all working deals (drafting, reviewing, scheduling, posting, monitoring)
-    const activeStatuses = ['funded', 'draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
-    // Completed: finished states
-    const completedStatuses = ['released', 'cancelled', 'refunded', 'pending_refund', 'completed', 'rejected']
-
-    const pendingDeals = visibleDeals.filter(d => pendingStatuses.includes(d.status))
-    const activeDeals = visibleDeals.filter(d => activeStatuses.includes(d.status))
-    const completedDeals = visibleDeals.filter(d => completedStatuses.includes(d.status))
-
-    const displayDeals = activeTab === 'pending' ? pendingDeals : activeTab === 'active' ? activeDeals : completedDeals
-
-    // Accept/Reject handler for pending deals (closed campaign applications)
-    const handlePendingAction = async (dealId: string, action: 'accept' | 'reject') => {
-        setProcessingId(dealId)
-        setProcessingAction(action)
+    // Open support for failed posts
+    const openSupport = () => {
         haptic.light()
+        openTelegramLink(getBotUrl())
+    }
 
-        try {
-            const response = await apiFetch(`${API_URL}/deals/${dealId}/approve`, {
-                method: 'POST',
-                headers: {
-                    ...getHeaders(),
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    is_advertiser: true,
-                    reject: action === 'reject'
-                })
-            })
+    // Categorize deals - Pending = accept/reject only, Active = working, Ended = done
+    const pendingStatuses = ['funded', 'pending'] // funded = advertiser sent service package (accept/reject), pending = closed campaign app awaiting approval
+    const activeStatuses = ['draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress'] // All working deals
 
-            if (response.ok) {
-                haptic.success()
-                await loadDeals()
-            } else {
-                const err = await response.json().catch(() => ({}))
-                console.error('Action failed:', err)
-                haptic.error()
-            }
-        } catch (error) {
-            console.error('Failed to process:', error)
-            haptic.error()
-        } finally {
-            setProcessingId(null)
-            setProcessingAction(null)
-        }
+    const pendingDeals = deals.filter(d => pendingStatuses.includes(d.status))
+    const activeDeals = deals.filter(d => activeStatuses.includes(d.status))
+    const endedDeals = deals.filter(d => !pendingStatuses.includes(d.status) && !activeStatuses.includes(d.status))
+
+    const displayDeals = activeTab === 'pending' ? pendingDeals
+        : activeTab === 'active' ? activeDeals
+            : endedDeals
+
+    const getAdvertiserName = (deal: DealWithDetails) => {
+        if (deal.advertiser?.firstName) return deal.advertiser.firstName
+        if (deal.advertiser?.username) return `@${deal.advertiser.username}`
+        return 'Unknown Advertiser'
     }
 
     if (loading) {
         return (
             <div className="space-y-4">
-                <GlassCard className="animate-pulse h-24" />
-                <GlassCard className="animate-pulse h-24" />
+                <GlassCard className="animate-pulse h-32" />
+                <GlassCard className="animate-pulse h-32" />
             </div>
         )
     }
@@ -252,30 +243,30 @@ export function PartnershipsList() {
         <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
             {/* Pinned Tabs */}
             <div className="flex-shrink-0 pb-3">
-                <div className="flex gap-2">
+                <div className="flex gap-1 bg-secondary p-1 rounded-lg">
                     <Button
                         variant={activeTab === 'pending' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => { haptic.light(); setActiveTab('pending') }}
-                        className="flex-1 text-xs px-2"
+                        className={`flex-1 ${activeTab === 'pending' ? '' : 'text-muted-foreground'}`}
                     >
-                        Pending ({pendingDeals.length})
+                        Pending {pendingDeals.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded-full text-xs">{pendingDeals.length}</span>}
                     </Button>
                     <Button
                         variant={activeTab === 'active' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => { haptic.light(); setActiveTab('active') }}
-                        className="flex-1 text-xs px-2"
+                        className={`flex-1 ${activeTab === 'active' ? '' : 'text-muted-foreground'}`}
                     >
                         Active ({activeDeals.length})
                     </Button>
                     <Button
-                        variant={activeTab === 'completed' ? 'default' : 'ghost'}
+                        variant={activeTab === 'ended' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => { haptic.light(); setActiveTab('completed') }}
-                        className="flex-1 text-xs px-2"
+                        onClick={() => { haptic.light(); setActiveTab('ended') }}
+                        className={`flex-1 ${activeTab === 'ended' ? '' : 'text-muted-foreground'}`}
                     >
-                        Completed ({completedDeals.length})
+                        Ended ({endedDeals.length})
                     </Button>
                 </div>
             </div>
@@ -287,14 +278,12 @@ export function PartnershipsList() {
                         <CardContent className="text-center py-10">
                             <Handshake className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
                             <p className="text-muted-foreground">
-                                {activeTab === 'pending'
-                                    ? 'No pending approvals'
-                                    : activeTab === 'active'
-                                        ? 'No active partnerships yet'
-                                        : 'No completed partnerships yet'}
+                                {activeTab === 'pending' && 'No pending requests'}
+                                {activeTab === 'active' && 'No active partnerships'}
+                                {activeTab === 'ended' && 'No ended partnerships'}
                             </p>
                             <p className="text-xs text-muted-foreground mt-2">
-                                {activeTab === 'pending' ? 'Deals awaiting approval will appear here' : 'Browse channels or campaigns in the Marketplace'}
+                                Advertisers will send requests here
                             </p>
                         </CardContent>
                     </GlassCard>
@@ -303,51 +292,59 @@ export function PartnershipsList() {
                         {displayDeals.map(deal => (
                             <GlassCard key={deal.id} className="p-4">
                                 <div className="flex flex-col gap-3">
-                                    {/* Header */}
-                                    <div className="flex items-start gap-3">
-                                        {/* Channel Avatar */}
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shrink-0 overflow-hidden">
-                                            {deal.channel?.photoUrl ? (
-                                                <img src={deal.channel.photoUrl} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                deal.channel?.title?.charAt(0) || '?'
-                                            )}
-                                        </div>
-
-                                        {/* Details */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <h3 className="font-semibold truncate">
-                                                    {deal.channel?.title || 'Unknown Channel'}
-                                                </h3>
-                                                <StatusBadge status={deal.status} />
+                                    {/* Header: Advertiser + Status */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm">
+                                                <User className="w-4 h-4" />
                                             </div>
-
-                                            {deal.channel?.username && (
-                                                <p className="text-xs text-muted-foreground">@{deal.channel.username}</p>
-                                            )}
-
-                                            {/* Price and Deal ID */}
-                                            <div className="flex items-center gap-4 mt-2 text-sm">
-                                                <span className="flex items-center gap-1 text-green-400">
-                                                    <DollarSign className="w-3 h-3" />
-                                                    {deal.priceAmount} {deal.priceCurrency}
-                                                </span>
-
-                                                <CopyMemo memo={deal.paymentMemo || deal.id} />
+                                            <div>
+                                                <p className="font-medium text-sm">{getAdvertiserName(deal)}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    for {deal.channel?.title || 'your channel'}
+                                                </p>
                                             </div>
                                         </div>
+                                        <StatusBadge status={deal.status} />
                                     </div>
 
-                                    {/* Status-specific UI */}
-                                    {/* Pending: Accept/Reject (closed campaign applications) */}
+                                    {/* Brief */}
+                                    {deal.briefText && (
+                                        <p className="text-sm text-muted-foreground bg-secondary rounded p-2 line-clamp-2">
+                                            {deal.briefText}
+                                        </p>
+                                    )}
+
+                                    {/* Price */}
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <span className="flex items-center gap-1 text-green-400 font-semibold">
+                                            <DollarSign className="w-4 h-4" />
+                                            {deal.priceAmount} {deal.priceCurrency}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {new Date(deal.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+
+                                    {/* Actions based on status */}
+                                    {/* Pending: Channel applied to closed campaign, waiting for advertiser */}
                                     {deal.status === 'pending' && (
+                                        <div className="pt-2 border-t border-border">
+                                            <p className="text-sm text-orange-400 flex items-center gap-1">
+                                                <Clock className="w-4 h-4" />
+                                                Waiting for advertiser to accept your application
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Funded: Accept/Reject */}
+                                    {deal.status === 'funded' && (
                                         <div className="flex gap-2 pt-2 border-t border-border">
                                             <Button
                                                 variant="default"
                                                 size="sm"
                                                 className="flex-1 bg-green-600 hover:bg-green-700"
-                                                onClick={() => handlePendingAction(deal.id, 'accept')}
+                                                onClick={() => handleApprove(deal.id, false)}
                                                 disabled={processingId === deal.id}
                                             >
                                                 {processingId === deal.id && processingAction === 'accept' ? (
@@ -355,13 +352,13 @@ export function PartnershipsList() {
                                                 ) : (
                                                     <CheckCircle className="w-4 h-4 mr-1" />
                                                 )}
-                                                Accept
+                                                {processingId === deal.id && processingAction === 'accept' ? 'Processing...' : 'Accept'}
                                             </Button>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
-                                                onClick={() => handlePendingAction(deal.id, 'reject')}
+                                                onClick={() => handleApprove(deal.id, true)}
                                                 disabled={processingId === deal.id}
                                             >
                                                 {processingId === deal.id && processingAction === 'reject' ? (
@@ -369,80 +366,48 @@ export function PartnershipsList() {
                                                 ) : (
                                                     <XCircle className="w-4 h-4 mr-1" />
                                                 )}
-                                                Reject
+                                                {processingId === deal.id && processingAction === 'reject' ? 'Processing...' : 'Reject'}
                                             </Button>
                                         </div>
                                     )}
 
-                                    {deal.status === 'funded' && (
-                                        <p className="text-xs text-blue-400 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            Waiting for channel owner approval
-                                        </p>
+                                    {/* Draft Pending: Create Draft button */}
+                                    {(deal.status === 'draft_pending' || deal.status === 'changes_requested') && (
+                                        <div className="flex gap-2 pt-2 border-t border-border">
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                                onClick={() => openBotDeepLink(`draft_${deal.id}`)}
+                                            >
+                                                <Send className="w-4 h-4 mr-1" />
+                                                {deal.status === 'changes_requested' ? 'Edit Draft' : 'Create Draft'}
+                                            </Button>
+                                        </div>
                                     )}
 
-                                    {deal.status === 'draft_pending' && (
-                                        <p className="text-xs text-blue-400 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            Channel owner is creating draft
-                                        </p>
-                                    )}
 
-                                    {deal.status === 'changes_requested' && (
-                                        <p className="text-xs text-orange-400 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            Channel owner is revising draft
-                                        </p>
-                                    )}
-
-                                    {/* Draft Submitted: Review button */}
+                                    {/* Draft Submitted: Waiting message */}
                                     {deal.status === 'draft_submitted' && (
-                                        <div className="pt-2 border-t border-border">
-                                            <Button
-                                                variant="default"
-                                                size="sm"
-                                                className="w-full bg-purple-600 hover:bg-purple-700"
-                                                onClick={() => openBotDeepLink(`review_${deal.id}`)}
-                                            >
-                                                <Eye className="w-4 h-4 mr-1" />
-                                                Review Draft
-                                            </Button>
+                                        <div className="flex items-center gap-2 pt-2 border-t border-border text-purple-400 text-sm">
+                                            <Eye className="w-4 h-4" />
+                                            <span>Waiting for advertiser review</span>
                                         </div>
                                     )}
 
-                                    {/* Approved: Propose time button */}
-                                    {deal.status === 'approved' && (
-                                        <div className="pt-2 border-t border-border">
-                                            <Button
-                                                variant="default"
-                                                size="sm"
-                                                className="w-full bg-green-600 hover:bg-green-700"
-                                                onClick={() => openTimePicker(deal.id)}
-                                            >
-                                                <Calendar className="w-4 h-4 mr-1" />
-                                                Propose Post Time
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    {/* Scheduling: Accept or Counter */}
+                                    {/* Scheduling: Channel owner waits for advertiser to propose first */}
                                     {deal.status === 'scheduling' && (
                                         <div className="pt-2 border-t border-border space-y-2">
                                             {!deal.proposedPostTime ? (
-                                                /* No time proposed yet - show propose button */
-                                                <Button
-                                                    variant="default"
-                                                    size="sm"
-                                                    className="w-full bg-green-600 hover:bg-green-700"
-                                                    onClick={() => openTimePicker(deal.id)}
-                                                >
-                                                    <Calendar className="w-4 h-4 mr-1" />
-                                                    Propose Post Time
-                                                </Button>
-                                            ) : deal.timeProposedBy !== 'advertiser' ? (
+                                                /* No time proposed yet - waiting for advertiser */
+                                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                    <Clock className="w-4 h-4" />
+                                                    Waiting for advertiser to propose a time
+                                                </div>
+                                            ) : deal.timeProposedBy !== 'channel_owner' ? (
                                                 <>
                                                     <div className="text-sm text-cyan-400">
-                                                        Channel owner proposed: {displayTime(deal.proposedPostTime)}
+                                                        Advertiser proposed: {displayTime(deal.proposedPostTime)}
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <Button
@@ -468,7 +433,7 @@ export function PartnershipsList() {
                                             ) : (
                                                 <div className="text-sm text-muted-foreground flex items-center gap-1">
                                                     <Clock className="w-4 h-4" />
-                                                    Waiting for channel owner to accept your time
+                                                    Waiting for advertiser to accept your counter
                                                 </div>
                                             )}
                                         </div>
@@ -487,47 +452,57 @@ export function PartnershipsList() {
                                         </div>
                                     )}
 
-                                    {/* Posted: Shows ad is live */}
-                                    {deal.status === 'posted' && (
-                                        <div className="flex items-center gap-1 text-teal-400 text-sm">
-                                            <CheckCircle className="w-4 h-4" />
-                                            <span>Ad is live on channel</span>
-                                        </div>
-                                    )}
-
-                                    {/* Monitoring: Info message */}
+                                    {/* Monitoring: Warning message */}
                                     {deal.status === 'monitoring' && (
-                                        <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-sm">
-                                            <p className="text-cyan-400 flex items-center gap-1">
-                                                <Clock className="w-4 h-4" />
-                                                Being monitored for 24h
+                                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm">
+                                            <p className="text-yellow-400 flex items-center gap-1">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Post is LIVE - Don't delete for 24h
                                             </p>
                                             {deal.monitoringEndAt && (
                                                 <p className="text-xs text-muted-foreground mt-1">
-                                                    Funds release: {displayTime(deal.monitoringEndAt)}
+                                                    Ends: {displayTime(deal.monitoringEndAt)}
                                                 </p>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Failed to Post */}
+                                    {/* Failed to Post: Report issue */}
                                     {deal.status === 'failed_to_post' && (
-                                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center gap-2">
-                                            <AlertTriangle className="w-4 h-4" />
-                                            Post failed - contact support
+                                        <div className="pt-2 border-t border-border space-y-2">
+                                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Post failed - contact support
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full border-red-500/50 text-red-400"
+                                                onClick={openSupport}
+                                            >
+                                                Report Issue
+                                            </Button>
                                         </div>
                                     )}
 
                                     {/* Disputed warning */}
                                     {deal.status === 'disputed' && (
-                                        <div className="flex items-center gap-2 text-orange-400 bg-orange-500/10 rounded p-2 text-sm">
+                                        <div className="flex items-center gap-2 text-red-400 bg-red-500/10 rounded p-2 text-sm">
                                             <AlertTriangle className="w-4 h-4" />
-                                            <span>This deal is disputed</span>
+                                            <span>This deal is disputed - action required</span>
                                         </div>
                                     )}
 
-                                    {/* Last updated + Chat button */}
-                                    <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
+                                    {/* Posted: Shows ad is live */}
+                                    {deal.status === 'posted' && (
+                                        <div className="flex items-center gap-1 text-teal-400 text-sm pt-2 border-t border-border">
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span>Ad is live on channel</span>
+                                        </div>
+                                    )}
+
+                                    {/* Last updated indicator */}
+                                    <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
                                         <span>Updated {formatRelativeTime(lastFetchedAt)}</span>
                                         <Button
                                             size="sm"
@@ -551,7 +526,7 @@ export function PartnershipsList() {
                     onClose={() => setTimePickerDealId(null)}
                     dealId={timePickerDealId || ''}
                     existingProposal={schedulingProposal}
-                    userRole="advertiser"
+                    userRole="channel_owner"
                     onPropose={handleProposeTime}
                     onAccept={handleAcceptTime}
                 />

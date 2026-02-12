@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom'
 import { Megaphone, Briefcase } from 'lucide-react'
-import { MarketplacePage } from './MarketplacePage'
+import { MarketplacePage } from '@/components/MarketplacePage'
 import { CampaignMarketplace } from './CampaignMarketplace'
 
 // CampaignsMarketplaceTab - uses the real CampaignMarketplace component

@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, Zap, Loader2, Tag, Globe, CheckCircle } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL, getHeaders, apiFetch } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/api'
 
 interface MarketplaceCampaign {
     id: string

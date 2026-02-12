@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useTonConnectUI, useTonAddress, useIsConnectionRestored } from '@tonconnect/ui-react';
 import { type JettonToken, isNativeToken, toSmallestUnit } from '@/lib/jettons';
 import { beginCell, Address } from '@ton/core';
-import { API_URL, getHeaders, apiFetch } from '@/lib/api';
+import { API_URL, getHeaders, apiFetch } from '@/api';
 import { useTelegram } from '@/providers/TelegramProvider';
 
 /**
