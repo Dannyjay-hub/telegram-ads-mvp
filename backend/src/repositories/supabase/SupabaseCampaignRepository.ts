@@ -132,15 +132,19 @@ export class SupabaseCampaignRepository {
     /**
      * Confirm escrow deposit and activate campaign
      */
-    async confirmEscrowDeposit(id: string, amount: number, txHash: string): Promise<void> {
+    async confirmEscrowDeposit(id: string, amount: number, txHash: string, senderAddress?: string): Promise<void> {
+        const updateData: any = {
+            escrow_deposited: amount,
+            escrow_tx_hash: txHash,
+            status: 'active',
+            funded_at: new Date().toISOString()
+        };
+        if (senderAddress) {
+            updateData.escrow_wallet_address = senderAddress;
+        }
         const { error } = await supabase
             .from('campaigns')
-            .update({
-                escrow_deposited: amount,
-                escrow_tx_hash: txHash,
-                status: 'active',
-                funded_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id);
 
         if (error) {

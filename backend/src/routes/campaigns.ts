@@ -713,21 +713,57 @@ campaigns.post('/:id/end', async (c) => {
         const refundAmount = slotsLeft * campaign.perChannelBudget;
 
         // Queue refund if there's money to return
-        if (refundAmount > 0 && campaign.escrowWalletAddress) {
-            try {
-                const { TonPayoutService } = await import('../services/TonPayoutService');
-                const tonPayoutService = new TonPayoutService();
-                const currency = (campaign.currency || 'TON') as 'TON' | 'USDT';
-                await tonPayoutService.queueRefund(
-                    campaignId, // use campaignId as the deal reference
-                    campaign.escrowWalletAddress,
-                    refundAmount,
-                    currency,
-                    `Campaign ended: refund for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}`
-                );
-                console.log(`[Campaigns] Refund queued and auto-executing for ${refundAmount} ${currency}`);
-            } catch (e: any) {
-                console.error('[Campaigns] Refund queue error:', e.message);
+        if (refundAmount > 0) {
+            let refundAddress = campaign.escrowWalletAddress;
+
+            // If no stored wallet address, look up the sender from the payment TX
+            if (!refundAddress && campaign.escrowTxHash) {
+                try {
+                    const txLookupUrl = `https://tonapi.io/v2/events/${campaign.escrowTxHash}`;
+                    const txResp = await fetch(txLookupUrl, {
+                        headers: {
+                            'Accept': 'application/json',
+                            ...(process.env.TONAPI_KEY ? { 'Authorization': `Bearer ${process.env.TONAPI_KEY}` } : {})
+                        }
+                    });
+                    if (txResp.ok) {
+                        const txData = await txResp.json() as any;
+                        // Extract sender from the first action (TonTransfer or JettonTransfer)
+                        const action = txData.actions?.[0];
+                        if (action?.TonTransfer?.sender?.address) {
+                            refundAddress = action.TonTransfer.sender.address;
+                        } else if (action?.JettonTransfer?.sender?.address) {
+                            refundAddress = action.JettonTransfer.sender.address;
+                        }
+                        if (refundAddress) {
+                            console.log(`[Campaigns] Resolved refund address from TX: ${refundAddress}`);
+                            // Save it for future use
+                            await supabase.from('campaigns' as any).update({ escrow_wallet_address: refundAddress }).eq('id', campaignId);
+                        }
+                    }
+                } catch (e: any) {
+                    console.error('[Campaigns] Failed to look up sender from TX:', e.message);
+                }
+            }
+
+            if (refundAddress) {
+                try {
+                    const { TonPayoutService } = await import('../services/TonPayoutService');
+                    const tonPayoutService = new TonPayoutService();
+                    const currency = (campaign.currency || 'TON') as 'TON' | 'USDT';
+                    await tonPayoutService.queueRefund(
+                        campaignId,
+                        refundAddress,
+                        refundAmount,
+                        currency,
+                        `Campaign ended: refund for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}`
+                    );
+                    console.log(`[Campaigns] Refund queued and auto-executing for ${refundAmount} ${currency} to ${refundAddress}`);
+                } catch (e: any) {
+                    console.error('[Campaigns] Refund queue error:', e.message);
+                }
+            } else {
+                console.error(`[Campaigns] ⚠️ Cannot refund campaign ${campaignId}: no wallet address found (escrowWalletAddress is null and could not resolve from TX)`);
             }
         }
 

@@ -221,7 +221,7 @@ export class TonPaymentService {
                     this.markAsProcessed(eventId);
                     return;
                 }
-                await this.campaignRepo.confirmEscrowDeposit(campaign.id, tonAmount, eventId);
+                await this.campaignRepo.confirmEscrowDeposit(campaign.id, tonAmount, eventId, transfer.sender?.address);
                 this.markAsProcessed(eventId);
                 console.log(`✅ TonPaymentService: TON campaign payment confirmed for ${comment}`);
             } else {
@@ -354,7 +354,7 @@ export class TonPaymentService {
                     this.markAsProcessed(txHash); // Stop log spam
                     return;
                 }
-                await this.campaignRepo.confirmEscrowDeposit(campaign.id, amount, txHash);
+                await this.campaignRepo.confirmEscrowDeposit(campaign.id, amount, txHash, op.source?.address);
                 this.markAsProcessed(txHash); // ✅ Mark AFTER success
                 console.log(`✅ TonPaymentService: USDT campaign payment confirmed for ${memo}`);
             } catch (error: any) {
