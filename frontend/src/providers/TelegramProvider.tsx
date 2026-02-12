@@ -70,6 +70,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
                 // 4. Set Token
                 setAuthToken(token);
+                sessionStorage.removeItem('auth_401_reload');
                 setUser(authenticatedUser);
 
             } catch (err: any) {

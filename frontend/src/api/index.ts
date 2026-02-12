@@ -4,7 +4,7 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export const PLATFORM_WALLET_ADDRESS = import.meta.env.VITE_PLATFORM_WALLET_ADDRESS || 'UQDEVQMogJ6w7qQ6hXnsvb1OYWcyvhE576MN6iKvaA0TUwIW';
 
 let authToken: string | null = null;
-let _isReloading = false;
+
 
 export const setAuthToken = (token: string) => {
     authToken = token;
@@ -27,17 +27,22 @@ export const getHeaders = (): Record<string, string> => {
 
 /**
  * Global fetch wrapper with 401 interception.
- * On 401 (expired/invalid JWT), clears token and reloads the page.
+ * On 401 (expired/invalid JWT), clears token and reloads the page ONCE.
+ * Uses sessionStorage to prevent infinite reload loops.
  * Telegram Mini App reload triggers fresh initData → automatic re-auth.
  */
 export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
     const response = await fetch(input, init);
 
-    if (response.status === 401 && !_isReloading) {
-        _isReloading = true;
-        console.warn('[API] 401 Unauthorized — clearing token and reloading for re-auth');
-        clearAuthToken();
-        window.location.reload();
+    if (response.status === 401) {
+        const RELOAD_KEY = 'auth_401_reload';
+        if (!sessionStorage.getItem(RELOAD_KEY)) {
+            sessionStorage.setItem(RELOAD_KEY, '1');
+            console.warn('[API] 401 Unauthorized — clearing token and reloading for re-auth');
+            clearAuthToken();
+            window.location.reload();
+        }
+        // If already reloaded once, don't reload again — avoids infinite loop
     }
 
     return response;
