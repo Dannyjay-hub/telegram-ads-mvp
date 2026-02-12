@@ -202,6 +202,14 @@ function AppContent() {
 }
 
 export default function App() {
+  // Proactively clear stale TonConnect bridge sessions from localStorage
+  // This prevents the SDK from trying to restore expired sessions (causing 404s)
+  // before the restoreConnection={false} prop takes effect
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('ton-connect'));
+    keys.forEach(k => localStorage.removeItem(k));
+  } catch (e) { /* ignore */ }
+
   return (
     // restoreConnection=false prevents 404 errors when TonConnect's stored bridge session expires
     // Users will need to reconnect wallet on each session, but this is more reliable
