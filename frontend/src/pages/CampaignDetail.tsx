@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, Loader2, AlertTriangle, Clock, XCircle } from 'lucide-react'
 
 import { API_URL, getHeaders, apiFetch } from '@/api'
 
@@ -23,6 +23,8 @@ interface Campaign {
     requiredCategories?: string[]
     expiresAt?: string
     createdAt: string
+    refundAmount?: number
+    endedAt?: string
 }
 
 interface Application {
@@ -47,6 +49,9 @@ export function CampaignDetail() {
     const [applications, setApplications] = useState<Application[]>([])
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
+    const [showEndConfirm, setShowEndConfirm] = useState(false)
+    const [showDurationEdit, setShowDurationEdit] = useState(false)
+    const [durationDays, setDurationDays] = useState(7)
 
     // Handle Telegram back button - go to advertiser dashboard
     useEffect(() => {
@@ -111,6 +116,64 @@ export function CampaignDetail() {
         }
     }
 
+    const endCampaign = async () => {
+        setActionLoading('end')
+        try {
+            const res = await apiFetch(`${API_URL}/campaigns/${campaign!.id}/end`, {
+                method: 'POST',
+                headers: getHeaders()
+            })
+            if (res.ok) {
+                setShowEndConfirm(false)
+                await fetchCampaign()
+            }
+        } catch (e) {
+            console.error('End campaign failed:', e)
+        } finally {
+            setActionLoading(null)
+        }
+    }
+
+    const extendCampaign = async () => {
+        setActionLoading('extend')
+        try {
+            const res = await apiFetch(`${API_URL}/campaigns/${campaign!.id}/extend`, {
+                method: 'POST',
+                headers: getHeaders()
+            })
+            if (res.ok) {
+                await fetchCampaign()
+            }
+        } catch (e) {
+            console.error('Extension failed:', e)
+        } finally {
+            setActionLoading(null)
+        }
+    }
+
+    const updateDuration = async () => {
+        setActionLoading('duration')
+        try {
+            const newExpiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
+            const res = await apiFetch(`${API_URL}/campaigns/${campaign!.id}/duration`, {
+                method: 'POST',
+                headers: {
+                    ...getHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ expiresAt: newExpiresAt.toISOString() })
+            })
+            if (res.ok) {
+                setShowDurationEdit(false)
+                await fetchCampaign()
+            }
+        } catch (e) {
+            console.error('Duration update failed:', e)
+        } finally {
+            setActionLoading(null)
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -128,6 +191,22 @@ export function CampaignDetail() {
     }
 
     const approvedApps = applications.filter(a => a.status === 'approved')
+    const slotsLeft = campaign.slots - campaign.slotsFilled
+    const refundPreview = slotsLeft * campaign.perChannelBudget
+
+    // Grace period calculation for expired campaigns
+    const isExpired = campaign.status === 'expired'
+    const isEnded = campaign.status === 'ended'
+    const graceEnd = campaign.expiresAt
+        ? new Date(new Date(campaign.expiresAt).getTime() + 24 * 60 * 60 * 1000)
+        : null
+    const isInGrace = isExpired && graceEnd && Date.now() < graceEnd.getTime()
+    const hoursLeft = graceEnd ? Math.max(0, Math.round((graceEnd.getTime() - Date.now()) / (1000 * 60 * 60))) : 0
+
+    // Days until expiry (for active campaigns)
+    const daysUntilExpiry = campaign.expiresAt
+        ? Math.max(0, Math.ceil((new Date(campaign.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        : null
 
     return (
         <div className="space-y-6 pb-24">
@@ -176,6 +255,119 @@ export function CampaignDetail() {
                         {actionLoading === 'publish' ? 'Publishing...' : 'Publish Campaign'}
                     </Button>
                 </GlassCard>
+            )}
+
+            {/* Active Campaign: Duration + End options */}
+            {campaign.status === 'active' && (
+                <>
+                    {/* Duration info */}
+                    {daysUntilExpiry !== null && (
+                        <GlassCard className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-muted-foreground" />
+                                    <h3 className="font-semibold">Campaign Duration</h3>
+                                </div>
+                                <span className="text-sm text-muted-foreground">
+                                    {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''} left
+                                </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Expires {new Date(campaign.expiresAt!).toLocaleDateString()}
+                            </p>
+
+                            {showDurationEdit ? (
+                                <div className="space-y-3 pt-2 border-t border-border/50">
+                                    <p className="text-sm text-muted-foreground">Set new duration from today:</p>
+                                    <div className="flex gap-2">
+                                        {[3, 7, 14, 30].map(d => (
+                                            <button
+                                                key={d}
+                                                onClick={() => setDurationDays(d)}
+                                                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${durationDays === d
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                                    }`}
+                                            >
+                                                {d}d
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            className="flex-1"
+                                            onClick={() => setShowDurationEdit(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            className="flex-1"
+                                            onClick={updateDuration}
+                                            disabled={actionLoading === 'duration'}
+                                        >
+                                            {actionLoading === 'duration' ? 'Updating...' : 'Update'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => setShowDurationEdit(true)}
+                                >
+                                    Edit Duration
+                                </Button>
+                            )}
+                        </GlassCard>
+                    )}
+
+                    {/* End Campaign (available on active) */}
+                    <GlassCard className="p-4 space-y-3">
+                        <h3 className="font-semibold text-sm text-muted-foreground">End Campaign Early</h3>
+                        <p className="text-xs text-muted-foreground">
+                            Stop accepting new channels. Active deals will continue.
+                            {slotsLeft > 0 && (
+                                <span className="block mt-1">
+                                    {refundPreview} {campaign.currency} will be refunded for {slotsLeft} unfilled slot{slotsLeft > 1 ? 's' : ''}.
+                                </span>
+                            )}
+                        </p>
+
+                        {showEndConfirm ? (
+                            <div className="space-y-2 pt-2 border-t border-border/50">
+                                <p className="text-sm font-medium text-amber-400">
+                                    ⚠️ Are you sure? This cannot be undone.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1"
+                                        onClick={() => setShowEndConfirm(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        className="flex-1"
+                                        onClick={endCampaign}
+                                        disabled={actionLoading === 'end'}
+                                    >
+                                        {actionLoading === 'end' ? 'Ending...' : 'End Campaign'}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="w-full text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                onClick={() => setShowEndConfirm(true)}
+                            >
+                                End Campaign
+                            </Button>
+                        )}
+                    </GlassCard>
+                </>
             )}
 
 
@@ -237,53 +429,99 @@ export function CampaignDetail() {
                 </GlassCard>
             )}
 
-            {/* Extend Campaign (expired within 24h grace period) */}
-            {campaign.status === 'expired' && campaign.expiresAt && (() => {
-                const expiredAt = new Date(campaign.expiresAt).getTime()
-                const graceEnd = expiredAt + 24 * 60 * 60 * 1000
-                const isInGrace = Date.now() < graceEnd
-                const slotsLeft = campaign.slots - campaign.slotsFilled
-                const hoursLeft = Math.max(0, Math.round((graceEnd - Date.now()) / (1000 * 60 * 60)))
-
-                if (!isInGrace || slotsLeft <= 0) return null
-
-                return (
-                    <GlassCard className="p-4 space-y-3 border-amber-500/30">
-                        <h3 className="font-semibold">Extend Campaign</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Your campaign expired but you have {hoursLeft}h left to extend it by 7 more days.
-                            {slotsLeft < campaign.slots && (
-                                <span className="text-amber-400 block mt-1">
-                                    ⚠️ {slotsLeft} of {campaign.slots} slots remaining.
-                                </span>
-                            )}
-                        </p>
+            {/* Expired Campaign — Grace Period: Extend or End */}
+            {isExpired && isInGrace && slotsLeft > 0 && (
+                <GlassCard className="p-4 space-y-3 border-amber-500/30">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-400" />
+                        <h3 className="font-semibold">Campaign Expired</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        You have <span className="text-amber-400 font-medium">{hoursLeft}h</span> to extend or end this campaign.
+                        {slotsLeft < campaign.slots && (
+                            <span className="block mt-1 text-xs">
+                                {campaign.slotsFilled} slot{campaign.slotsFilled > 1 ? 's' : ''} filled, {slotsLeft} remaining.
+                            </span>
+                        )}
+                    </p>
+                    <div className="flex gap-2">
                         <Button
-                            className="w-full"
-                            onClick={async () => {
-                                setActionLoading('extend')
-                                try {
-                                    const res = await apiFetch(`${API_URL}/campaigns/${campaign.id}/extend`, {
-                                        method: 'POST',
-                                        headers: getHeaders()
-                                    })
-                                    if (res.ok) {
-                                        // Refresh campaign data
-                                        fetchCampaign()
-                                    }
-                                } catch (e) {
-                                    console.error('Extension failed:', e)
-                                } finally {
-                                    setActionLoading(null)
-                                }
-                            }}
+                            className="flex-1"
+                            onClick={extendCampaign}
                             disabled={actionLoading === 'extend'}
                         >
                             {actionLoading === 'extend' ? 'Extending...' : 'Extend 7 Days'}
                         </Button>
-                    </GlassCard>
-                )
-            })()}
+                        {showEndConfirm ? (
+                            <Button
+                                variant="destructive"
+                                className="flex-1"
+                                onClick={endCampaign}
+                                disabled={actionLoading === 'end'}
+                            >
+                                {actionLoading === 'end' ? 'Ending...' : 'Confirm End'}
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="flex-1 text-red-400 border-red-500/30"
+                                onClick={() => setShowEndConfirm(true)}
+                            >
+                                End Campaign
+                            </Button>
+                        )}
+                    </div>
+                    {showEndConfirm && (
+                        <p className="text-xs text-amber-400">
+                            ⚠️ This will end the campaign and refund {refundPreview} {campaign.currency} for {slotsLeft} unfilled slot{slotsLeft > 1 ? 's' : ''}.
+                        </p>
+                    )}
+                </GlassCard>
+            )}
+
+            {/* Expired — Grace period over, no slots left, or past grace */}
+            {isExpired && (!isInGrace || slotsLeft <= 0) && (
+                <GlassCard className="p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                        <XCircle className="w-5 h-5 text-muted-foreground" />
+                        <h3 className="font-semibold">Campaign Expired</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        {slotsLeft <= 0
+                            ? 'All slots are filled. The campaign will end automatically once all deals complete.'
+                            : 'The 24-hour grace period has passed. This campaign will be auto-ended and remaining funds refunded.'}
+                    </p>
+                </GlassCard>
+            )}
+
+            {/* Campaign Ended */}
+            {isEnded && (
+                <GlassCard className="p-4 space-y-3 border-green-500/20">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-400" />
+                        <h3 className="font-semibold">Campaign Ended</h3>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Slots used</span>
+                            <span>{campaign.slotsFilled} / {campaign.slots}</span>
+                        </div>
+                        {(campaign.refundAmount !== undefined && campaign.refundAmount > 0) && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Refund</span>
+                                <span className="text-green-400 font-medium">
+                                    {campaign.refundAmount} {campaign.currency}
+                                </span>
+                            </div>
+                        )}
+                        {campaign.refundAmount === 0 && (
+                            <p className="text-xs text-muted-foreground">
+                                All slots were used — no refund needed.
+                            </p>
+                        )}
+                    </div>
+                </GlassCard>
+            )}
 
             {/* Duplicate Campaign (for ended/expired campaigns) */}
             {(campaign.status === 'ended' || campaign.status === 'expired') && (

@@ -678,6 +678,145 @@ campaigns.post('/:id/escrow', async (c) => {
 });
 
 /**
+ * End a campaign and refund remaining budget for unfilled slots
+ * Available for: active, expired campaigns
+ * Refund = (slots - slotsFilled) × perChannelBudget
+ * Active deals continue running — only unfilled slots are refunded
+ * POST /campaigns/:id/end
+ */
+campaigns.post('/:id/end', async (c) => {
+    try {
+        const campaignId = c.req.param('id');
+        const telegramId = c.get('telegramId');
+
+        const user = await userRepository.findByTelegramId(telegramId);
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        const campaign = await campaignService.getCampaign(campaignId);
+        if (!campaign) {
+            return c.json({ error: 'Campaign not found' }, 404);
+        }
+
+        if (campaign.advertiserId !== user.id) {
+            return c.json({ error: 'Not your campaign' }, 403);
+        }
+
+        // Only active or expired campaigns can be ended
+        if (!['active', 'expired', 'filled'].includes(campaign.status)) {
+            return c.json({ error: `Cannot end a campaign with status '${campaign.status}'` }, 400);
+        }
+
+        // Calculate refund for unfilled slots
+        const slotsLeft = campaign.slots - (campaign.slotsFilled || 0);
+        const refundAmount = slotsLeft * campaign.perChannelBudget;
+
+        // Queue refund if there's money to return
+        if (refundAmount > 0 && campaign.escrowWalletAddress) {
+            try {
+                const { error: refundError } = await supabase
+                    .from('pending_payouts' as any)
+                    .insert({
+                        recipient_address: campaign.escrowWalletAddress,
+                        amount_ton: refundAmount,
+                        currency: campaign.currency || 'TON',
+                        type: 'refund',
+                        status: 'pending',
+                        reason: `Campaign ended: refund for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}`,
+                        memo: `campaign_refund_${campaignId.substring(0, 8)}`
+                    });
+
+                if (refundError) {
+                    console.error('[Campaigns] Failed to queue refund:', refundError);
+                    // Don't block the campaign end — log and continue
+                }
+            } catch (e: any) {
+                console.error('[Campaigns] Refund queue error:', e.message);
+            }
+        }
+
+        // Update campaign status to ended
+        const updated = await campaignService.updateCampaign(campaignId, {
+            status: 'ended',
+            refundAmount: refundAmount,
+            endedAt: new Date(),
+        } as any);
+
+        console.log(`[Campaigns] Ended campaign ${campaignId}. Refund: ${refundAmount} ${campaign.currency} for ${slotsLeft} unfilled slots.`);
+
+        return c.json({
+            campaign: updated,
+            refund: {
+                amount: refundAmount,
+                currency: campaign.currency,
+                slotsRefunded: slotsLeft,
+                slotsUsed: campaign.slotsFilled || 0,
+            },
+            message: refundAmount > 0
+                ? `Campaign ended. ${refundAmount} ${campaign.currency} will be refunded for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}.`
+                : 'Campaign ended. All slots were used — no refund needed.'
+        });
+    } catch (error: any) {
+        console.error('[Campaigns] End campaign error:', error);
+        return c.json({ error: error.message || 'Failed to end campaign' }, 400);
+    }
+});
+
+/**
+ * Update campaign duration (expiresAt) while campaign is active
+ * Only allows setting to a future date
+ * POST /campaigns/:id/duration
+ */
+campaigns.post('/:id/duration', async (c) => {
+    try {
+        const campaignId = c.req.param('id');
+        const telegramId = c.get('telegramId');
+        const body = await c.req.json();
+
+        const user = await userRepository.findByTelegramId(telegramId);
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        const campaign = await campaignService.getCampaign(campaignId);
+        if (!campaign) {
+            return c.json({ error: 'Campaign not found' }, 404);
+        }
+
+        if (campaign.advertiserId !== user.id) {
+            return c.json({ error: 'Not your campaign' }, 403);
+        }
+
+        // Only active campaigns can have duration edited
+        if (campaign.status !== 'active') {
+            return c.json({ error: 'Can only edit duration on active campaigns' }, 400);
+        }
+
+        // Validate new expiry date
+        const newExpiresAt = new Date(body.expiresAt);
+        if (isNaN(newExpiresAt.getTime())) {
+            return c.json({ error: 'Invalid date format' }, 400);
+        }
+
+        if (newExpiresAt <= new Date()) {
+            return c.json({ error: 'New expiry date must be in the future. Use "End Campaign" to stop immediately.' }, 400);
+        }
+
+        const updated = await campaignService.updateCampaign(campaignId, {
+            expiresAt: newExpiresAt,
+        } as any);
+
+        console.log(`[Campaigns] Updated duration for campaign ${campaignId} to ${newExpiresAt.toISOString()}`);
+
+        return c.json({ campaign: updated, message: `Campaign duration updated. New expiry: ${newExpiresAt.toISOString()}` });
+    } catch (error: any) {
+        console.error('[Campaigns] Duration update error:', error);
+        return c.json({ error: error.message || 'Failed to update duration' }, 400);
+    }
+});
+
+/**
  * Extend an expired campaign by 7 days
  * Works within a 24h grace period after expiration
  * POST /campaigns/:id/extend

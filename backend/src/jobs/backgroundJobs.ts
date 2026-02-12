@@ -158,6 +158,74 @@ async function runCampaignExpiration() {
             console.log(`[BackgroundJobs] Expired campaign ${campaign.id}`);
         }
 
+        // 3. Auto-end expired campaigns past 24h grace period
+        // These campaigns had their chance to extend — now we end them and refund
+        const grace24hAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const { data: pastGrace } = await (supabase as any)
+            .from('campaigns')
+            .select('id, title, advertiser_id, total_budget, slots, slots_filled, per_channel_budget, currency, escrow_wallet_address, expires_at')
+            .eq('status', 'expired')
+            .not('expires_at', 'is', null)
+            .lt('expires_at', grace24hAgo.toISOString());
+
+        for (const campaign of pastGrace || []) {
+            const slotsLeft = campaign.slots - (campaign.slots_filled || 0);
+            const refundAmount = slotsLeft * parseFloat(campaign.per_channel_budget || 0);
+
+            // Queue refund if there's money to return
+            if (refundAmount > 0 && campaign.escrow_wallet_address) {
+                try {
+                    await (supabase as any)
+                        .from('pending_payouts')
+                        .insert({
+                            recipient_address: campaign.escrow_wallet_address,
+                            amount_ton: refundAmount,
+                            currency: campaign.currency || 'TON',
+                            type: 'refund',
+                            status: 'pending',
+                            reason: `Campaign auto-ended after 24h grace: refund for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}`,
+                            memo: `campaign_refund_${campaign.id.substring(0, 8)}`
+                        });
+                } catch (e: any) {
+                    console.error(`[BackgroundJobs] Failed to queue refund for campaign ${campaign.id}:`, e.message);
+                }
+            }
+
+            // End the campaign
+            await (supabase as any)
+                .from('campaigns')
+                .update({
+                    status: 'ended',
+                    refund_amount: refundAmount,
+                    ended_at: now.toISOString()
+                })
+                .eq('id', campaign.id);
+
+            // Notify advertiser
+            if (bot && campaign.advertiser_id) {
+                const { data: advertiser } = await (supabase as any)
+                    .from('users')
+                    .select('telegram_id')
+                    .eq('id', campaign.advertiser_id)
+                    .single();
+
+                if (advertiser?.telegram_id) {
+                    const refundMsg = refundAmount > 0
+                        ? `\n\n💰 **${refundAmount} ${campaign.currency || 'TON'}** will be refunded for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}.`
+                        : '\n\nAll slots were used — no refund needed.';
+                    try {
+                        await bot.api.sendMessage(
+                            advertiser.telegram_id,
+                            `🔴 **Campaign Ended**\n\nYour campaign **"${campaign.title}"** has been automatically ended after the 24-hour grace period expired.${refundMsg}\n\nYou can duplicate this campaign from the app to run it again.`,
+                            { parse_mode: 'Markdown' }
+                        );
+                    } catch (e) { /* ignore send errors */ }
+                }
+            }
+
+            console.log(`[BackgroundJobs] Auto-ended campaign ${campaign.id}. Refund: ${refundAmount} ${campaign.currency || 'TON'}`);
+        }
+
     } catch (error) {
         console.error('[BackgroundJobs] Campaign expiration check failed:', error);
     }

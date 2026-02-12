@@ -45,6 +45,9 @@ export class SupabaseCampaignRepository {
             // Draft
             draftStep: row.draft_step,
             expiresInDays: row.expires_in_days,
+            // End / Refund
+            refundAmount: row.refund_amount ? parseFloat(row.refund_amount) : undefined,
+            endedAt: row.ended_at ? new Date(row.ended_at) : undefined,
             createdAt: new Date(row.created_at),
             updatedAt: new Date(row.updated_at),
             expiredAt: row.expired_at ? new Date(row.expired_at) : undefined
@@ -176,6 +179,8 @@ export class SupabaseCampaignRepository {
         if (updates.slotsFilled !== undefined) dbUpdates.slots_filled = updates.slotsFilled;
         if (updates.draftStep !== undefined) dbUpdates.draft_step = updates.draftStep;
         if (updates.expiresInDays !== undefined) dbUpdates.expires_in_days = updates.expiresInDays;
+        if (updates.refundAmount !== undefined) dbUpdates.refund_amount = updates.refundAmount;
+        if (updates.endedAt !== undefined) dbUpdates.ended_at = updates.endedAt;
 
         const { data, error } = await supabase
             .from('campaigns')
@@ -355,8 +360,18 @@ export class SupabaseCampaignRepository {
         if (!campaign) return null;
         if (campaign.slotsFilled <= 0) return null;
 
-        const wasFilled = campaign.status === 'filled';
-        const newStatus = wasFilled ? 'active' : campaign.status;
+        // Determine new status when a slot opens up:
+        // - ended campaigns stay ended (no reactivation)
+        // - filled campaigns: check if timeline expired
+        //   - expired timeline → 'expired' (NOT back to marketplace)
+        //   - still active timeline → 'active' (back to marketplace)
+        // - all other statuses stay as-is
+        let newStatus = campaign.status;
+        if (campaign.status === 'filled') {
+            const isTimelineExpired = campaign.expiresAt && new Date(campaign.expiresAt) < new Date();
+            newStatus = isTimelineExpired ? 'expired' : 'active';
+        }
+        // ended campaigns: keep 'ended' (newStatus = campaign.status)
 
         const { data, error } = await supabase
             .from('campaigns')

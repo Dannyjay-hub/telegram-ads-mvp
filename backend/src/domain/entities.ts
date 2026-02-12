@@ -193,6 +193,10 @@ export interface Campaign {
     draftStep?: number;             // For resume at correct step
     expiresInDays?: number;         // Campaign duration in days
 
+    // End / Refund
+    refundAmount?: number;
+    endedAt?: Date;
+
     // Timestamps
     createdAt: Date;
     updatedAt: Date;
@@ -252,4 +256,6 @@ export interface CampaignUpdate {
     expiresInDays?: number;
     paymentMemo?: string;
     paymentExpiresAt?: Date;
+    refundAmount?: number;
+    endedAt?: Date;
 }
