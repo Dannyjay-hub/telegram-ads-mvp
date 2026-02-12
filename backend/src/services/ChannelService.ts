@@ -86,6 +86,7 @@ export class ChannelService {
             basePriceAmount?: number,
             description?: string,
             category?: string,
+            language?: string | string[],
             tags?: string[],
             rateCard?: any[],
             payoutWallet?: string
@@ -142,6 +143,7 @@ export class ChannelService {
                 const updated = await this.channelRepo.update(existing.id, {
                     description: channelData.description,
                     category: channelData.category,
+                    language: channelData.language,
                     tags: channelData.tags,
                     rateCard: channelData.rateCard,
                     basePriceAmount: channelData.basePriceAmount,
@@ -178,6 +180,7 @@ export class ChannelService {
             basePriceCurrency: 'USD',
             description: channelData?.description,
             category: channelData?.category,
+            language: channelData?.language as any,
             tags: channelData?.tags,
             rateCard: channelData?.rateCard || [],
             payoutWallet: channelData?.payoutWallet

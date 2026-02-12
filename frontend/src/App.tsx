@@ -26,7 +26,7 @@ import { useTelegramBackButton, initTelegramViewport } from '@/hooks/useTelegram
 const MANIFEST_URL = `${window.location.origin}/tonconnect-manifest.json`;
 
 function AppContent() {
-  const { error } = useTelegram();
+  const { error, isLoading } = useTelegram();
   const navigate = useNavigate();
 
   // Enable Telegram native BackButton based on current route
@@ -136,6 +136,14 @@ function AppContent() {
       console.error('WebApp initialization error:', e);
     }
   }, [])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (error) {
     return (

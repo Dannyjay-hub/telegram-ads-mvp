@@ -530,6 +530,7 @@ app.post('/', async (c) => {
             status,
             description,
             category,
+            language,
             tags,
             base_price_amount,
             pricing,
@@ -582,6 +583,7 @@ app.post('/', async (c) => {
                 basePriceAmount: base_price_amount,
                 description,
                 category,
+                language,
                 tags,
                 rateCard,
                 payoutWallet: payout_wallet
