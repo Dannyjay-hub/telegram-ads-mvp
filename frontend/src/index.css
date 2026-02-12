@@ -322,24 +322,41 @@
   opacity: 0.7;
 }
 
-.add-channel-error-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: hsl(var(--tg-destructive) / 0.08);
-  border: 1px solid hsl(var(--tg-destructive) / 0.2);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-top: 16px;
-  text-align: left;
-  font-size: 13px;
-  color: hsl(var(--tg-destructive));
-  line-height: 1.4;
-  animation: addChannelFadeIn 0.2s ease-out;
+.add-channel-toast {
+  position: fixed;
+  z-index: 9000;
+  left: 16px;
+  right: 16px;
+  bottom: 24px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.25s ease, transform 0.4s ease;
+  pointer-events: none;
 }
 
-.add-channel-error-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-  margin-top: 1px;
+.add-channel-toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.add-channel-toast-content {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.add-channel-toast-content svg {
+  height: 28px;
+  width: 28px;
+  min-width: 28px;
+  margin-right: 13px;
 }
