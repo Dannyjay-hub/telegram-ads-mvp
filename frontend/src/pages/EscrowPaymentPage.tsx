@@ -147,12 +147,13 @@ export function EscrowPaymentPage() {
                     headers: getHeaders()
                 })
                 const data = await res.json()
+                const c = data.campaign || data // handle both { campaign: {...} } and flat response
 
-                console.log(`[EscrowPayment] Poll ${pollCount}: status=${data.status}, escrowDeposited=${data.escrowDeposited}`)
+                console.log(`[EscrowPayment] Poll ${pollCount}: status=${c.status}, escrowDeposited=${c.escrowDeposited}`)
 
                 // ✅ Success — campaign is funded
                 const SUCCESS_STATUSES = ['active', 'funded', 'confirmed', 'filled']
-                if (SUCCESS_STATUSES.includes(data.status) || data.escrowDeposited > 0) {
+                if (SUCCESS_STATUSES.includes(c.status) || c.escrowDeposited > 0) {
                     setVerifying(false)
                     navigate('/campaigns', {
                         replace: true,
@@ -163,9 +164,9 @@ export function EscrowPaymentPage() {
 
                 // ❌ Error — campaign can't be funded (stop spinning)
                 const ERROR_STATUSES = ['expired', 'cancelled', 'closed', 'completed']
-                if (ERROR_STATUSES.includes(data.status)) {
+                if (ERROR_STATUSES.includes(c.status)) {
                     setVerifying(false)
-                    setError(`Campaign is ${data.status}. Payment cannot be processed.`)
+                    setError(`Campaign is ${c.status}. Payment cannot be processed.`)
                     return
                 }
             } catch (e) {
