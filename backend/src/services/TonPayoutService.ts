@@ -87,32 +87,37 @@ export class TonPayoutService {
     }
 
     /**
-     * Queue a refund for a deal
+     * Queue a refund for a deal or campaign
      */
     async queueRefund(
-        dealId: string,
+        dealId: string | null,
         recipientAddress: string,
         amount: number,
         currency: 'TON' | 'USDT',
         reason: string
     ): Promise<PendingPayout | null> {
-        console.log(`TonPayoutService: Queueing refund for deal ${dealId}`);
+        console.log(`TonPayoutService: Queueing refund for ${dealId ? 'deal ' + dealId : 'campaign'}`);
         console.log(`  Amount: ${amount} ${currency}`);
         console.log(`  Recipient: ${recipientAddress}`);
         console.log(`  Reason: ${reason}`);
 
+        const insertData: any = {
+            recipient_address: recipientAddress,
+            amount_ton: amount,
+            currency: currency,
+            type: 'refund',
+            status: amount <= AUTO_APPROVE_THRESHOLD ? 'pending' : 'pending_approval',
+            reason: reason,
+            memo: `refund_${(dealId || 'campaign').substring(0, 8)}`
+        };
+        // Only set deal_id if it's a real deal (not a campaign ID)
+        if (dealId) {
+            insertData.deal_id = dealId;
+        }
+
         const { data, error } = await supabase
             .from('pending_payouts')
-            .insert({
-                deal_id: dealId,
-                recipient_address: recipientAddress,
-                amount_ton: amount,
-                currency: currency,
-                type: 'refund',
-                status: amount <= AUTO_APPROVE_THRESHOLD ? 'pending' : 'pending_approval',
-                reason: reason,
-                memo: `refund_${dealId.substring(0, 8)}`
-            })
+            .insert(insertData)
             .select()
             .single();
 

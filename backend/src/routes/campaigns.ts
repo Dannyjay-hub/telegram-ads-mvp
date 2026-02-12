@@ -752,7 +752,7 @@ campaigns.post('/:id/end', async (c) => {
                     const tonPayoutService = new TonPayoutService();
                     const currency = (campaign.currency || 'TON') as 'TON' | 'USDT';
                     await tonPayoutService.queueRefund(
-                        campaignId,
+                        null, // campaign refund — no deal_id
                         refundAddress,
                         refundAmount,
                         currency,
