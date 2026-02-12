@@ -258,10 +258,11 @@
   animation: addChannelFadeIn 0.3s ease-in-out;
 }
 
-.add-channel-emoji {
-  font-size: 72px;
-  line-height: 1;
+.add-channel-icon {
+  width: 112px;
+  height: 112px;
   margin-bottom: 24px;
+  border-radius: 24px;
 }
 
 .add-channel-lottie {

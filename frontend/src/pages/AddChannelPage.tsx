@@ -257,7 +257,7 @@ export function AddChannelPage() {
                 {/* Idle State */}
                 {(state === 'idle' || state === 'error' || state === 'error_owner' || state === 'error_perms' || state === 'error_already_listed') && (
                     <div className="add-channel-center">
-                        <div className="add-channel-emoji">🤖</div>
+                        <img src="/icon.png" alt="TG Ads" className="add-channel-icon" />
                         <h1 className="add-channel-title">
                             Add Bot to Your Channel
                         </h1>
