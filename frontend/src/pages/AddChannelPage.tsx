@@ -185,7 +185,7 @@ export function AddChannelPage() {
         haptic.light()
         // Open Telegram with deep link to add bot as channel admin
         const botUrl = getBotUrl()
-        openTelegramLink(`${botUrl}?startchannel=&admin=post_messages+edit_messages`)
+        openTelegramLink(`${botUrl}?startchannel=&admin=post_messages+edit_messages+post_stories`)
 
         // Start polling after a short delay (give user time to switch to Telegram)
         setState('checking')
