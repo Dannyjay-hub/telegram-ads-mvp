@@ -152,8 +152,8 @@ export function MarketplaceCampaignDetail() {
     const channelLanguage = selectedChannelData?.language || ''
 
     // Normalize language for comparison (handles 'en' vs 'English' etc)
-    const normalizeLanguage = (lang: string): string => {
-        const lower = lang.toLowerCase().trim()
+    const normalizeLanguage = (lang: unknown): string => {
+        const lower = String(lang || '').toLowerCase().trim()
         const map: Record<string, string> = {
             'en': 'english', 'eng': 'english',
             'ru': 'russian', 'rus': 'russian',
@@ -177,7 +177,7 @@ export function MarketplaceCampaignDetail() {
     const meetsMaxSubscribers = !campaign.maxSubscribers || channelSubscribers <= campaign.maxSubscribers
     const meetsCategory = !campaign.requiredCategories?.length ||
         campaign.requiredCategories.some(cat =>
-            cat.toLowerCase() === channelCategory.toLowerCase()
+            String(cat || '').toLowerCase() === String(channelCategory || '').toLowerCase()
         )
     const meetsLanguage = !campaign.requiredLanguages?.length ||
         campaign.requiredLanguages.some(lang =>
