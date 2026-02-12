@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useTonWallet } from '@/hooks/useTonWallet'
 import { Info, Wallet, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useTelegram } from '@/providers/TelegramProvider'
+
 import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 import { TON_TOKEN, USDT_TOKEN } from '@/lib/jettons'
 
@@ -28,7 +28,7 @@ interface Campaign {
 export function EscrowPaymentPage() {
     const navigate = useNavigate()
     const location = useLocation()
-    const { user } = useTelegram()
+
     const { isConnected, connectWallet, sendPayment } = useTonWallet()
 
     // Campaign and payment instructions passed from wizard

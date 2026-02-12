@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Loader2 } from 'lucide-react'
-import { useTelegram } from '@/providers/TelegramProvider'
+
 import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 
 interface Campaign {
@@ -42,7 +42,7 @@ interface Application {
 export function CampaignDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { user } = useTelegram()
+
     const [campaign, setCampaign] = useState<Campaign | null>(null)
     const [applications, setApplications] = useState<Application[]>([])
     const [loading, setLoading] = useState(true)
