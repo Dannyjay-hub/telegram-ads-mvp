@@ -162,8 +162,8 @@ export class CampaignService {
 
         // Check language (normalize to handle 'en' vs 'English' mismatch)
         if (campaign.requiredLanguages && campaign.requiredLanguages.length > 0) {
-            const normalizeLanguage = (lang: string): string => {
-                const lower = lang.toLowerCase().trim();
+            const normalizeLanguage = (lang: unknown): string => {
+                const lower = String(lang || '').toLowerCase().trim();
                 const map: Record<string, string> = {
                     'en': 'english', 'eng': 'english',
                     'ru': 'russian', 'rus': 'russian',
@@ -183,9 +183,15 @@ export class CampaignService {
                 return map[lower] || lower;
             };
 
-            const channelLang = normalizeLanguage(channel.language || '');
-            const meetsLanguage = campaign.requiredLanguages.some(
-                reqLang => normalizeLanguage(reqLang) === channelLang
+            // channel.language can be a string or an array
+            const channelLangs: string[] = Array.isArray(channel.language)
+                ? channel.language
+                : (channel.language ? [channel.language] : []);
+
+            const meetsLanguage = campaign.requiredLanguages.some(reqLang =>
+                channelLangs.some(chLang =>
+                    normalizeLanguage(reqLang) === normalizeLanguage(chLang)
+                )
             );
 
             if (!meetsLanguage) {
@@ -196,9 +202,19 @@ export class CampaignService {
             }
         }
 
-        // Check category
+        // Check category (channel.category can be a string or an array)
         if (campaign.requiredCategories && campaign.requiredCategories.length > 0) {
-            if (!channel.category || !campaign.requiredCategories.includes(channel.category)) {
+            const channelCats: string[] = Array.isArray(channel.category)
+                ? channel.category
+                : (channel.category ? [channel.category] : []);
+
+            const meetsCategory = campaign.requiredCategories.some(reqCat =>
+                channelCats.some(chCat =>
+                    String(reqCat || '').toLowerCase() === String(chCat || '').toLowerCase()
+                )
+            );
+
+            if (!meetsCategory) {
                 return {
                     eligible: false,
                     reason: `Category must be one of: ${campaign.requiredCategories.join(', ')}`
