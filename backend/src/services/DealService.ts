@@ -29,7 +29,7 @@ export class DealService {
         advertiserWalletAddress: string,
         brief?: string, // Advertiser's brief describing what they want to advertise
         currency: 'TON' | 'USDT' = 'TON' // Payment currency
-    ): Promise<Deal & { paymentInstructions: { address: string; memo: string; amount: number } }> {
+    ): Promise<Deal & { paymentInstructions: { address: string; memo: string; amount: number; budgetAmount: number; platformFee: number } }> {
         // Calculate total amount
         const totalAmount = contentItems.reduce(
             (sum, item) => sum + (item.quantity * item.unitPrice),
@@ -39,6 +39,12 @@ export class DealService {
         if (totalAmount <= 0) {
             throw new Error('Total amount must be greater than zero');
         }
+
+        // Platform fee (same structure as campaigns)
+        const PLATFORM_FEE_TON = 0.01;
+        const PLATFORM_FEE_USDT = 0.1;
+        const platformFee = currency === 'USDT' ? PLATFORM_FEE_USDT : PLATFORM_FEE_TON;
+        const totalWithFee = Math.round((totalAmount + platformFee) * 1e9) / 1e9;
 
         // Generate unique payment memo
         const paymentMemo = `deal_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
@@ -68,7 +74,9 @@ export class DealService {
             paymentInstructions: {
                 address: MASTER_WALLET_ADDRESS,
                 memo: paymentMemo,
-                amount: totalAmount
+                amount: totalWithFee,
+                budgetAmount: totalAmount,
+                platformFee: platformFee
             }
         };
     }

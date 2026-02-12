@@ -44,7 +44,7 @@ interface UserChannel {
 export function MarketplaceCampaignDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { user } = useTelegram()
+    const { } = useTelegram()
     const [campaign, setCampaign] = useState<MarketplaceCampaign | null>(null)
     const [userChannels, setUserChannels] = useState<UserChannel[]>([])
     const [selectedChannel, setSelectedChannel] = useState<string | null>(null)
@@ -52,10 +52,10 @@ export function MarketplaceCampaignDetail() {
     const [applying, setApplying] = useState(false)
 
     useEffect(() => {
-        if (id && user?.telegramId) {
+        if (id) {
             fetchData()
         }
-    }, [id, user?.telegramId])
+    }, [id])
 
     const fetchData = async () => {
         try {

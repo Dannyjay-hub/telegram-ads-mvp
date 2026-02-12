@@ -643,16 +643,26 @@ export function ChannelViewPage() {
                                     ))}
                                 </div>
 
-                                <div className="border-t border-border pt-4 flex justify-between items-center">
-                                    <span className="font-semibold">Total</span>
-                                    <span className="text-2xl font-bold text-primary flex items-center gap-2">
-                                        {totalAmount.toLocaleString()}
-                                        {selectedCurrency === 'USDT' ? (
-                                            <><UsdtIcon className="w-5 h-5" /> USDT</>
-                                        ) : (
-                                            <><TonIcon className="w-5 h-5" /> TON</>
-                                        )}
-                                    </span>
+                                <div className="border-t border-border pt-4 space-y-2">
+                                    <div className="flex justify-between text-sm text-muted-foreground">
+                                        <span>Subtotal</span>
+                                        <span>{totalAmount.toLocaleString()} {selectedCurrency}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-muted-foreground">
+                                        <span>Platform fee</span>
+                                        <span>{selectedCurrency === 'USDT' ? '0.1' : '0.01'} {selectedCurrency}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                                        <span className="font-semibold">Total</span>
+                                        <span className="text-2xl font-bold text-primary flex items-center gap-2">
+                                            {(totalAmount + (selectedCurrency === 'USDT' ? 0.1 : 0.01)).toLocaleString()}
+                                            {selectedCurrency === 'USDT' ? (
+                                                <><UsdtIcon className="w-5 h-5" /> USDT</>
+                                            ) : (
+                                                <><TonIcon className="w-5 h-5" /> TON</>
+                                            )}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary p-3 rounded-lg">
