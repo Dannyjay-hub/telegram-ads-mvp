@@ -101,9 +101,9 @@ app.post('/ton', async (c) => {
             await processTonTransfer(txDetails);
         }
 
-        // HYBRID APPROACH: Also check for recent Jetton transfers
-        // This catches USDT payments that don't trigger the main webhook
-        await checkRecentJettonTransfers();
+        // NOTE: checkRecentJettonTransfers() removed from here — it was making
+        // an extra TonAPI call on EVERY webhook (even non-jetton), causing 429s.
+        // The polling service handles jetton detection as backup.
 
         return c.json({ ok: true });
 

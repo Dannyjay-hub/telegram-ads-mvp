@@ -120,18 +120,18 @@ export class TonPaymentService {
 
         console.log(`TonPaymentService: Starting to poll every ${intervalMs / 1000}s`);
         console.log(`TonPaymentService: Watching wallet ${MASTER_WALLET_ADDRESS}`);
-        console.log(`TonPaymentService: Also watching for USDT Jetton transfers (staggered by 5s)`);
+        console.log(`TonPaymentService: Also watching for USDT Jetton transfers (staggered by 15s)`);
 
         this.isPolling = true;
 
         // Initial polls
         this.pollTransactions();
-        setTimeout(() => this.pollJettonTransfers(), 5000); // Stagger by 5s
+        setTimeout(() => this.pollJettonTransfers(), 15000); // Stagger by 15s to avoid 429
 
         // Recurring polls - staggered to prevent race conditions
         setInterval(() => {
             this.pollTransactions();
-            setTimeout(() => this.pollJettonTransfers(), 5000); // 5s delay
+            setTimeout(() => this.pollJettonTransfers(), 15000); // 15s stagger
         }, intervalMs);
     }
 

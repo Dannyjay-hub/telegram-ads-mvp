@@ -132,10 +132,10 @@ export function EscrowPaymentPage() {
         setVerifying(true)
         setLoading(false)
 
-        // Poll for campaign activation (webhook/polling will update status)
+        // Poll every 2 seconds, max 30 polls (60 seconds total)
         let pollCount = 0
-        const maxPolls = 60 // ~2 minutes with increasing intervals
-        let currentInterval = 1000 // Start at 1s, gradually increase
+        const MAX_POLLS = 30
+        const POLL_INTERVAL = 2000
 
         const poll = async () => {
             pollCount++
@@ -148,13 +148,11 @@ export function EscrowPaymentPage() {
                 })
                 const data = await res.json()
 
-                // Check if campaign was funded and activated
+                console.log(`[EscrowPayment] Poll ${pollCount}: status=${data.status}, escrowDeposited=${data.escrowDeposited}`)
+
+                // ✅ Success — campaign is funded
                 const SUCCESS_STATUSES = ['active', 'funded', 'confirmed', 'filled']
-                const isSuccess = SUCCESS_STATUSES.includes(data.status) || data.escrowDeposited > 0
-
-                console.log(`[EscrowPayment] Poll ${pollCount}: status=${data.status}, escrowDeposited=${data.escrowDeposited}, isSuccess=${isSuccess}`)
-
-                if (isSuccess) {
+                if (SUCCESS_STATUSES.includes(data.status) || data.escrowDeposited > 0) {
                     setVerifying(false)
                     navigate('/campaigns', {
                         replace: true,
@@ -162,14 +160,21 @@ export function EscrowPaymentPage() {
                     })
                     return
                 }
+
+                // ❌ Error — campaign can't be funded (stop spinning)
+                const ERROR_STATUSES = ['expired', 'cancelled', 'closed', 'completed']
+                if (ERROR_STATUSES.includes(data.status)) {
+                    setVerifying(false)
+                    setError(`Campaign is ${data.status}. Payment cannot be processed.`)
+                    return
+                }
             } catch (e) {
                 console.error('Poll error:', e)
             }
 
-            // Timeout - redirect gracefully (payment may still be processing on chain)
-            if (pollCount >= maxPolls) {
+            // Timeout — redirect gracefully
+            if (pollCount >= MAX_POLLS) {
                 setVerifying(false)
-                console.log('[EscrowPayment] Timeout - redirecting with pending state')
                 navigate('/campaigns', {
                     replace: true,
                     state: { paymentPending: true, campaignId: campaign?.id }
@@ -177,15 +182,11 @@ export function EscrowPaymentPage() {
                 return
             }
 
-            // Gradually increase interval: 1s for first 15, 2s for next 15, 3s after that
-            if (pollCount > 30) currentInterval = 3000
-            else if (pollCount > 15) currentInterval = 2000
-
-            setTimeout(poll, currentInterval)
+            setTimeout(poll, POLL_INTERVAL)
         }
 
-        // Start first poll after 1 second
-        setTimeout(poll, 1000)
+        // Start first poll after 2 seconds (give blockchain time)
+        setTimeout(poll, 2000)
     }
 
     if (loading && !campaign) {
