@@ -31,19 +31,20 @@ export function WalletButton() {
             onClick={handleClick}
             disabled={isLoading}
             className="
+                bg-[rgba(116,116,128,0.16)] backdrop-blur-sm
                 flex items-center justify-center gap-1
-                px-2.5 py-[5px]
-                rounded-[30px]
-                bg-[rgba(116,116,128,0.32)]
-                backdrop-blur-sm
-                text-white text-[15px] font-semibold
+                rounded-[30px] px-2.5 py-[5px]
                 transition-all duration-200
                 active:scale-[0.98]
                 disabled:opacity-50 disabled:cursor-not-allowed
             "
         >
-            <Wallet className="w-4 h-4" />
-            <span>{getButtonText()}</span>
+            <div className="text-foreground">
+                <Wallet className="w-4 h-4" />
+            </div>
+            <span className="text-primary text-[15px] font-semibold">
+                {getButtonText()}
+            </span>
         </button>
     );
 }
