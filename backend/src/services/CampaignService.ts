@@ -401,7 +401,7 @@ export class CampaignService {
             priceAmount: campaign.perChannelBudget,
             priceCurrency: campaign.currency,
             briefText: campaign.brief,
-            status: 'pending', // Awaiting advertiser approval
+            status: 'draft', // Awaiting advertiser approval
             campaignId: campaign.id
         });
 
