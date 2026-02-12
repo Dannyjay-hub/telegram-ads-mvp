@@ -419,9 +419,9 @@ export class CampaignService {
                 await bot.api.sendMessage(
                     advertiser.telegramId,
                     `🔔 **New Channel Application!**\n\n` +
-                    `**${channel.title}** wants to join your campaign:\n` +
+                    `${channel.username ? `[${channel.title}](https://t.me/${channel.username})` : `**${channel.title}**`} wants to join your campaign:\n` +
                     `"${campaign.title}"\n\n` +
-                    `📊 ${(channel as any).subscriber_count?.toLocaleString() || 0} subscribers\n\n` +
+                    `📊 ${(channel.verifiedStats?.subscribers || 0).toLocaleString()} subscribers\n\n` +
                     `Open the app to **accept or reject** this application.`,
                     {
                         parse_mode: 'Markdown',
