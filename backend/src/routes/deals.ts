@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 import { DealService } from '../services/DealService';
 import { supabase } from '../db';
+import { createRouter } from '../types/app';
 
-const app = new Hono();
+const app = createRouter();
 
 // Dependency Injection
 const dealRepo = new SupabaseDealRepository();
@@ -24,12 +24,8 @@ app.get('/', async (c) => {
 // GET /deals/my - Get deals for current user (advertiser)
 app.get('/my', async (c) => {
     try {
-        const telegramIdHeader = c.req.header('X-Telegram-ID');
-        if (!telegramIdHeader) {
-            return c.json({ error: 'Not authenticated' }, 401);
-        }
-
-        const user = await userRepo.findByTelegramId(parseInt(telegramIdHeader));
+        const telegramId = c.get('telegramId');
+        const user = await userRepo.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -44,12 +40,7 @@ app.get('/my', async (c) => {
 // GET /deals/channel-owner - Get deals for channels owned by current user
 app.get('/channel-owner', async (c) => {
     try {
-        const telegramIdHeader = c.req.header('X-Telegram-ID');
-        if (!telegramIdHeader) {
-            return c.json({ error: 'Not authenticated' }, 401);
-        }
-
-        const telegramId = parseInt(telegramIdHeader);
+        const telegramId = c.get('telegramId');
         console.log(`[channel-owner] Fetching deals for telegram_id: ${telegramId}`);
 
         const deals = await dealService.getDealsForChannelOwner(telegramId);
@@ -108,18 +99,15 @@ app.post('/create-with-items', async (c) => {
         const body = await c.req.json();
         const { channelId, contentItems, walletAddress, brief, currency } = body;
 
-        // Get advertiser from header
-        const telegramIdHeader = c.req.header('X-Telegram-ID');
-        if (!telegramIdHeader) {
-            return c.json({ error: 'Not authenticated' }, 401);
-        }
+        // Get advertiser from verified JWT
+        const telegramId = c.get('telegramId');
 
-        let user = await userRepo.findByTelegramId(parseInt(telegramIdHeader));
+        let user = await userRepo.findByTelegramId(telegramId);
         if (!user) {
             // Auto-create user
             user = await userRepo.create({
-                telegramId: parseInt(telegramIdHeader),
-                firstName: `User ${telegramIdHeader}`,
+                telegramId: telegramId,
+                firstName: `User ${telegramId}`,
                 username: 'auto_created'
             });
         }
@@ -164,18 +152,17 @@ app.post('/', async (c) => {
             creative_content, creativeContent
         } = body;
 
-        // AUTHENTICATION: Use header if body is missing ID
-        const telegramIdHeader = c.req.header('X-Telegram-ID');
-        if (!advertiserId && !advertiser_id && telegramIdHeader) {
-            const tid = parseInt(telegramIdHeader);
-            let user = await userRepo.findByTelegramId(tid);
+        // AUTHENTICATION: Use verified JWT identity
+        const telegramId = c.get('telegramId');
+        if (!advertiserId && !advertiser_id) {
+            let user = await userRepo.findByTelegramId(telegramId);
 
             if (!user) {
                 // Auto-create user for MVP (so we don't block deal creation)
-                console.log(`Auto-creating user for Telegram ID ${tid}`);
+                console.log(`Auto-creating user for Telegram ID ${telegramId}`);
                 user = await userRepo.create({
-                    telegramId: tid,
-                    firstName: `User ${tid}`,
+                    telegramId: telegramId,
+                    firstName: `User ${telegramId}`,
                     username: 'auto_created'
                 });
             }
@@ -229,12 +216,8 @@ app.post('/:id/propose-time', async (c) => {
         const body = await c.req.json();
         const { proposedTime, actingAs } = body;
 
-        const telegramIdHeader = c.req.header('X-Telegram-ID');
-        if (!telegramIdHeader) {
-            return c.json({ error: 'Not authenticated' }, 401);
-        }
-
-        const user = await userRepo.findByTelegramId(parseInt(telegramIdHeader));
+        const telegramId = c.get('telegramId');
+        const user = await userRepo.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -282,10 +265,7 @@ app.post('/:id/accept-time', async (c) => {
     try {
         const id = c.req.param('id');
 
-        const telegramIdHeader = c.req.header('X-Telegram-ID');
-        if (!telegramIdHeader) {
-            return c.json({ error: 'Not authenticated' }, 401);
-        }
+        // telegramId available via c.get('telegramId') if needed
 
         const agreedTime = await schedulingService.acceptTime(id);
 

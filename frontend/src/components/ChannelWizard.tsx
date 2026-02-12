@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Check, Loader2, AlertTriangle, Users, UserPlus, X, Crown, Zap, Trash2, Plus, Pencil, Wallet } from 'lucide-react'
-import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders } from '@/lib/api'
+import { verifyChannelPermissions, registerChannel, updateChannel, getMyChannels, deleteChannel, API_URL, getHeaders, apiFetch } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { showAlert, showConfirm, openTelegramLink, showSuccess, showError, getBotUrl, BOT_USERNAME } from '@/lib/telegram'
 import { TonIcon, UsdtIcon } from '@/components/icons/CurrencyIcons'
@@ -68,7 +68,7 @@ export function ChannelWizard() {
                 navigate('/');
                 return;
             }
-            const myChannels = await getMyChannels(user.telegramId.toString())
+            const myChannels = await getMyChannels()
             const channel = myChannels.find(c => c.id === id)
 
             if (channel) {
@@ -90,7 +90,7 @@ export function ChannelWizard() {
 
                 // Fetch PR managers and auto-expand if any exist
                 try {
-                    const adminsRes = await fetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() });
+                    const adminsRes = await apiFetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() });
                     if (adminsRes.ok) {
                         const data = await adminsRes.json();
                         setOwner(data.owner);
@@ -124,7 +124,7 @@ export function ChannelWizard() {
         try {
             // 1. Strict Permission Check (State Machine)
             // Pass the input as string (it might be an ID or @username) and user's telegramId for ownership check
-            const permRes = await verifyChannelPermissions(channelId, undefined, user?.telegramId);
+            const permRes = await verifyChannelPermissions(channelId);
             console.log('Verification Response:', permRes);
 
             if (permRes.state === 'A_BOT_NOT_ADDED') {
@@ -231,7 +231,7 @@ export function ChannelWizard() {
 
             // === OWNER CHECK: For new registrations, verify user is channel owner ===
             if (!id && channelId) {
-                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true }, user?.telegramId);
+                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true });
                 if (permCheck.state === 'NOT_OWNER') {
                     showAlert('Only the channel owner (creator) can list this channel. Admins and PR managers cannot list channels.');
                     setLoading(false);
@@ -247,7 +247,7 @@ export function ChannelWizard() {
             // If updating an existing channel, re-verify bot permissions first
             if (id && channelId) {
                 // Re-verify bot has permissions before allowing update
-                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true }, user?.telegramId);
+                const permCheck = await verifyChannelPermissions(channelId, { skipExistingCheck: true });
                 if (permCheck.state === 'A_BOT_NOT_ADDED') {
                     showAlert('Bot has been removed from the channel. Please re-add the bot as admin.');
                     setLoading(false);
@@ -261,7 +261,7 @@ export function ChannelWizard() {
                 }
 
                 // Then verify team permissions
-                const verifyRes = await fetch(`${API_URL}/channels/${id}/verify-team`, {
+                const verifyRes = await apiFetch(`${API_URL}/channels/${id}/verify-team`, {
                     method: 'POST',
                     headers: getHeaders()
                 });
@@ -281,7 +281,7 @@ export function ChannelWizard() {
                         const shouldRemove = await showConfirm('Would you like to remove the invalid PR managers from your team?');
                         if (shouldRemove) {
                             for (const pm of invalidPMs) {
-                                await fetch(`${API_URL}/channels/${id}/pr-managers/${pm.userId}`, {
+                                await apiFetch(`${API_URL}/channels/${id}/pr-managers/${pm.userId}`, {
                                     method: 'DELETE',
                                     headers: getHeaders()
                                 });
@@ -316,7 +316,7 @@ export function ChannelWizard() {
                 // After update, go back to My Channels list
                 navigate('/channels/my');
             } else {
-                await registerChannel(payload, user?.telegramId);
+                await registerChannel(payload);
                 // After new registration, go to dashboard to see the new channel
                 navigate('/channels/my');
             }
@@ -398,7 +398,7 @@ export function ChannelWizard() {
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             {/* Bot Permissions */}
-                                            <div className="bg-black/20 p-3 rounded-lg">
+                                            <div className="bg-secondary p-3 rounded-lg">
                                                 <p className="text-xs font-bold text-orange-200 mb-2">🤖 Bot Needs:</p>
                                                 <ul className="text-xs space-y-1">
                                                     {missingPerms.filter(p => !p.includes('User') && !p.includes('Admin Rights')).map(p => (
@@ -410,7 +410,7 @@ export function ChannelWizard() {
                                                 </ul>
                                             </div>
                                             {/* User Permissions */}
-                                            <div className="bg-black/20 p-3 rounded-lg">
+                                            <div className="bg-secondary p-3 rounded-lg">
                                                 <p className="text-xs font-bold text-orange-200 mb-2">👤 You Need:</p>
                                                 <ul className="text-xs space-y-1">
                                                     {missingPerms.filter(p => p.includes('User') || p.includes('Admin Rights')).map(p => (
@@ -448,7 +448,7 @@ export function ChannelWizard() {
                                     <h3 className="font-bold text-purple-100">2. Enter Channel Username or ID</h3>
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <Label className="text-white">Channel Username or ID</Label>
+                                            <Label className="text-foreground">Channel Username or ID</Label>
                                             <Input
                                                 placeholder="@username or -1001234567890"
                                                 value={channelId}
@@ -456,7 +456,7 @@ export function ChannelWizard() {
                                                     setChannelId(e.target.value);
                                                     setChannelError(null);
                                                 }}
-                                                className="font-mono bg-black/20 border-white/10 text-white placeholder:text-white/30"
+                                                className="font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                                             />
                                             {channelError && (
                                                 <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg text-sm text-red-400">
@@ -491,7 +491,7 @@ export function ChannelWizard() {
                                         <Check className="w-8 h-8" />
                                     </div>
                                 )}
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{verifiedStats?.title || 'Verified'}</h2>
+                                <h2 className="text-xl font-bold text-foreground">{verifiedStats?.title || 'Verified'}</h2>
                                 <p
                                     className="text-blue-400 hover:text-blue-300 cursor-pointer"
                                     onClick={() => openTelegramLink(`https://t.me/${verifiedStats?.username}`)}
@@ -499,14 +499,14 @@ export function ChannelWizard() {
                                     @{verifiedStats?.username}
                                 </p>
 
-                                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200/20">
+                                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border">
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Subscribers</p>
-                                        <p className="text-lg font-bold text-gray-900 dark:text-white">{(verifiedStats?.subscribers || 0).toLocaleString()}</p>
+                                        <p className="text-lg font-bold text-foreground">{(verifiedStats?.subscribers || 0).toLocaleString()}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Avg Views</p>
-                                        <p className="text-lg font-bold text-gray-900 dark:text-white">{(verifiedStats?.avg_views || 0).toLocaleString()}</p>
+                                        <p className="text-lg font-bold text-foreground">{(verifiedStats?.avg_views || 0).toLocaleString()}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Engagement</p>
@@ -643,7 +643,7 @@ export function ChannelWizard() {
 
                                 {/* Add/Edit Package Form - Collapsible */}
                                 {showPackageForm && (
-                                    <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4 animate-in slide-in-from-top-2 fade-in">
+                                    <div className="bg-secondary border border-border rounded-xl p-5 space-y-4 animate-in slide-in-from-top-2 fade-in">
                                         <h4 className="text-sm font-semibold">{editingPackageIdx !== null ? 'Edit Package' : 'New Package'}</h4>
 
                                         <div className="space-y-2">
@@ -652,7 +652,7 @@ export function ChannelWizard() {
                                                 placeholder="e.g. 24h Pinned Post"
                                                 value={newPackage.title}
                                                 onChange={(e) => setNewPackage({ ...newPackage, title: e.target.value })}
-                                                className="bg-black/20"
+                                                className="bg-secondary"
                                             />
                                         </div>
 
@@ -664,13 +664,13 @@ export function ChannelWizard() {
                                                     placeholder="100"
                                                     value={newPackage.price}
                                                     onChange={(e) => setNewPackage({ ...newPackage, price: e.target.value })}
-                                                    className="bg-black/20"
+                                                    className="bg-secondary"
                                                 />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label>Currency</Label>
                                                 <select
-                                                    className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                    className="flex h-10 w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                                     value={newPackage.currency}
                                                     onChange={(e) => setNewPackage({ ...newPackage, currency: e.target.value as 'TON' | 'USDT' })}
                                                 >
@@ -681,7 +681,7 @@ export function ChannelWizard() {
                                             <div className="space-y-2">
                                                 <Label>Type</Label>
                                                 <select
-                                                    className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                    className="flex h-10 w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                                     value={newPackage.type}
                                                     onChange={(e) => setNewPackage({ ...newPackage, type: e.target.value })}
                                                 >
@@ -696,7 +696,7 @@ export function ChannelWizard() {
                                         <div className="space-y-2">
                                             <Label>Description</Label>
                                             <textarea
-                                                className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="flex min-h-[80px] w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                                 placeholder="What's included? (e.g. link in bio, 24h pin)"
                                                 value={newPackage.description}
                                                 onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
@@ -711,7 +711,7 @@ export function ChannelWizard() {
                                                     setEditingPackageIdx(null);
                                                     setShowPackageForm(false);
                                                 }}
-                                                className="hover:bg-white/5"
+                                                className="hover:bg-secondary"
                                             >
                                                 Cancel
                                             </Button>
@@ -751,7 +751,7 @@ export function ChannelWizard() {
                                                     setEditingPackageIdx(null);
                                                     setShowPackageForm(false);
                                                 }}
-                                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                                             >
                                                 {editingPackageIdx !== null ? 'Update Package' : 'Save Package'}
                                             </Button>
@@ -776,7 +776,7 @@ export function ChannelWizard() {
                                                 setShowPRManagerSection(true);
                                                 // Fetch admin data
                                                 try {
-                                                    const adminsRes = await fetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() });
+                                                    const adminsRes = await apiFetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() });
                                                     if (adminsRes.ok) {
                                                         const data = await adminsRes.json();
                                                         setOwner(data.owner);
@@ -831,7 +831,7 @@ export function ChannelWizard() {
                                             ) : (
                                                 <div className="space-y-2">
                                                     {prManagers.map((pm: any) => (
-                                                        <div key={pm.telegram_id} className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+                                                        <div key={pm.telegram_id} className="flex items-center justify-between bg-secondary p-3 rounded-lg">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold">
                                                                     {pm.username?.charAt(0).toUpperCase() || 'P'}
@@ -854,10 +854,7 @@ export function ChannelWizard() {
                                                                         setDeletingPRId(pm.telegram_id);
                                                                         try {
                                                                             const headers = getHeaders() as Record<string, string>;
-                                                                            if (user?.telegramId) {
-                                                                                headers['X-Telegram-ID'] = user.telegramId.toString();
-                                                                            }
-                                                                            const res = await fetch(`${API_URL}/channels/${id}/pr-managers/${pm.telegram_id}`, {
+                                                                            const res = await apiFetch(`${API_URL}/channels/${id}/pr-managers/${pm.telegram_id}`, {
                                                                                 method: 'DELETE',
                                                                                 headers
                                                                             });
@@ -921,7 +918,7 @@ export function ChannelWizard() {
                                                         <div className="flex gap-2">
                                                             <Input
                                                                 placeholder="Enter Telegram username (e.g. @username)"
-                                                                className="flex-1 bg-white/5 border-white/10"
+                                                                className="flex-1 bg-secondary border-border"
                                                                 id="prManagerInput"
                                                                 onChange={() => setPrError(null)}
                                                             />
@@ -935,10 +932,7 @@ export function ChannelWizard() {
                                                                     }
                                                                     try {
                                                                         const headers = getHeaders() as Record<string, string>;
-                                                                        if (user?.telegramId) {
-                                                                            headers['X-Telegram-ID'] = user.telegramId.toString();
-                                                                        }
-                                                                        const res = await fetch(`${API_URL}/channels/${id}/pr-managers`, {
+                                                                        const res = await apiFetch(`${API_URL}/channels/${id}/pr-managers`, {
                                                                             method: 'POST',
                                                                             headers,
                                                                             body: JSON.stringify({ username })
@@ -993,7 +987,7 @@ export function ChannelWizard() {
                                             <Wallet className="w-5 h-5 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-white">Payout Wallet</h3>
+                                            <h3 className="font-bold text-foreground">Payout Wallet</h3>
                                             <p className="text-xs text-muted-foreground">Where you'll receive payments for deals</p>
                                         </div>
                                         {walletConnected && (
@@ -1006,14 +1000,14 @@ export function ChannelWizard() {
 
                                     {walletConnected ? (
                                         <div className="space-y-3">
-                                            <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                                            <div className="bg-secondary border border-border rounded-lg p-3">
                                                 <p className="text-xs text-muted-foreground mb-1">Connected Wallet</p>
-                                                <p className="font-mono text-sm text-white">{formatAddress(walletAddress)}</p>
+                                                <p className="font-mono text-sm text-foreground">{formatAddress(walletAddress)}</p>
                                             </div>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="w-full border-white/10 text-muted-foreground hover:text-white"
+                                                className="w-full border-border text-muted-foreground hover:text-foreground"
                                                 onClick={disconnectWallet}
                                             >
                                                 Change Wallet

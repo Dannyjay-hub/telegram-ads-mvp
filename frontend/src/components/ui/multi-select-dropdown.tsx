@@ -49,7 +49,7 @@ export function MultiSelectDropdown({ label, required, options, selected, onTogg
                                     e.stopPropagation()
                                     onRemove(item)
                                 }}
-                                className="hover:text-white transition-colors ml-0.5"
+                                className="hover:text-foreground transition-colors ml-0.5"
                             >
                                 <X className="w-3 h-3" />
                             </button>
@@ -63,7 +63,7 @@ export function MultiSelectDropdown({ label, required, options, selected, onTogg
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-black/20 border border-white/10 hover:border-white/30 transition-colors text-sm"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary border border-border hover:border-border/80 transition-colors text-sm"
                 >
                     <span className="text-muted-foreground">
                         {selected.length === 0
@@ -76,7 +76,7 @@ export function MultiSelectDropdown({ label, required, options, selected, onTogg
 
                 {/* Dropdown menu */}
                 {isOpen && (
-                    <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-background border border-white/10 shadow-xl">
+                    <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-popover border border-border shadow-xl">
                         {options.map(option => {
                             const isSelected = selected.includes(option)
                             return (
@@ -85,8 +85,8 @@ export function MultiSelectDropdown({ label, required, options, selected, onTogg
                                     type="button"
                                     onClick={() => onToggle(option)}
                                     className={`w-full text-left px-3 py-2 text-sm transition-colors ${isSelected
-                                            ? 'bg-blue-600/20 text-blue-400'
-                                            : 'text-white/80 hover:bg-white/5'
+                                        ? 'bg-blue-600/20 text-blue-400'
+                                        : 'text-foreground/80 hover:bg-accent'
                                         }`}
                                 >
                                     <span className="flex items-center justify-between">

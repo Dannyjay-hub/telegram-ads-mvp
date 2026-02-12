@@ -4,7 +4,7 @@ import { useTonWallet } from '@/hooks/useTonWallet'
 import { Info, Wallet, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 import { TON_TOKEN, USDT_TOKEN } from '@/lib/jettons'
 
 // Temporary GlassCard component if not found
@@ -143,8 +143,8 @@ export function EscrowPaymentPage() {
             try {
                 if (!campaign?.id) return
 
-                const res = await fetch(`${API_URL}/campaigns/${campaign.id}`, {
-                    headers: { 'X-Telegram-ID': String(user?.telegramId || '') }
+                const res = await apiFetch(`${API_URL}/campaigns/${campaign.id}`, {
+                    headers: getHeaders()
                 })
                 const data = await res.json()
 
@@ -242,7 +242,7 @@ export function EscrowPaymentPage() {
                             <span className="text-muted-foreground">Network Fee</span>
                             <span className="font-medium">{paymentInstructions.platformFee} {campaign.currency}</span>
                         </div>
-                        <div className="border-t border-white/10 pt-2 flex items-center justify-between">
+                        <div className="border-t border-border pt-2 flex items-center justify-between">
                             <span className="text-muted-foreground font-medium">Total</span>
                             <span className="text-xl font-bold text-primary">{paymentInstructions.amount} {campaign.currency}</span>
                         </div>

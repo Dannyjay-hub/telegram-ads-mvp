@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Handshake, Copy, Check, MessageCircle, Clock, DollarSign, Eye, Calendar, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react'
-import { API_URL, getHeaders, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
 import { openTelegramLink, getBotUrl, getBotDeepLinkUrl } from '@/lib/telegram'
 import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
@@ -102,7 +102,7 @@ export function PartnershipsList() {
 
     const loadDeals = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/deals/my`, {
+            const response = await apiFetch(`${API_URL}/deals/my`, {
                 headers: getHeaders()
             })
             if (response.ok) {
@@ -210,7 +210,7 @@ export function PartnershipsList() {
         haptic.light()
 
         try {
-            const response = await fetch(`${API_URL}/deals/${dealId}/approve`, {
+            const response = await apiFetch(`${API_URL}/deals/${dealId}/approve`, {
                 method: 'POST',
                 headers: {
                     ...getHeaders(),
@@ -342,7 +342,7 @@ export function PartnershipsList() {
                                     {/* Status-specific UI */}
                                     {/* Pending: Accept/Reject (closed campaign applications) */}
                                     {deal.status === 'pending' && (
-                                        <div className="flex gap-2 pt-2 border-t border-white/10">
+                                        <div className="flex gap-2 pt-2 border-t border-border">
                                             <Button
                                                 variant="default"
                                                 size="sm"
@@ -397,7 +397,7 @@ export function PartnershipsList() {
 
                                     {/* Draft Submitted: Review button */}
                                     {deal.status === 'draft_submitted' && (
-                                        <div className="pt-2 border-t border-white/10">
+                                        <div className="pt-2 border-t border-border">
                                             <Button
                                                 variant="default"
                                                 size="sm"
@@ -412,7 +412,7 @@ export function PartnershipsList() {
 
                                     {/* Approved: Propose time button */}
                                     {deal.status === 'approved' && (
-                                        <div className="pt-2 border-t border-white/10">
+                                        <div className="pt-2 border-t border-border">
                                             <Button
                                                 variant="default"
                                                 size="sm"
@@ -427,7 +427,7 @@ export function PartnershipsList() {
 
                                     {/* Scheduling: Accept or Counter */}
                                     {deal.status === 'scheduling' && (
-                                        <div className="pt-2 border-t border-white/10 space-y-2">
+                                        <div className="pt-2 border-t border-border space-y-2">
                                             {!deal.proposedPostTime ? (
                                                 /* No time proposed yet - show propose button */
                                                 <Button
@@ -527,7 +527,7 @@ export function PartnershipsList() {
                                     )}
 
                                     {/* Last updated + Chat button */}
-                                    <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs text-muted-foreground">
+                                    <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
                                         <span>Updated {formatRelativeTime(lastFetchedAt)}</span>
                                         <Button
                                             size="sm"

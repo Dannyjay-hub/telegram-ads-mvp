@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useTonConnectUI, useTonAddress, useIsConnectionRestored } from '@tonconnect/ui-react';
 import { type JettonToken, isNativeToken, toSmallestUnit } from '@/lib/jettons';
 import { beginCell, Address } from '@ton/core';
-import { API_URL } from '@/lib/api';
+import { API_URL, getHeaders, apiFetch } from '@/lib/api';
 import { useTelegram } from '@/providers/TelegramProvider';
 
 /**
@@ -29,12 +29,9 @@ export function useTonWallet() {
 
         const syncWallet = async () => {
             try {
-                const response = await fetch(`${API_URL}/auth/wallet`, {
+                const response = await apiFetch(`${API_URL}/auth/wallet`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Telegram-Id': String(user.telegramId)
-                    },
+                    headers: getHeaders(),
                     body: JSON.stringify({ walletAddress: userFriendlyAddress })
                 });
 

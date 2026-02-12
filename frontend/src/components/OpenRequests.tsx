@@ -109,7 +109,7 @@ export function OpenRequests() {
 
                             <div className="flex flex-wrap gap-2 mb-4">
                                 {brief.tags?.map(tag => (
-                                    <span key={tag} className="text-xs flex items-center gap-1 bg-white/5 px-2 py-1 rounded-md text-muted-foreground">
+                                    <span key={tag} className="text-xs flex items-center gap-1 bg-secondary px-2 py-1 rounded-md text-muted-foreground">
                                         <Tag className="w-3 h-3" /> {tag}
                                     </span>
                                 ))}

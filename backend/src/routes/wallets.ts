@@ -1,7 +1,7 @@
-import { Hono } from 'hono';
 import { WalletService } from '../services/WalletService';
+import { createRouter } from '../types/app';
 
-const app = new Hono();
+const app = createRouter();
 const walletService = new WalletService();
 
 // GET /wallets/me - Get my wallet

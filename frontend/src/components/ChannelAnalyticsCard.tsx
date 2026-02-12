@@ -5,7 +5,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, Users } from 'lucide-react';
 import { useState } from 'react';
-import { API_URL, getHeaders } from '@/lib/api';
+import { API_URL, getHeaders, apiFetch } from '@/lib/api';
 import { showSuccess, showError } from '@/lib/telegram';
 
 interface AnalyticsProps {
@@ -22,7 +22,7 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
     const handleSync = async () => {
         setSyncing(true);
         try {
-            const res = await fetch(`${API_URL}/channels/${channel.id}/sync_stats`, {
+            const res = await apiFetch(`${API_URL}/channels/${channel.id}/sync_stats`, {
                 method: 'POST',
                 headers: getHeaders()
             });
@@ -56,7 +56,7 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
     const hasGraphData = langData.length > 0;
 
     return (
-        <div className="space-y-6 pt-6 border-t border-white/10">
+        <div className="space-y-6 pt-6 border-t border-border">
             <div className="flex justify-between items-center">
                 <h3 className="text-xl font-bold flex items-center gap-2">
                     <span className="bg-blue-500/20 text-blue-400 p-1 rounded-md"><Users className="w-4 h-4" /></span>
@@ -67,7 +67,7 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
                     variant="outline"
                     onClick={handleSync}
                     disabled={syncing}
-                    className="border-white/10"
+                    className="border-border"
                 >
                     {syncing ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
                     Sync Data
@@ -75,15 +75,15 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white/5 p-4 rounded-xl">
+                <div className="bg-secondary p-4 rounded-xl">
                     <p className="text-sm text-muted-foreground mb-1">Subscribers</p>
                     <p className="text-2xl font-bold">{channel.verifiedStats?.subscribers?.toLocaleString() || '-'}</p>
                 </div>
-                <div className="bg-white/5 p-4 rounded-xl">
+                <div className="bg-secondary p-4 rounded-xl">
                     <p className="text-sm text-muted-foreground mb-1">Avg Views</p>
                     <p className="text-2xl font-bold">{channel.avgViews?.toLocaleString() || '-'}</p>
                 </div>
-                <div className="bg-white/5 p-4 rounded-xl">
+                <div className="bg-secondary p-4 rounded-xl">
                     <p className="text-sm text-muted-foreground mb-1">Reach Rate</p>
                     <p className="text-2xl font-bold">
                         {channel.avgViews && channel.verifiedStats?.subscribers
@@ -91,7 +91,7 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
                             : '-'}
                     </p>
                 </div>
-                <div className="bg-white/5 p-4 rounded-xl">
+                <div className="bg-secondary p-4 rounded-xl">
                     <p className="text-sm text-muted-foreground mb-1 truncate">Boosts/Premium</p>
                     <p className="text-2xl font-bold text-yellow-500">{stats?.boostsApplied || '-'}</p>
                 </div>
@@ -100,7 +100,7 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
             {hasGraphData ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
                     {/* Language Pie */}
-                    <div className="bg-white/5 p-4 rounded-xl flex flex-col items-center justify-center">
+                    <div className="bg-secondary p-4 rounded-xl flex flex-col items-center justify-center">
                         <h4 className="mb-4 text-sm font-semibold">Audience Language</h4>
                         <ResponsiveContainer width="100%" height="80%">
                             <PieChart>
@@ -123,7 +123,7 @@ export function ChannelAnalyticsCard({ channel, onSync }: AnalyticsProps) {
                     </div>
 
                     {/* Placeholder Line Chart for Growth */}
-                    <div className="bg-white/5 p-4 rounded-xl">
+                    <div className="bg-secondary p-4 rounded-xl">
                         <h4 className="mb-4 text-sm font-semibold">Growth (Last 24h)</h4>
                         <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
                             Chart data parsing pending

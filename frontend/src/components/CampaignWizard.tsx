@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
 import { ChevronRight, Check, Users, Globe, Folder, Clock, Sparkles, Target, Save } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 
 const STEPS = ['Basics', 'Budget', 'Targeting', 'Type', 'Review']
 const DRAFT_KEY = 'campaign_draft'
@@ -233,12 +233,9 @@ export function CampaignWizard() {
                 expiresAt
             }
 
-            const response = await fetch(`${API_URL}/campaigns`, {
+            const response = await apiFetch(`${API_URL}/campaigns`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Telegram-ID': String(user?.telegramId || '')
-                },
+                headers: getHeaders(),
                 body: JSON.stringify(payload)
             })
 
@@ -295,10 +292,7 @@ export function CampaignWizard() {
 
                 const response = await fetch(url, {
                     method: isUpdate ? 'PATCH' : 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Telegram-ID': String(user.telegramId)
-                    },
+                    headers: getHeaders(),
                     body: JSON.stringify({
                         title: formData.title,
                         brief: formData.brief,

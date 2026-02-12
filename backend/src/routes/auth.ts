@@ -1,9 +1,13 @@
-import { Hono } from 'hono';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 import { UserService } from '../services/UserService';
 import { supabase } from '../db';
+import { createRouter } from '../types/app';
+import { authMiddleware } from '../middleware/authMiddleware';
 
-const auth = new Hono();
+const auth = createRouter();
+
+// Apply auth middleware ONLY to /wallet (login endpoint must remain public)
+auth.use('/wallet', authMiddleware);
 
 // Dependency Injection
 const userRepo = new SupabaseUserRepository();
@@ -34,10 +38,7 @@ auth.post('/telegram', async (c) => {
  */
 auth.post('/wallet', async (c) => {
     try {
-        const telegramId = c.req.header('X-Telegram-Id');
-        if (!telegramId) {
-            return c.json({ error: 'Missing X-Telegram-Id header' }, 401);
-        }
+        const telegramId = c.get('telegramId');
 
         const body = await c.req.json();
         const { walletAddress } = body;
@@ -53,7 +54,7 @@ auth.post('/wallet', async (c) => {
                 ton_wallet_address: walletAddress,
                 wallet_connected_at: new Date().toISOString()
             })
-            .eq('telegram_id', Number(telegramId))
+            .eq('telegram_id', telegramId)
             .select()
             .single();
 

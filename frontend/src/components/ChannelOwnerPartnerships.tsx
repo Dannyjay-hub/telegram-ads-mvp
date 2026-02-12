@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye } from 'lucide-react'
-import { API_URL, getHeaders, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/lib/api'
 import { haptic } from '@/utils/haptic'
 import { openTelegramLink, getBotUrl, getBotDeepLinkUrl } from '@/lib/telegram'
 import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
@@ -85,7 +85,7 @@ export function ChannelOwnerPartnerships() {
 
     const loadDeals = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/deals/channel-owner`, {
+            const response = await apiFetch(`${API_URL}/deals/channel-owner`, {
                 headers: getHeaders()
             })
             if (response.ok) {
@@ -139,7 +139,7 @@ export function ChannelOwnerPartnerships() {
         haptic.light()
 
         try {
-            const response = await fetch(`${API_URL}/deals/${dealId}/approve`, {
+            const response = await apiFetch(`${API_URL}/deals/${dealId}/approve`, {
                 method: 'POST',
                 headers: {
                     ...getHeaders(),
@@ -243,7 +243,7 @@ export function ChannelOwnerPartnerships() {
         <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
             {/* Pinned Tabs */}
             <div className="flex-shrink-0 pb-3">
-                <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
+                <div className="flex gap-1 bg-secondary p-1 rounded-lg">
                     <Button
                         variant={activeTab === 'pending' ? 'default' : 'ghost'}
                         size="sm"
@@ -310,7 +310,7 @@ export function ChannelOwnerPartnerships() {
 
                                     {/* Brief */}
                                     {deal.briefText && (
-                                        <p className="text-sm text-muted-foreground bg-white/5 rounded p-2 line-clamp-2">
+                                        <p className="text-sm text-muted-foreground bg-secondary rounded p-2 line-clamp-2">
                                             {deal.briefText}
                                         </p>
                                     )}
@@ -329,7 +329,7 @@ export function ChannelOwnerPartnerships() {
                                     {/* Actions based on status */}
                                     {/* Pending: Channel applied to closed campaign, waiting for advertiser */}
                                     {deal.status === 'pending' && (
-                                        <div className="pt-2 border-t border-white/10">
+                                        <div className="pt-2 border-t border-border">
                                             <p className="text-sm text-orange-400 flex items-center gap-1">
                                                 <Clock className="w-4 h-4" />
                                                 Waiting for advertiser to accept your application
@@ -339,7 +339,7 @@ export function ChannelOwnerPartnerships() {
 
                                     {/* Funded: Accept/Reject */}
                                     {deal.status === 'funded' && (
-                                        <div className="flex gap-2 pt-2 border-t border-white/10">
+                                        <div className="flex gap-2 pt-2 border-t border-border">
                                             <Button
                                                 variant="default"
                                                 size="sm"
@@ -373,7 +373,7 @@ export function ChannelOwnerPartnerships() {
 
                                     {/* Draft Pending: Create Draft button */}
                                     {(deal.status === 'draft_pending' || deal.status === 'changes_requested') && (
-                                        <div className="flex gap-2 pt-2 border-t border-white/10">
+                                        <div className="flex gap-2 pt-2 border-t border-border">
                                             <Button
                                                 variant="default"
                                                 size="sm"
@@ -389,7 +389,7 @@ export function ChannelOwnerPartnerships() {
 
                                     {/* Draft Submitted: Waiting message */}
                                     {deal.status === 'draft_submitted' && (
-                                        <div className="flex items-center gap-2 pt-2 border-t border-white/10 text-purple-400 text-sm">
+                                        <div className="flex items-center gap-2 pt-2 border-t border-border text-purple-400 text-sm">
                                             <Eye className="w-4 h-4" />
                                             <span>Waiting for advertiser review</span>
                                         </div>
@@ -397,7 +397,7 @@ export function ChannelOwnerPartnerships() {
 
                                     {/* Scheduling: Channel owner waits for advertiser to propose first */}
                                     {deal.status === 'scheduling' && (
-                                        <div className="pt-2 border-t border-white/10 space-y-2">
+                                        <div className="pt-2 border-t border-border space-y-2">
                                             {!deal.proposedPostTime ? (
                                                 /* No time proposed yet - waiting for advertiser */
                                                 <div className="text-sm text-muted-foreground flex items-center gap-1">
@@ -469,7 +469,7 @@ export function ChannelOwnerPartnerships() {
 
                                     {/* Failed to Post: Report issue */}
                                     {deal.status === 'failed_to_post' && (
-                                        <div className="pt-2 border-t border-white/10 space-y-2">
+                                        <div className="pt-2 border-t border-border space-y-2">
                                             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400 flex items-center gap-2">
                                                 <AlertTriangle className="w-4 h-4" />
                                                 Post failed - contact support
@@ -495,7 +495,7 @@ export function ChannelOwnerPartnerships() {
 
                                     {/* Posted: Shows ad is live */}
                                     {deal.status === 'posted' && (
-                                        <div className="flex items-center gap-1 text-teal-400 text-sm pt-2 border-t border-white/10">
+                                        <div className="flex items-center gap-1 text-teal-400 text-sm pt-2 border-t border-border">
                                             <CheckCircle className="w-4 h-4" />
                                             <span>Ad is live on channel</span>
                                         </div>

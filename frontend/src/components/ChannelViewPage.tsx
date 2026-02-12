@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
 import { Settings, RefreshCw, Check, Users, Eye, TrendingUp, ExternalLink, Globe, Plus, Minus, ShoppingCart, Wallet, Clock } from 'lucide-react'
-import { type Channel, API_URL, getHeaders } from '@/lib/api'
+import { type Channel, API_URL, getHeaders, apiFetch } from '@/lib/api'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { useTonWallet } from '@/hooks/useTonWallet'
 import { haptic } from '@/utils/haptic'
@@ -96,7 +96,7 @@ export function ChannelViewPage() {
             if (cancelled) return
 
             try {
-                const res = await fetch(`${API_URL}/deals/${currentDealId}/status`, {
+                const res = await apiFetch(`${API_URL}/deals/${currentDealId}/status`, {
                     headers: getHeaders()
                 })
 
@@ -147,7 +147,7 @@ export function ChannelViewPage() {
     const loadChannel = async () => {
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/channels/${id}`, { headers: getHeaders() })
+            const res = await apiFetch(`${API_URL}/channels/${id}`, { headers: getHeaders() })
             if (!res.ok) throw new Error('Channel not found')
             const data = await res.json()
             setChannel(data)
@@ -155,7 +155,7 @@ export function ChannelViewPage() {
             // Check if current user is an owner or PR manager of this channel
             if (user?.telegramId) {
                 try {
-                    const adminRes = await fetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() })
+                    const adminRes = await apiFetch(`${API_URL}/channels/${id}/admins`, { headers: getHeaders() })
                     if (adminRes.ok) {
                         const adminData = await adminRes.json()
                         // Use String comparison to handle number vs string type mismatch
@@ -185,7 +185,7 @@ export function ChannelViewPage() {
 
     const handleSync = async () => {
         try {
-            await fetch(`${API_URL}/channels/${id}/sync_stats`, {
+            await apiFetch(`${API_URL}/channels/${id}/sync_stats`, {
                 method: 'POST',
                 headers: getHeaders()
             })
@@ -276,7 +276,7 @@ export function ChannelViewPage() {
                 unitPrice: pkg.price
             }))
 
-            const res = await fetch(`${API_URL}/deals/create-with-items`, {
+            const res = await apiFetch(`${API_URL}/deals/create-with-items`, {
                 method: 'POST',
                 headers: {
                     ...getHeaders(),
@@ -422,7 +422,7 @@ export function ChannelViewPage() {
                 </button>
 
                 {channel.description && (
-                    <p className="text-sm text-muted-foreground mt-4 border-t border-white/10 pt-4">
+                    <p className="text-sm text-muted-foreground mt-4 border-t border-border pt-4">
                         {channel.description}
                     </p>
                 )}
@@ -481,8 +481,8 @@ export function ChannelViewPage() {
                                 qty === 0
 
                             return (
-                                <div key={idx} className={`bg-white/5 p-4 rounded-xl border transition-all ${qty > 0 ? 'border-primary/50 bg-primary/5' :
-                                    isLocked ? 'border-white/5 opacity-50' : 'border-white/5'
+                                <div key={idx} className={`bg-secondary p-4 rounded-xl border transition-all ${qty > 0 ? 'border-primary/50 bg-primary/5' :
+                                    isLocked ? 'border-border opacity-50' : 'border-border'
                                     }`}>
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
@@ -509,7 +509,7 @@ export function ChannelViewPage() {
 
                                     {/* Quantity controls for advertisers */}
                                     {!isOwner && (
-                                        <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10">
+                                        <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-border">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -537,7 +537,7 @@ export function ChannelViewPage() {
                             )
                         })
                     ) : (
-                        <div className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-white/5">
+                        <div className="bg-secondary p-4 rounded-xl flex justify-between items-center border border-border">
                             <div>
                                 <span className="font-bold text-muted-foreground">No packages available</span>
                                 <p className="text-xs text-muted-foreground">This channel hasn't set up any service packages yet.</p>
@@ -577,7 +577,7 @@ export function ChannelViewPage() {
 
             {/* Floating Checkout Bar for advertisers */}
             {!isOwner && totalItems > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-white/10 p-4 z-50">
+                <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border p-4 z-50">
                     <div className="max-w-md mx-auto flex items-center justify-between">
                         <div>
                             <p className="text-sm text-muted-foreground">{totalItems} item{totalItems > 1 ? 's' : ''} selected</p>
@@ -643,7 +643,7 @@ export function ChannelViewPage() {
                                     ))}
                                 </div>
 
-                                <div className="border-t border-white/10 pt-4 flex justify-between items-center">
+                                <div className="border-t border-border pt-4 flex justify-between items-center">
                                     <span className="font-semibold">Total</span>
                                     <span className="text-2xl font-bold text-primary flex items-center gap-2">
                                         {totalAmount.toLocaleString()}
@@ -655,7 +655,7 @@ export function ChannelViewPage() {
                                     </span>
                                 </div>
 
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/5 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary p-3 rounded-lg">
                                     <Wallet className="w-4 h-4" />
                                     <span>Connected: {formatAddress(walletAddress)}</span>
                                 </div>
@@ -667,7 +667,7 @@ export function ChannelViewPage() {
                                         value={brief}
                                         onChange={(e) => setBrief(e.target.value)}
                                         placeholder="Describe your product/service and what you'd like the channel owner to promote..."
-                                        className="w-full h-24 p-3 rounded-lg bg-white/5 border border-white/10 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
+                                        className="w-full h-24 p-3 rounded-lg bg-secondary border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
                                         maxLength={500}
                                     />
                                     <p className="text-xs text-muted-foreground text-right">{brief.length}/500</p>

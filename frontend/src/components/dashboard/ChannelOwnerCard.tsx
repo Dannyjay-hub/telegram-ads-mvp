@@ -56,7 +56,7 @@ export function ChannelOwnerCard() {
                         key={idx}
                         variant="ghost"
                         onClick={action.onClick}
-                        className="w-full justify-start h-auto py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-yellow-500/20 group"
+                        className="w-full justify-start h-auto py-3 px-4 bg-secondary hover:bg-accent border border-border hover:border-yellow-500/20 group"
                     >
                         <div className="flex items-center w-full gap-3">
                             <div className="p-2 rounded-full bg-background/50 group-hover:bg-yellow-500/20 transition-colors">

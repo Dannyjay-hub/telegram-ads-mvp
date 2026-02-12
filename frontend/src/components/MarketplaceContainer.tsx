@@ -22,10 +22,10 @@ export function MarketplaceContainer() {
             {/* Sticky Tabs - No "Marketplace" title */}
             <div className="flex-shrink-0 bg-[--tg-theme-bg-color] pb-3">
                 {/* P2P Style Toggle */}
-                <div className="bg-black/20 p-1 rounded-xl flex relative">
+                <div className="bg-secondary p-1 rounded-xl flex relative">
                     {/* Sliding Background */}
                     <div
-                        className="absolute top-1 bottom-1 rounded-lg bg-white/10 transition-all duration-300 ease-out"
+                        className="absolute top-1 bottom-1 rounded-lg bg-accent transition-all duration-300 ease-out"
                         style={{
                             left: activeTab === 'channels' ? '0.25rem' : '50%',
                             width: 'calc(50% - 0.25rem)'
@@ -34,14 +34,14 @@ export function MarketplaceContainer() {
 
                     <button
                         onClick={() => setTab('channels')}
-                        className={`flex-1 relative z-10 py-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${activeTab === 'channels' ? 'text-white' : 'text-muted-foreground hover:text-white/80'}`}
+                        className={`flex-1 relative z-10 py-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${activeTab === 'channels' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
                     >
                         <Megaphone className="w-4 h-4" />
                         Find Channels
                     </button>
                     <button
                         onClick={() => setTab('campaigns')}
-                        className={`flex-1 relative z-10 py-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${activeTab === 'campaigns' ? 'text-white' : 'text-muted-foreground hover:text-white/80'}`}
+                        className={`flex-1 relative z-10 py-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${activeTab === 'campaigns' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
                     >
                         <Briefcase className="w-4 h-4" />
                         Find Campaigns

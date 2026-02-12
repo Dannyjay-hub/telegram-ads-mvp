@@ -22,7 +22,7 @@ export function MyChannelsPage() {
 
     const loadChannels = async () => {
         try {
-            const data = await getMyChannels(user?.telegramId?.toString() || '704124192')
+            const data = await getMyChannels()
             setChannels(data)
         } catch (e) {
             console.error(e)
@@ -48,7 +48,7 @@ export function MyChannelsPage() {
                 {loading ? (
                     <div className="flex justify-center py-10"><Loader2 className="animate-spin" /></div>
                 ) : channels.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground border border-dashed border-white/10 rounded-xl">
+                    <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
                         <p className="mb-4">You haven't listed any channels yet.</p>
                         <Button onClick={() => navigate('/channels/new')}>List Your First Channel</Button>
                     </div>
@@ -87,7 +87,7 @@ export function MyChannelsPage() {
                                 <div className="flex gap-2 mb-4">
                                     {!channel.isActive ? (
                                         <Button
-                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
                                             onClick={() => navigate(`/channels/edit/${channel.id}`, { state: { from: '/channels/my' } })}
                                         >
                                             Complete Draft

@@ -1,5 +1,4 @@
 
-import { Hono } from 'hono';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { ChannelService } from '../services/ChannelService';
 import { getChatMember, getChannelStats, getBotPermissions, resolveChannelId, verifyTeamPermissions } from '../services/telegram';
@@ -7,8 +6,9 @@ import { notifyPRManagerAdded, notifyChannelPublished } from '../services/Notifi
 import { bot } from '../botInstance';
 import { supabase } from '../db';
 import contentModerationService from '../services/ContentModerationService';
+import { createRouter } from '../types/app';
 
-const app = new Hono();
+const app = createRouter();
 
 // Dependency Injection
 const channelRepo = new SupabaseChannelRepository();
@@ -33,10 +33,9 @@ app.get('/', async (c) => {
 // GET /channels/my - Authorized user's channels
 app.get('/my', async (c) => {
     try {
-        // Mock Auth Header for MVP (Simulating logged in user)
-        const telegramId = c.req.header('X-Telegram-ID') || '704124192';
+        const telegramId = c.get('telegramId');
 
-        const channels = await channelService.listChannelsByAdmin(Number(telegramId));
+        const channels = await channelService.listChannelsByAdmin(telegramId);
         return c.json(channels);
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
@@ -193,7 +192,7 @@ app.post('/:id/pr-managers', async (c) => {
         const id = c.req.param('id');
         const body = await c.req.json();
         let { telegram_id, username } = body;
-        const requesterId = Number(c.req.header('X-Telegram-ID'));
+        const requesterId = c.get('telegramId');
 
         // Check if requester is the owner
         const { data: ownerCheck, error: ownerError } = await supabase
@@ -329,7 +328,7 @@ app.delete('/:id/pr-managers/:telegramId', async (c) => {
     try {
         const id = c.req.param('id');
         const telegramId = Number(c.req.param('telegramId'));
-        const requesterId = Number(c.req.header('X-Telegram-ID'));
+        const requesterId = c.get('telegramId');
 
         console.log('[DELETE PR] Starting deletion for telegramId:', telegramId, 'in channel:', id);
 
@@ -415,8 +414,7 @@ app.post('/verify', async (c) => {
 app.post('/verify_permissions', async (c) => {
     try {
         const { channel_id, skip_existing_check } = await c.req.json();
-        const headerId = c.req.header('X-Telegram-ID');
-        const userId = headerId ? Number(headerId) : 704124192; // Mock ID default
+        const userId = c.get('telegramId');
 
         // Resolve ID if it's a username
         const resolvedId = await resolveChannelId(channel_id);
@@ -516,9 +514,8 @@ app.post('/', async (c) => {
             payout_wallet
         } = body;
 
-        // In a real app we'd get userId from Auth Middleware context
-        const headerId = c.req.header('X-Telegram-ID');
-        const mockUserId = headerId ? Number(headerId) : 704124192;
+        // userId from verified JWT context
+        const mockUserId = c.get('telegramId');
 
         if (!telegram_channel_id) {
             return c.json({ error: 'telegram_channel_id is required' }, 400);
@@ -752,13 +749,9 @@ app.put('/:id', async (c) => {
 app.delete('/:id', async (c) => {
     try {
         const id = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
         console.log('[DELETE channel] Request:', { id, telegramId });
-
-        if (!telegramId) {
-            return c.json({ error: 'Authentication required' }, 401);
-        }
 
         // Verify the user is the OWNER via channel_admins table (more reliable than owner_id FK)
         const { data: ownerAdmin, error: ownerError } = await supabase

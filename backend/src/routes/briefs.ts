@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { SupabaseBriefRepository } from '../repositories/supabase/SupabaseBriefRepository';
 import { BriefService } from '../services/BriefService';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
 import { DealService } from '../services/DealService';
+import { createRouter } from '../types/app';
 
-const app = new Hono();
+const app = createRouter();
 
 // Dependency Injection
 const briefRepo = new SupabaseBriefRepository();

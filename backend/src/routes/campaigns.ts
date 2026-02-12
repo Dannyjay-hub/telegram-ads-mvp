@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { campaignService } from '../services/CampaignService';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { CampaignInsert, CampaignUpdate } from '../domain/entities';
 import { supabase } from '../db';
 import { v4 as uuidv4 } from 'uuid';
+import { createRouter } from '../types/app';
 
 const userRepository = new SupabaseUserRepository();
 const channelRepository = new SupabaseChannelRepository();
@@ -22,7 +22,7 @@ const PLATFORM_FEE_USDT = 0.1;   // 0.1 USDT for USDT payments (Jetton gas is ~0
 const recentDraftRequests = new Map<string, number>();
 const DEDUP_WINDOW_MS = 5000; // 5 second window to prevent duplicates
 
-const campaigns = new Hono();
+const campaigns = createRouter();
 
 // ============================================
 // ADVERTISER ROUTES
@@ -36,14 +36,10 @@ const campaigns = new Hono();
 campaigns.post('/', async (c) => {
     try {
         const body = await c.req.json();
-        const telegramId = c.req.header('X-Telegram-ID');
-
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
+        const telegramId = c.get('telegramId');
 
         // Find user by telegram ID
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -154,13 +150,9 @@ campaigns.post('/', async (c) => {
 campaigns.post('/draft', async (c) => {
     try {
         const body = await c.req.json();
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
-
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -229,13 +221,9 @@ campaigns.patch('/:id/draft', async (c) => {
     try {
         const campaignId = c.req.param('id');
         const body = await c.req.json();
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
-
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -290,13 +278,9 @@ campaigns.patch('/:id/draft', async (c) => {
  */
 campaigns.get('/', async (c) => {
     try {
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
-
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -317,13 +301,9 @@ campaigns.get('/', async (c) => {
 campaigns.delete('/:id', async (c) => {
     try {
         const campaignId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
-
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -421,14 +401,10 @@ campaigns.put('/:id', async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
-        const telegramId = c.req.header('X-Telegram-ID');
-
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
+        const telegramId = c.get('telegramId');
 
         // Verify ownership
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -471,13 +447,9 @@ campaigns.put('/:id', async (c) => {
 campaigns.delete('/:id', async (c) => {
     try {
         const id = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
-
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -507,13 +479,9 @@ campaigns.delete('/:id', async (c) => {
 campaigns.post('/:id/publish', async (c) => {
     try {
         const id = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
-
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -551,10 +519,7 @@ campaigns.post('/:id/apply', async (c) => {
         }
 
         // Verify channel ownership
-        const telegramId = c.req.header('X-Telegram-ID');
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
+        const telegramId = c.get('telegramId');
 
         // Get channel and verify owner
         const channel = await channelRepository.findById(channelId);
@@ -592,13 +557,9 @@ campaigns.post('/:id/apply', async (c) => {
 campaigns.get('/:id/applications', async (c) => {
     try {
         const campaignId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
+        const telegramId = c.get('telegramId');
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
-
-        const user = await userRepository.findByTelegramId(parseInt(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }
@@ -645,11 +606,8 @@ campaigns.get('/:id/applications', async (c) => {
 campaigns.post('/applications/:id/approve', async (c) => {
     try {
         const applicationId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
+        // telegramId available via c.get('telegramId') for ownership verification
 
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
 
         // TODO: Verify advertiser owns the campaign
 
@@ -676,11 +634,7 @@ campaigns.post('/applications/:id/approve', async (c) => {
 campaigns.post('/applications/:id/reject', async (c) => {
     try {
         const applicationId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
-
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
+        // telegramId available via c.get('telegramId') for ownership verification
 
         // TODO: Verify advertiser owns the campaign
 
@@ -731,14 +685,10 @@ campaigns.post('/:id/escrow', async (c) => {
 campaigns.post('/:id/extend', async (c) => {
     try {
         const campaignId = c.req.param('id');
-        const telegramId = c.req.header('X-Telegram-ID');
-
-        if (!telegramId) {
-            return c.json({ error: 'Telegram ID required' }, 401);
-        }
+        const telegramId = c.get('telegramId');
 
         // Find user
-        const user = await userRepository.findByTelegramId(Number(telegramId));
+        const user = await userRepository.findByTelegramId(telegramId);
         if (!user) {
             return c.json({ error: 'User not found' }, 404);
         }

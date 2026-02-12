@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Users, Clock, CheckCircle, XCircle, Loader2, ChevronRight, Zap, Play, Trash2 } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 
 interface Campaign {
     id: string
@@ -50,10 +50,8 @@ export function CampaignsList() {
         if (!user?.telegramId) return
 
         try {
-            const response = await fetch(`${API_URL}/campaigns`, {
-                headers: {
-                    'X-Telegram-Id': String(user.telegramId)
-                }
+            const response = await apiFetch(`${API_URL}/campaigns`, {
+                headers: getHeaders()
             })
 
             if (!response.ok) throw new Error('Failed to fetch campaigns')
@@ -83,9 +81,9 @@ export function CampaignsList() {
         if (!confirm('Delete this draft? This cannot be undone.')) return
 
         try {
-            const response = await fetch(`${API_URL}/campaigns/${campaignId}`, {
+            const response = await apiFetch(`${API_URL}/campaigns/${campaignId}`, {
                 method: 'DELETE',
-                headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+                headers: getHeaders()
             })
             if (response.ok) {
                 setCampaigns(prev => prev.filter(c => c.id !== campaignId))
@@ -131,7 +129,7 @@ export function CampaignsList() {
                 )}
 
                 {campaigns.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground border border-dashed border-white/10 rounded-xl">
+                    <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
                         <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
                         <h3 className="font-bold text-lg mb-2">No campaigns yet</h3>
                         <p className="mb-4 text-sm max-w-xs mx-auto">
@@ -158,7 +156,7 @@ export function CampaignsList() {
                             return (
                                 <GlassCard
                                     key={campaign.id}
-                                    className="cursor-pointer hover:bg-white/5 transition-all p-4"
+                                    className="cursor-pointer hover:bg-secondary transition-all p-4"
                                     onClick={() => navigate(`/campaigns/${campaign.id}`)}
                                 >
                                     <div className="flex items-start justify-between gap-3 mb-3">
@@ -179,13 +177,13 @@ export function CampaignsList() {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                                        <div className="bg-white/5 rounded p-2 flex flex-col">
+                                        <div className="bg-secondary rounded p-2 flex flex-col">
                                             <span className="text-muted-foreground mb-0.5">Budget</span>
                                             <span className="font-mono font-bold text-primary">
                                                 {campaign.totalBudget} {campaign.currency}
                                             </span>
                                         </div>
-                                        <div className="bg-white/5 rounded p-2 flex flex-col">
+                                        <div className="bg-secondary rounded p-2 flex flex-col">
                                             <span className="text-muted-foreground mb-0.5">Slots</span>
                                             <span className="font-medium">
                                                 {campaign.slotsFilled} / {campaign.slots}
@@ -193,7 +191,7 @@ export function CampaignsList() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
+                                    <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
                                         <span className={`capitalize px-2 py-0.5 rounded-full ${campaign.campaignType === 'open' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
                                             }`}>
                                             {campaign.campaignType} Campaign

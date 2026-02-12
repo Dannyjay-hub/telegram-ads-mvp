@@ -1,13 +1,17 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Platform escrow wallet address for receiving campaign funds
-// TODO: Move to environment variable for production
-export const PLATFORM_WALLET_ADDRESS = 'UQDEVQMogJ6w7qQ6hXnsvb1OYWcyvhE576MN6iKvaA0TUwIW';
+export const PLATFORM_WALLET_ADDRESS = import.meta.env.VITE_PLATFORM_WALLET_ADDRESS || 'UQDEVQMogJ6w7qQ6hXnsvb1OYWcyvhE576MN6iKvaA0TUwIW';
 
 let authToken: string | null = null;
+let _isReloading = false;
 
 export const setAuthToken = (token: string) => {
     authToken = token;
+};
+
+export const clearAuthToken = () => {
+    authToken = null;
 };
 
 export const getHeaders = (): Record<string, string> => {
@@ -18,19 +22,26 @@ export const getHeaders = (): Record<string, string> => {
         headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    // Auto-include Telegram user ID from WebApp if available
-    try {
-        const webApp = (window as any)?.Telegram?.WebApp;
-        const telegramId = webApp?.initDataUnsafe?.user?.id;
-        if (telegramId) {
-            headers['X-Telegram-ID'] = telegramId.toString();
-        }
-    } catch {
-        // Ignore errors reading Telegram context
-    }
-
     return headers;
 };
+
+/**
+ * Global fetch wrapper with 401 interception.
+ * On 401 (expired/invalid JWT), clears token and reloads the page.
+ * Telegram Mini App reload triggers fresh initData → automatic re-auth.
+ */
+export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+    const response = await fetch(input, init);
+
+    if (response.status === 401 && !_isReloading) {
+        _isReloading = true;
+        console.warn('[API] 401 Unauthorized — clearing token and reloading for re-auth');
+        clearAuthToken();
+        window.location.reload();
+    }
+
+    return response;
+}
 
 export type DealStatus =
     | 'draft' | 'submitted' | 'negotiating' | 'funded'
@@ -107,20 +118,17 @@ export async function authenticateWithTelegram(initData: string): Promise<{ toke
 
 // Deals API
 export async function getDeals(): Promise<Deal[]> {
-    const response = await fetch(`${API_URL}/deals`, { headers: getHeaders() });
+    const response = await apiFetch(`${API_URL}/deals`, { headers: getHeaders() });
     if (!response.ok) {
         throw new Error('Failed to fetch deals');
     }
     return response.json();
 }
 
-export async function createDeal(deal: Partial<Deal>, userId?: number): Promise<Deal> {
-    const headers = getHeaders() as Record<string, string>;
-    if (userId) {
-        headers['X-Telegram-ID'] = userId.toString();
-    }
+export async function createDeal(deal: Partial<Deal>): Promise<Deal> {
+    const headers = getHeaders();
 
-    const response = await fetch(`${API_URL}/deals`, {
+    const response = await apiFetch(`${API_URL}/deals`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(deal),
@@ -150,13 +158,13 @@ export async function getBriefs(filters?: { minBudget?: string, tag?: string }):
     if (filters?.minBudget) params.append('minBudget', filters.minBudget);
     if (filters?.tag) params.append('tag', filters.tag);
 
-    const response = await fetch(`${API_URL}/briefs?${params.toString()}`, { headers: getHeaders() });
+    const response = await apiFetch(`${API_URL}/briefs?${params.toString()}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch briefs');
     return response.json();
 }
 
 export async function createBrief(brief: Partial<PublicBrief>): Promise<PublicBrief> {
-    const response = await fetch(`${API_URL}/briefs`, {
+    const response = await apiFetch(`${API_URL}/briefs`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(brief),
@@ -166,7 +174,7 @@ export async function createBrief(brief: Partial<PublicBrief>): Promise<PublicBr
 }
 
 export async function applyToBrief(briefId: string, channelId: string, priceAmount: number): Promise<Deal> {
-    const response = await fetch(`${API_URL}/briefs/${briefId}/apply`, {
+    const response = await apiFetch(`${API_URL}/briefs/${briefId}/apply`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ channelId, priceAmount }),
@@ -181,26 +189,23 @@ export async function getMarketplaceChannels(filters?: { minSubscribers?: number
     if (filters?.minSubscribers) params.append('minSubscribers', filters.minSubscribers.toString());
     if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
 
-    const response = await fetch(`${API_URL}/channels?${params.toString()}`, { headers: getHeaders() });
+    const response = await apiFetch(`${API_URL}/channels?${params.toString()}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch channels');
     return response.json();
 }
 
 // Helper for My Channels
-export async function getMyChannels(userId: string): Promise<Channel[]> {
-    // Calling the new endpoint
-    const response = await fetch(`${API_URL}/channels/my`, {
-        headers: {
-            ...getHeaders(),
-            'X-Telegram-ID': userId // Passing explicitly for MVP mock
-        } as HeadersInit
+export async function getMyChannels(): Promise<Channel[]> {
+    // JWT handles authentication
+    const response = await apiFetch(`${API_URL}/channels/my`, {
+        headers: getHeaders() as HeadersInit
     });
     if (!response.ok) throw new Error('Failed to fetch channels');
     return response.json();
 }
 // Channel Listing
 export async function verifyChannel(id: number) {
-    const response = await fetch(`${API_URL}/channels/verify`, {
+    const response = await apiFetch(`${API_URL}/channels/verify`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ telegram_channel_id: id })
@@ -208,13 +213,10 @@ export async function verifyChannel(id: number) {
     return response.json();
 }
 
-export async function verifyChannelPermissions(id: string | number, options?: { skipExistingCheck?: boolean }, userId?: number) {
-    const headers = getHeaders() as Record<string, string>;
-    if (userId) {
-        headers['X-Telegram-ID'] = userId.toString();
-    }
+export async function verifyChannelPermissions(id: string | number, options?: { skipExistingCheck?: boolean }) {
+    const headers = getHeaders();
 
-    const response = await fetch(`${API_URL}/channels/verify_permissions`, {
+    const response = await apiFetch(`${API_URL}/channels/verify_permissions`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
@@ -225,13 +227,10 @@ export async function verifyChannelPermissions(id: string | number, options?: { 
     return response.json();
 }
 
-export async function registerChannel(data: any, userId?: number) {
-    const headers = getHeaders() as Record<string, string>;
-    if (userId) {
-        headers['X-Telegram-ID'] = userId.toString();
-    }
+export async function registerChannel(data: any) {
+    const headers = getHeaders();
 
-    const response = await fetch(`${API_URL}/channels`, {
+    const response = await apiFetch(`${API_URL}/channels`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(data)
@@ -245,7 +244,7 @@ export async function registerChannel(data: any, userId?: number) {
 }
 
 export async function updateChannel(id: string, data: any) {
-    const response = await fetch(`${API_URL}/channels/${id}`, {
+    const response = await apiFetch(`${API_URL}/channels/${id}`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify(data)
@@ -259,7 +258,7 @@ export async function updateChannel(id: string, data: any) {
 }
 
 export async function deleteChannel(id: string) {
-    const response = await fetch(`${API_URL}/channels/${id}`, {
+    const response = await apiFetch(`${API_URL}/channels/${id}`, {
         method: 'DELETE',
         headers: getHeaders()
     });
@@ -288,7 +287,7 @@ export async function proposePostTime(
     time: Date,
     actingAs: 'advertiser' | 'channel_owner'
 ): Promise<{ success: boolean; proposedBy: string }> {
-    const response = await fetch(`${API_URL}/deals/${dealId}/propose-time`, {
+    const response = await apiFetch(`${API_URL}/deals/${dealId}/propose-time`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
@@ -304,7 +303,7 @@ export async function proposePostTime(
 }
 
 export async function acceptPostTime(dealId: string): Promise<{ success: boolean; agreedTime: string }> {
-    const response = await fetch(`${API_URL}/deals/${dealId}/accept-time`, {
+    const response = await apiFetch(`${API_URL}/deals/${dealId}/accept-time`, {
         method: 'POST',
         headers: getHeaders()
     });
@@ -316,7 +315,7 @@ export async function acceptPostTime(dealId: string): Promise<{ success: boolean
 }
 
 export async function getSchedulingStatus(dealId: string): Promise<SchedulingStatus> {
-    const response = await fetch(`${API_URL}/deals/${dealId}/scheduling`, {
+    const response = await apiFetch(`${API_URL}/deals/${dealId}/scheduling`, {
         headers: getHeaders()
     });
     if (!response.ok) {
@@ -326,7 +325,7 @@ export async function getSchedulingStatus(dealId: string): Promise<SchedulingSta
 }
 
 export async function initializeDraftWorkflow(dealId: string): Promise<{ success: boolean }> {
-    const response = await fetch(`${API_URL}/deals/${dealId}/initialize-draft`, {
+    const response = await apiFetch(`${API_URL}/deals/${dealId}/initialize-draft`, {
         method: 'POST',
         headers: getHeaders()
     });
@@ -336,4 +335,5 @@ export async function initializeDraftWorkflow(dealId: string): Promise<{ success
     }
     return response.json();
 }
+
 

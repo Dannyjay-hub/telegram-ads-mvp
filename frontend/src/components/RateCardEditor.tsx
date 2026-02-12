@@ -158,7 +158,7 @@ export function RateCardEditor({ value = [], onChange }: RateCardEditorProps) {
             )}
 
             {value.length === 0 && !isAdding && (
-                <div className="text-center py-8 text-muted-foreground border border-dashed border-white/10 rounded-xl">
+                <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
                     No packages defined. Advertisers won't be able to hire you.
                     <br />
                     <Button variant="ghost" onClick={() => setIsAdding(true)}>Create your first package</Button>

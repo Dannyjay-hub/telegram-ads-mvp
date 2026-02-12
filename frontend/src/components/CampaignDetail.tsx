@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Loader2 } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 
 interface Campaign {
     id: string
@@ -69,10 +69,10 @@ export function CampaignDetail() {
         try {
             const [campaignRes, appsRes] = await Promise.all([
                 fetch(`${API_URL}/campaigns/${id}`, {
-                    headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+                    headers: getHeaders()
                 }),
                 fetch(`${API_URL}/campaigns/${id}/applications`, {
-                    headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+                    headers: getHeaders()
                 })
             ])
 
@@ -96,9 +96,9 @@ export function CampaignDetail() {
     const publishCampaign = async () => {
         setActionLoading('publish')
         try {
-            const response = await fetch(`${API_URL}/campaigns/${id}/publish`, {
+            const response = await apiFetch(`${API_URL}/campaigns/${id}/publish`, {
                 method: 'POST',
-                headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+                headers: getHeaders()
             })
 
             if (response.ok) {
@@ -263,12 +263,9 @@ export function CampaignDetail() {
                             onClick={async () => {
                                 setActionLoading('extend')
                                 try {
-                                    const res = await fetch(`${API_URL}/campaigns/${campaign.id}/extend`, {
+                                    const res = await apiFetch(`${API_URL}/campaigns/${campaign.id}/extend`, {
                                         method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'X-Telegram-Id': String(user?.telegramId || '')
-                                        }
+                                        headers: getHeaders()
                                     })
                                     if (res.ok) {
                                         // Refresh campaign data

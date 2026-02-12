@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, Zap, Loader2, Tag, Globe, CheckCircle } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 
 interface MarketplaceCampaign {
     id: string
@@ -61,10 +61,10 @@ export function MarketplaceCampaignDetail() {
         try {
             const [campaignRes, channelsRes] = await Promise.all([
                 fetch(`${API_URL}/campaigns/${id}`, {
-                    headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+                    headers: getHeaders()
                 }),
                 fetch(`${API_URL}/channels/my`, {
-                    headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+                    headers: getHeaders()
                 })
             ])
 
@@ -110,12 +110,9 @@ export function MarketplaceCampaignDetail() {
         if (!selectedChannel || !campaign) return
         setApplying(true)
         try {
-            const response = await fetch(`${API_URL}/campaigns/${campaign.id}/apply`, {
+            const response = await apiFetch(`${API_URL}/campaigns/${campaign.id}/apply`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Telegram-Id': String(user?.telegramId || '')
-                },
+                headers: getHeaders(),
                 body: JSON.stringify({ channelId: selectedChannel })
             })
 
@@ -302,7 +299,7 @@ export function MarketplaceCampaignDetail() {
                 <GlassCard className="p-4">
                     <h3 className="font-semibold mb-3">Select Your Channel</h3>
                     <select
-                        className="w-full p-3 rounded-lg bg-black/20 border border-white/10 text-white"
+                        className="w-full p-3 rounded-lg bg-secondary border border-border text-foreground"
                         value={selectedChannel || ''}
                         onChange={(e) => setSelectedChannel(e.target.value)}
                     >

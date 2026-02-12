@@ -133,7 +133,7 @@ export function TimePickerModal({
                         onChange={(e) => setSelectedTime(e.target.value)}
                         min={toDateTimeLocal(minTime)}
                         max={toDateTimeLocal(maxTime)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                     <p className="text-xs text-muted-foreground mt-2">
                         Your local time • Must be 1 hour - 30 days from now

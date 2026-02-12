@@ -33,7 +33,7 @@ export function Dashboard() {
         <div className="min-h-[80vh] flex flex-col justify-center space-y-8">
             {/* Header - Solid Telegram blue, no gradients */}
             <div className="text-center space-y-2">
-                <h2 className="text-3xl font-bold text-primary">
+                <h2 className="text-3xl font-bold text-foreground">
                     Welcome, {displayName}!
                 </h2>
                 <p className="text-muted-foreground">Select your role to get started</p>

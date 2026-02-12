@@ -4,16 +4,23 @@ import { startBot } from './bot';
 import deals from './routes/deals';
 import dotenv from 'dotenv';
 import { getChatMember, getChannelStats } from './services/telegram';
+import { authMiddleware } from './middleware/authMiddleware';
 
 dotenv.config();
 
-const app = new Hono();
+// Type-safe context variables set by auth middleware
+type AppVariables = {
+    telegramId: number;
+    userId: string;
+};
+
+const app = new Hono<{ Variables: AppVariables }>();
 
 // Enable CORS
 app.use('/*', async (c, next) => {
     c.header('Access-Control-Allow-Origin', '*');
     c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-ID');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (c.req.method === 'OPTIONS') {
         return c.body(null, 204);
     }
@@ -26,6 +33,14 @@ import briefs from './routes/briefs';
 import campaigns from './routes/campaigns';
 import wallets from './routes/wallets';
 import webhooks from './routes/webhooks';
+
+// Apply auth middleware to all protected routes
+// Exclude: /auth/* (login), /webhooks/* (bot/TON callbacks), /health, public GET endpoints
+app.use('/deals/*', authMiddleware);
+app.use('/channels/*', authMiddleware);
+app.use('/briefs/*', authMiddleware);
+app.use('/campaigns/*', authMiddleware);
+app.use('/wallets/*', authMiddleware);
 
 // Routes
 app.route('/deals', deals);

@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Search, Users, Clock, Zap, SlidersHorizontal, ChevronDown, Check } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
-import { API_URL } from '@/lib/api'
+import { API_URL, getHeaders, apiFetch } from '@/lib/api'
 import { SearchInput } from '@/components/ui/search-input'
 import { useCampaignFilters, CAMPAIGN_BUDGET_PRESETS, CAMPAIGN_SORT_OPTIONS } from '@/hooks/useCampaignFilters'
 import { cn } from '@/lib/utils'
@@ -77,8 +77,8 @@ export function CampaignMarketplace() {
 
     const fetchMarketplace = async () => {
         try {
-            const response = await fetch(`${API_URL}/campaigns/marketplace`, {
-                headers: { 'X-Telegram-Id': String(user?.telegramId || '') }
+            const response = await apiFetch(`${API_URL}/campaigns/marketplace`, {
+                headers: getHeaders()
             })
 
             if (response.ok) {
@@ -95,8 +95,8 @@ export function CampaignMarketplace() {
     const fetchUserChannels = async () => {
         if (!user?.telegramId) return
         try {
-            const response = await fetch(`${API_URL}/channels/my`, {
-                headers: { 'X-Telegram-Id': String(user.telegramId) }
+            const response = await apiFetch(`${API_URL}/channels/my`, {
+                headers: getHeaders()
             })
             if (response.ok) {
                 const data = await response.json()

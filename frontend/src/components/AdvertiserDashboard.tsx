@@ -68,9 +68,9 @@ export function AdvertiserDashboard() {
                     <GlassCard
                         key={idx}
                         onClick={action.onClick}
-                        className="p-6 flex flex-col items-center text-center cursor-pointer hover:bg-white/5 hover:scale-[1.02] transition-all duration-300 group"
+                        className="p-6 flex flex-col items-center text-center cursor-pointer hover:bg-secondary hover:scale-[1.02] transition-all duration-300 group"
                     >
-                        <div className="p-3 rounded-full bg-white/5 group-hover:bg-white/10 mb-3 transition-colors">
+                        <div className="p-3 rounded-full bg-secondary group-hover:bg-accent mb-3 transition-colors">
                             {action.icon}
                         </div>
                         <h3 className="font-semibold text-sm sm:text-base mb-1">{action.label}</h3>
