@@ -148,12 +148,17 @@ export function MarketplaceCampaignDetail() {
     const channelSubscribers = selectedChannelData?.verifiedStats?.subscribers ||
         selectedChannelData?.subscriberCount ||
         selectedChannelData?.subscribers || 0
-    const channelCategory = Array.isArray(selectedChannelData?.category)
-        ? selectedChannelData.category.join(', ')
-        : (selectedChannelData?.category || '')
-    const channelLanguage = Array.isArray(selectedChannelData?.language)
-        ? selectedChannelData.language.join(', ')
-        : (selectedChannelData?.language || '')
+    // Keep channel categories and languages as arrays for proper matching
+    const channelCategories: string[] = Array.isArray(selectedChannelData?.category)
+        ? selectedChannelData.category
+        : (selectedChannelData?.category ? [selectedChannelData.category] : [])
+    const channelLanguages: string[] = Array.isArray(selectedChannelData?.language)
+        ? selectedChannelData.language
+        : (selectedChannelData?.language ? [selectedChannelData.language] : [])
+
+    // Display strings (for UI only)
+    const channelCategoryDisplay = channelCategories.join(', ')
+    const channelLanguageDisplay = channelLanguages.join(', ')
 
     // Normalize language for comparison (handles 'en' vs 'English' etc)
     const normalizeLanguage = (lang: unknown): string => {
@@ -179,13 +184,19 @@ export function MarketplaceCampaignDetail() {
 
     const meetsMinSubscribers = !campaign.minSubscribers || channelSubscribers >= campaign.minSubscribers
     const meetsMaxSubscribers = !campaign.maxSubscribers || channelSubscribers <= campaign.maxSubscribers
+    // Category: at least one campaign category matches one channel category
     const meetsCategory = !campaign.requiredCategories?.length ||
-        campaign.requiredCategories.some(cat =>
-            String(cat || '').toLowerCase() === String(channelCategory || '').toLowerCase()
+        campaign.requiredCategories.some(reqCat =>
+            channelCategories.some(chCat =>
+                String(reqCat || '').toLowerCase() === String(chCat || '').toLowerCase()
+            )
         )
+    // Language: at least one campaign language matches one channel language
     const meetsLanguage = !campaign.requiredLanguages?.length ||
-        campaign.requiredLanguages.some(lang =>
-            normalizeLanguage(lang) === normalizeLanguage(channelLanguage)
+        campaign.requiredLanguages.some(reqLang =>
+            channelLanguages.some(chLang =>
+                normalizeLanguage(reqLang) === normalizeLanguage(chLang)
+            )
         )
 
     const slotsLeft = campaign.slots - campaign.slotsFilled
@@ -193,14 +204,7 @@ export function MarketplaceCampaignDetail() {
 
     const timeLeft = getTimeLeft(campaign.expiresAt)
 
-    // Debug for language
-    if (!meetsLanguage && campaign.requiredLanguages?.length) {
-        console.log('[Detail Eligibility Debug]', {
-            requiredLanguages: campaign.requiredLanguages,
-            channelLanguage,
-            selectedChannelData
-        })
-    }
+
 
     return (
         <div className="p-4 pb-24 space-y-4">
@@ -276,8 +280,8 @@ export function MarketplaceCampaignDetail() {
                             <div className={`flex items-center gap-2 text-sm ${meetsCategory ? 'text-green-400' : 'text-red-400'}`}>
                                 <Tag className="w-4 h-4" />
                                 <span>Category: {campaign.requiredCategories.join(', ')}</span>
-                                {selectedChannelData && channelCategory && (
-                                    <span className="text-muted-foreground">(yours: {channelCategory})</span>
+                                {selectedChannelData && channelCategoryDisplay && (
+                                    <span className="text-muted-foreground">(yours: {channelCategoryDisplay})</span>
                                 )}
                                 {meetsCategory && <CheckCircle className="w-4 h-4 ml-auto" />}
                             </div>
@@ -286,8 +290,8 @@ export function MarketplaceCampaignDetail() {
                             <div className={`flex items-center gap-2 text-sm ${meetsLanguage ? 'text-green-400' : 'text-red-400'}`}>
                                 <Globe className="w-4 h-4" />
                                 <span>Language: {campaign.requiredLanguages.join(' or ')}</span>
-                                {selectedChannelData && channelLanguage && (
-                                    <span className="text-muted-foreground">(yours: {channelLanguage})</span>
+                                {selectedChannelData && channelLanguageDisplay && (
+                                    <span className="text-muted-foreground">(yours: {channelLanguageDisplay})</span>
                                 )}
                                 {meetsLanguage && <CheckCircle className="w-4 h-4 ml-auto" />}
                             </div>
@@ -313,7 +317,7 @@ export function MarketplaceCampaignDetail() {
                     </select>
                     {selectedChannelData && (
                         <div className="mt-2 text-xs text-muted-foreground">
-                            Category: {channelCategory || 'Not set'} • Language: {channelLanguage || 'Not set'}
+                            Category: {channelCategoryDisplay || 'Not set'} • Language: {channelLanguageDisplay || 'Not set'}
                         </div>
                     )}
                 </GlassCard>
