@@ -390,25 +390,11 @@ export class CampaignService {
     private async applyToClosedCampaign(campaign: Campaign, channel: Channel): Promise<ApplyResult> {
         console.log(`[CampaignService] Closed campaign apply: ${channel.id} → ${campaign.id}`);
 
-        // Create pending application (no slot allocation yet - only on approval)
+        // Create pending application (no slot allocation, no deal yet)
+        // Deal only gets created when advertiser approves via approveApplication()
         const application = await this.campaignRepo.createApplication(campaign.id, channel.id);
 
-        // Create deal with 'pending' status - awaiting advertiser approval
-        // Unlike open campaigns, closed campaigns require advertiser to approve FIRST
-        const deal = await dealRepository.create({
-            advertiserId: campaign.advertiserId,
-            channelId: channel.id,
-            priceAmount: campaign.perChannelBudget,
-            priceCurrency: campaign.currency,
-            briefText: campaign.brief,
-            status: 'draft', // Awaiting advertiser approval
-            campaignId: campaign.id
-        });
-
-        // Application already created with status 'pending', no need to update
-        // The deal is linked via campaignId
-
-        console.log(`[CampaignService] Closed campaign application created: ${application.id}, deal: ${deal.id}`);
+        console.log(`[CampaignService] Closed campaign application created: ${application.id}`);
 
         // Notify advertiser of new application
         try {
@@ -440,8 +426,7 @@ export class CampaignService {
 
         return {
             success: true,
-            application,
-            dealId: deal.id
+            application
         };
     }
 
