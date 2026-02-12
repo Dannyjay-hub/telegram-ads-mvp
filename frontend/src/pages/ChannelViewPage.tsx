@@ -125,7 +125,7 @@ export function ChannelViewPage() {
             }
         }, 3000) // Poll every 3 seconds
 
-        // Safety timeout - after 2 minutes, navigate anyway (polling will continue in background)
+        // Safety timeout - after 60s, navigate anyway (polling will continue in background)
         const timeout = setTimeout(() => {
             if (cancelled) return
             clearInterval(pollInterval)
@@ -135,7 +135,7 @@ export function ChannelViewPage() {
                 setShowCheckout(false)
                 navigate('/partnerships')
             }, 1000)
-        }, 120000) // 2 minutes max wait
+        }, 60000) // 60 seconds max wait
 
         return () => {
             cancelled = true
