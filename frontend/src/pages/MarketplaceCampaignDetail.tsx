@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, Zap, Loader2, Tag, Globe, CheckCircle } from 'lucide-react'
-import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL, getHeaders, apiFetch } from '@/api'
 
 interface MarketplaceCampaign {
@@ -44,7 +43,6 @@ interface UserChannel {
 export function MarketplaceCampaignDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { } = useTelegram()
     const [campaign, setCampaign] = useState<MarketplaceCampaign | null>(null)
     const [userChannels, setUserChannels] = useState<UserChannel[]>([])
     const [selectedChannel, setSelectedChannel] = useState<string | null>(null)
