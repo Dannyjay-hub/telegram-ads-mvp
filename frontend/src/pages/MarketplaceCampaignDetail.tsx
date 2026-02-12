@@ -331,7 +331,7 @@ export function MarketplaceCampaignDetail() {
                                         'No slots available'}
                     </Button>
                 ) : userChannels.length === 0 ? (
-                    <Button className="w-full h-12" onClick={() => navigate('/channels/new')}>
+                    <Button className="w-full h-12" onClick={() => navigate('/channels/add')}>
                         List a Channel First
                     </Button>
                 ) : (

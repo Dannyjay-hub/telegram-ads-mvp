@@ -17,7 +17,7 @@ export function ChannelOwnerCard() {
         {
             label: "List Channel",
             icon: <Megaphone className="w-5 h-5 text-yellow-400" />,
-            onClick: () => navigate('/channels/new'),
+            onClick: () => navigate('/channels/add'),
             desc: "Monetize your Telegram channel"
         },
         {

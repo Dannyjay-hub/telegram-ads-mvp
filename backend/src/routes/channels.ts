@@ -14,6 +14,29 @@ const app = createRouter();
 const channelRepo = new SupabaseChannelRepository();
 const channelService = new ChannelService(channelRepo);
 
+// GET /channels/bot-events - Recent bot channel events for current user (polling endpoint)
+app.get('/bot-events', async (c) => {
+    try {
+        const telegramId = c.get('telegramId');
+        const { data, error } = await (supabase as any)
+            .from('bot_channel_events')
+            .select('*')
+            .eq('added_by_user_id', telegramId)
+            .eq('bot_status', 'administrator')
+            .eq('chat_type', 'channel')
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (error) {
+            console.error('Failed to fetch bot events:', error);
+            return c.json({ events: [] });
+        }
+        return c.json({ events: data || [] });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
+    }
+});
+
 // GET /channels - List all channels
 app.get('/', async (c) => {
     try {

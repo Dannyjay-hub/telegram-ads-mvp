@@ -13,6 +13,7 @@ function getParentRoute(pathname: string): string | null {
         '/advertiser': '/',
         '/channel-owner': '/',
         '/channels/my': '/channel-owner',
+        '/channels/add': '/channels/my',
         '/channels/new': '/channels/my',
         '/channels/dashboard': '/channel-owner',
         '/channels/partnerships': '/channel-owner',

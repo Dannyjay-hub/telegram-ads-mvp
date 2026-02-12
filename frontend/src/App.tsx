@@ -16,6 +16,7 @@ import { PartnershipsList } from '@/pages/PartnershipsList'
 import { ChannelOwnerPartnerships } from '@/pages/ChannelOwnerPartnerships'
 import { MarketplaceContainer } from '@/pages/MarketplaceContainer'
 import { ChannelWizard } from '@/pages/ChannelWizard'
+import { AddChannelPage } from '@/pages/AddChannelPage'
 import { ChannelViewPage } from '@/pages/ChannelViewPage'
 import { WalletButton } from '@/components/WalletButton'
 import { EscrowPaymentPage } from '@/pages/EscrowPaymentPage'
@@ -182,6 +183,7 @@ function AppContent() {
           <Route path="/campaigns/marketplace/:id" element={<MarketplaceCampaignDetail />} />
           <Route path="/campaigns/escrow" element={<EscrowPaymentPage />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />
+          <Route path="/channels/add" element={<AddChannelPage />} />
           <Route path="/channels/new" element={<ChannelWizard />} />
           <Route path="/channels/edit/:id" element={<ChannelWizard />} />
           <Route path="/channels/:id/view" element={<ChannelViewPage />} />

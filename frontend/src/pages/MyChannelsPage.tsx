@@ -37,7 +37,7 @@ export function MyChannelsPage() {
             <div className="flex-shrink-0 pb-4">
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold">My Channels</h1>
-                    <Button onClick={() => navigate('/channels/new')} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
+                    <Button onClick={() => navigate('/channels/add')} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
                         <Plus className="w-4 h-4 mr-2" /> Add New
                     </Button>
                 </div>
@@ -50,7 +50,7 @@ export function MyChannelsPage() {
                 ) : channels.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
                         <p className="mb-4">You haven't listed any channels yet.</p>
-                        <Button onClick={() => navigate('/channels/new')}>List Your First Channel</Button>
+                        <Button onClick={() => navigate('/channels/add')}>List Your First Channel</Button>
                     </div>
                 ) : (
                     <div className="space-y-4">

@@ -25,6 +25,29 @@ const convoService = new BotConversationService(userRepo);
 if (bot) {
     registerPostEscrowHandlers(bot);
 
+    // Handle bot being added/removed from channels
+    // This fires when a user adds our bot as admin to their channel
+    bot.on('my_chat_member', async (ctx) => {
+        const update = ctx.myChatMember;
+        // Only track channel events (not groups/supergroups)
+        if (update.chat.type !== 'channel') return;
+
+        try {
+            const { supabase } = await import('./db');
+            await (supabase as any).from('bot_channel_events').insert({
+                chat_id: update.chat.id,
+                chat_title: update.chat.title || null,
+                chat_username: (update.chat as any).username || null,
+                chat_type: update.chat.type,
+                added_by_user_id: update.from.id,
+                bot_status: update.new_chat_member.status,
+            });
+            console.log(`[bot] my_chat_member: ${update.new_chat_member.status} in channel ${update.chat.title} (${update.chat.id}) by user ${update.from.id}`);
+        } catch (e) {
+            console.error('[bot] Failed to store my_chat_member event:', e);
+        }
+    });
+
     // 1. Start - Identify User
     bot.command('start', async (ctx) => {
         const telegramId = ctx.from?.id;

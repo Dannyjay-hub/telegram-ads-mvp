@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/card'
@@ -16,23 +16,27 @@ import { MultiSelectDropdown } from '@/components/ui/multi-select-dropdown'
 export function ChannelWizard() {
     const navigate = useNavigate()
     const { id } = useParams()
+    const location = useLocation()
     const { user } = useTelegram()
     const { isConnected: walletConnected, walletAddress, connectWallet, disconnectWallet, formatAddress, isLoading: walletLoading } = useTonWallet()
 
+    // Route state from AddChannelPage (auto-detected channel)
+    const addChannelState = (location.state as any) || {}
+
     // Note: Back navigation is now handled by Telegram native BackButton
 
-    const [step, setStep] = useState(0)
+    const [step, setStep] = useState(addChannelState.fromAddChannel ? 1 : 0)
     const [loading, setLoading] = useState(false)
     const [savingAction, setSavingAction] = useState<'draft' | 'active' | 'delete' | null>(null) // Track which action is in progress
     const [initialLoading, setInitialLoading] = useState(!!id)
-    const [channelId, setChannelId] = useState('')
+    const [channelId, setChannelId] = useState(addChannelState.channelId || '')
     // Removed isDraft
 
     // Strict Verification State
-    const [verifState, setVerifState] = useState<'IDLE' | 'A_BOT_NOT_ADDED' | 'B_MISSING_PERMISSIONS' | 'NOT_OWNER' | 'D_READY'>('IDLE')
+    const [verifState, setVerifState] = useState<'IDLE' | 'A_BOT_NOT_ADDED' | 'B_MISSING_PERMISSIONS' | 'NOT_OWNER' | 'D_READY'>(addChannelState.fromAddChannel ? 'D_READY' : 'IDLE')
     const [missingPerms, setMissingPerms] = useState<string[]>([])
 
-    const [verifiedStats, setVerifiedStats] = useState<any>(null)
+    const [verifiedStats, setVerifiedStats] = useState<any>(addChannelState.verifiedStats || null)
     const [rateCard, setRateCard] = useState<any[]>([]) // Legacy support
     const [newPackage, setNewPackage] = useState({ title: '', price: '', type: 'Post', description: '', currency: 'TON' as 'TON' | 'USDT' })
     const [showPackageForm, setShowPackageForm] = useState(false)

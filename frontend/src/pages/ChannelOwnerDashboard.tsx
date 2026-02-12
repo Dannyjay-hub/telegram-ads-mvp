@@ -26,7 +26,7 @@ export function ChannelOwnerDashboard() {
         {
             label: "List Channel",
             icon: <Megaphone className="w-8 h-8 text-yellow-400 mb-2" />,
-            onClick: () => { haptic.light(); navigate('/channels/new'); },
+            onClick: () => { haptic.light(); navigate('/channels/add'); },
             desc: "Monetize your Telegram channel"
         },
         {
