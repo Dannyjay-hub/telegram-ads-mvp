@@ -507,6 +507,43 @@ export class CampaignService {
 
         console.log(`[CampaignService] Application ${applicationId} approved, deal ${deal.id} created`);
 
+        // Notify channel owner that their application was approved
+        try {
+            const { bot } = await import('../botInstance');
+            const { supabase } = await import('../db');
+
+            // Get channel owner's telegram ID
+            const { data: ownerData } = await supabase
+                .from('channel_admins')
+                .select('users(telegram_id, first_name)')
+                .eq('channel_id', channel.id)
+                .eq('is_owner', true)
+                .single();
+
+            const ownerTelegramId = (ownerData?.users as any)?.telegram_id;
+            if (ownerTelegramId && bot) {
+                await bot.api.sendMessage(
+                    ownerTelegramId,
+                    `✅ **Application Approved!**\n\n` +
+                    `Your channel **${channel.title}** has been accepted for:\n` +
+                    `"${campaign.title}"\n\n` +
+                    `💰 ${campaign.perChannelBudget} ${campaign.currency} per channel\n\n` +
+                    `**Next step:** Open the app and create your draft post.`,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }]
+                            ]
+                        }
+                    }
+                );
+                console.log(`[CampaignService] ✅ Notified channel owner ${ownerTelegramId} of approval`);
+            }
+        } catch (notifyError) {
+            console.error('[CampaignService] Failed to notify channel owner of approval:', notifyError);
+        }
+
         return {
             success: true,
             dealId: deal.id
