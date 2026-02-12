@@ -27,7 +27,6 @@ type PageState = 'idle' | 'checking' | 'verifying' | 'success'
 export function AddChannelPage() {
     const navigate = useNavigate()
     const [state, setState] = useState<PageState>('idle')
-    const [detectedChannel, setDetectedChannel] = useState<BotEvent | null>(null)
     const [verifiedStats, setVerifiedStats] = useState<any>(null)
     const [resolvedChannelId, setResolvedChannelId] = useState<string>('')
 
@@ -115,7 +114,6 @@ export function AddChannelPage() {
                 if (newEvents.length > 0) {
                     // Take the first new channel (most recent)
                     const channel = newEvents[0]
-                    setDetectedChannel(channel)
                     haptic.success()
 
                     // Auto-verify permissions
@@ -288,9 +286,6 @@ export function AddChannelPage() {
                         </h1>
                         <p className="add-channel-subtitle">
                             This may take a moment — add the bot as an admin to your channel, then come back here.
-                        </p>
-                        <p className="add-channel-poll-status">
-                            Checking... ({pollCountRef.current}/{MAX_POLLS})
                         </p>
                     </div>
                 )}

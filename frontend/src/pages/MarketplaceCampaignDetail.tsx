@@ -148,8 +148,12 @@ export function MarketplaceCampaignDetail() {
     const channelSubscribers = selectedChannelData?.verifiedStats?.subscribers ||
         selectedChannelData?.subscriberCount ||
         selectedChannelData?.subscribers || 0
-    const channelCategory = selectedChannelData?.category || ''
-    const channelLanguage = selectedChannelData?.language || ''
+    const channelCategory = Array.isArray(selectedChannelData?.category)
+        ? selectedChannelData.category.join(', ')
+        : (selectedChannelData?.category || '')
+    const channelLanguage = Array.isArray(selectedChannelData?.language)
+        ? selectedChannelData.language.join(', ')
+        : (selectedChannelData?.language || '')
 
     // Normalize language for comparison (handles 'en' vs 'English' etc)
     const normalizeLanguage = (lang: unknown): string => {
