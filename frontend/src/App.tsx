@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import WebApp from '@twa-dev/sdk'
 import { TonConnectUIProvider } from '@tonconnect/ui-react'
 import { TelegramProvider, useTelegram } from '@/providers/TelegramProvider'
@@ -204,11 +204,11 @@ function AppContent() {
 export default function App() {
   return (
     <TonConnectUIProvider manifestUrl={MANIFEST_URL} restoreConnection={false}>
-      <HashRouter>
+      <BrowserRouter>
         <TelegramProvider>
           <AppContent />
         </TelegramProvider>
-      </HashRouter>
+      </BrowserRouter>
     </TonConnectUIProvider>
   )
 }
