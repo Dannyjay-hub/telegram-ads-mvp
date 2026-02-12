@@ -233,6 +233,10 @@ export class TonPaymentService {
             // Silently ignore deals that are already processed
             if (error.message.includes('not in') && error.message.includes('status')) {
                 this.markAsProcessed(eventId); // Stop re-logging
+            } else if (error.message.includes('No deal found')) {
+                // Deal doesn't exist (deleted/orphaned) - mark processed to stop infinite retries
+                this.markAsProcessed(eventId);
+                console.warn(`TonPaymentService: Deal not found for ${comment} - skipping permanently`);
             } else {
                 console.error(`❌ TonPaymentService: Error confirming ${comment}:`, error.message);
             }

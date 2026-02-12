@@ -715,22 +715,17 @@ campaigns.post('/:id/end', async (c) => {
         // Queue refund if there's money to return
         if (refundAmount > 0 && campaign.escrowWalletAddress) {
             try {
-                const { error: refundError } = await supabase
-                    .from('pending_payouts' as any)
-                    .insert({
-                        recipient_address: campaign.escrowWalletAddress,
-                        amount_ton: refundAmount,
-                        currency: campaign.currency || 'TON',
-                        type: 'refund',
-                        status: 'pending',
-                        reason: `Campaign ended: refund for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}`,
-                        memo: `campaign_refund_${campaignId.substring(0, 8)}`
-                    });
-
-                if (refundError) {
-                    console.error('[Campaigns] Failed to queue refund:', refundError);
-                    // Don't block the campaign end — log and continue
-                }
+                const { TonPayoutService } = await import('../services/TonPayoutService');
+                const tonPayoutService = new TonPayoutService();
+                const currency = (campaign.currency || 'TON') as 'TON' | 'USDT';
+                await tonPayoutService.queueRefund(
+                    campaignId, // use campaignId as the deal reference
+                    campaign.escrowWalletAddress,
+                    refundAmount,
+                    currency,
+                    `Campaign ended: refund for ${slotsLeft} unfilled slot${slotsLeft > 1 ? 's' : ''}`
+                );
+                console.log(`[Campaigns] Refund queued and auto-executing for ${refundAmount} ${currency}`);
             } catch (e: any) {
                 console.error('[Campaigns] Refund queue error:', e.message);
             }
