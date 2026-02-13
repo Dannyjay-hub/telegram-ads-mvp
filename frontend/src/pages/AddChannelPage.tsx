@@ -171,6 +171,13 @@ export function AddChannelPage() {
                 return
             }
 
+            if (permRes.state === 'PRIVATE_CHANNEL') {
+                setState('idle')
+                showToast('Private channels cannot be listed. Only public channels with a username are allowed.')
+                haptic.error()
+                return
+            }
+
             if (permRes.status === 'error' || permRes.error) {
                 setState('idle')
                 showToast(permRes.message || permRes.error || 'Verification failed. Please try again.')
@@ -203,7 +210,7 @@ export function AddChannelPage() {
         haptic.light()
         // Open Telegram with deep link to add bot as channel admin
         const botUrl = getBotUrl()
-        openTelegramLink(`${botUrl}?startchannel&admin=post_messages+edit_messages+post_stories`)
+        openTelegramLink(`${botUrl}?startchannel`)
 
         // Start polling after a short delay (give user time to switch to Telegram)
         setState('checking')

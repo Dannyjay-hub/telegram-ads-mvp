@@ -63,7 +63,7 @@ export async function notifyPRManagerAdded(
     }
 
     try {
-        const message = `🎉 You've been added as a **PR Manager** for **${channelTitle}**!
+        const message = `🎉 You've been added as a **PR Manager** for ${channelTitle}!
 
 You can now:
 • View and manage partnership requests
@@ -107,7 +107,7 @@ export async function notifyChannelPublished(
     }
 
     try {
-        const message = `🚀 **${channelTitle}** is now live on the marketplace!
+        const message = `🚀 ${channelTitle} is now live on the marketplace!
 
 Advertisers can now discover your channel and send partnership requests.
 
@@ -188,7 +188,7 @@ export async function notifyNewDealRequest(
     try {
         const message = `💰 **New Partnership Request!**
 
-Channel: **${channelTitle}**
+Channel: ${channelTitle}
 Amount: **$${totalAmount.toLocaleString()}**
 ${itemsSummary}
 
@@ -231,7 +231,7 @@ export async function notifyPaymentConfirmed(
     try {
         const message = `✅ **Payment Confirmed!**
 
-Your payment of **$${amount.toLocaleString()}** for **${channelTitle}** has been received.
+Your payment of **$${amount.toLocaleString()}** for ${channelTitle} has been received.
 
 The channel owner will review your request shortly. You'll be notified when they respond.`;
 
@@ -279,22 +279,22 @@ export async function notifyDealStatusChange(
         approved: {
             emoji: '✅',
             title: 'Draft Approved - Action Required',
-            body: `The advertiser approved your draft for **${channelTitle}**!\n\nPlease go to the app to **schedule the post**.`
+            body: `The advertiser approved your draft for ${channelTitle}!\n\nPlease go to the app to **schedule the post**.`
         },
         rejected: {
             emoji: '❌',
             title: 'Deal Declined',
-            body: `Unfortunately, **${channelTitle}** has declined your request.${reason ? `\n\nReason: ${reason}` : ''}\n\nYour payment will be refunded shortly.`
+            body: `Unfortunately, ${channelTitle} has declined your request.${reason ? `\n\nReason: ${reason}` : ''}\n\nYour payment will be refunded shortly.`
         },
         completed: {
             emoji: '✨',
             title: 'Deal Completed!',
-            body: `Your campaign with **${channelTitle}** has been successfully completed. Thank you for using our platform!`
+            body: `Your campaign with ${channelTitle} has been successfully completed. Thank you for using our platform!`
         },
         refunded: {
             emoji: '💸',
             title: 'Refund Processed',
-            body: `Your payment for **${channelTitle}** has been refunded to your wallet.`
+            body: `Your payment for ${channelTitle} has been refunded to your wallet.`
         }
     };
 

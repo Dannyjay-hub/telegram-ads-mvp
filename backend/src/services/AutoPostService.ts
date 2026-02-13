@@ -262,7 +262,7 @@ export class AutoPostService {
             : `Post #${messageId}`;
 
         const message = `🎉 **Your ad is now live!**\n\n` +
-            `Channel: **${deal.channel.title}**\n` +
+            `Channel: ${deal.channel.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel.title}**`}\n` +
             `The post will be monitored for 24 hours.\n\n` +
             `${deal.channel.username ? `[View Post](${channelLink})` : ''}`;
 
@@ -289,7 +289,7 @@ export class AutoPostService {
             try {
                 await bot.api.sendMessage(
                     channelAdmin.user.telegram_id,
-                    `✅ **Post published!**\n\nYour content is now live in **${deal.channel.title}**.\n\nThe 24-hour monitoring period has started.`,
+                    `✅ **Post published!**\n\nYour content is now live in ${deal.channel.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel.title}**`}.\n\nThe 24-hour monitoring period has started.`,
                     { parse_mode: 'Markdown' }
                 );
             } catch (e) {

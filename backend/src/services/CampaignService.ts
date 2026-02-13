@@ -340,7 +340,7 @@ export class CampaignService {
                 await bot.api.sendMessage(
                     advertiser.telegramId,
                     `✅ **New Channel Joined!**\n\n` +
-                    `**${channel.title}** has joined your campaign.\n` +
+                    `${channel.username ? `[${channel.title}](https://t.me/${channel.username})` : `**${channel.title}**`} has joined your campaign.\n` +
                     `They will now draft a post based on your brief.\n\n` +
                     `You'll be notified when the draft is ready for review.`,
                     {
@@ -525,7 +525,7 @@ export class CampaignService {
                 await bot.api.sendMessage(
                     ownerTelegramId,
                     `✅ **Application Approved!**\n\n` +
-                    `Your channel **${channel.title}** has been accepted for:\n` +
+                    `Your channel ${channel.username ? `[${channel.title}](https://t.me/${channel.username})` : `**${channel.title}**`} has been accepted for:\n` +
                     `"${campaign.title}"\n\n` +
                     `💰 ${campaign.perChannelBudget} ${campaign.currency} per channel\n\n` +
                     `**Next step:** Open the app and create your draft post.`,

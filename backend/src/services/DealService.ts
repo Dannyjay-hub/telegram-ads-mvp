@@ -108,10 +108,13 @@ export class DealService {
             // Fetch channel title
             const { data: channel } = await supabase
                 .from('channels')
-                .select('title')
+                .select('title, username')
                 .eq('id', deal.channelId)
                 .single();
 
+            const channelTitle = channel?.username
+                ? `[${channel.title}](https://t.me/${channel.username})`
+                : `**${channel?.title || 'Your channel'}**`;
             // Fetch ALL channel admins (owner + PR managers)
             const { data: admins } = await supabase
                 .from('channel_admins')
@@ -125,7 +128,6 @@ export class DealService {
                 .eq('id', deal.advertiserId)
                 .single();
 
-            const channelTitle = channel?.title || 'Your channel';
 
             // Notify ALL channel admins about new deal request
             if (admins?.length) {
@@ -249,10 +251,12 @@ export class DealService {
 
             const { data: channel } = await (supabase as any)
                 .from('channels')
-                .select('title')
+                .select('title, username')
                 .eq('id', deal.channelId)
                 .single();
-            channelTitle = channel?.title || 'Channel';
+            channelTitle = channel?.username
+                ? `[${channel.title}](https://t.me/${channel.username})`
+                : `**${channel?.title || 'Channel'}**`;
         } catch (e) {
             console.warn('DealService: Could not fetch user/channel for notification:', e);
         }

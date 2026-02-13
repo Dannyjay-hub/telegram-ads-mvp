@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, MessageCircle, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye } from 'lucide-react'
+import { Handshake, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye, HelpCircle } from 'lucide-react'
 import { API_URL, getHeaders, apiFetch, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/api'
 import { haptic } from '@/utils/haptic'
-import { openTelegramLink, getBotUrl, getBotDeepLinkUrl } from '@/lib/telegram'
-import { displayTime, formatCountdown, formatRelativeTime } from '@/utils/time'
+import { openTelegramLink, getBotUrl, getBotDeepLinkUrl, showAlert } from '@/lib/telegram'
+import { displayTime, formatCountdown } from '@/utils/time'
 import { TimePickerModal } from '@/components/TimePickerModal'
 
 // Deal with advertiser data
@@ -76,7 +76,7 @@ export function ChannelOwnerPartnerships() {
     const [activeTab, setActiveTab] = useState<TabType>('pending')
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [processingAction, setProcessingAction] = useState<'accept' | 'reject' | null>(null)
-    const [lastFetchedAt, setLastFetchedAt] = useState<Date>(new Date())
+
     const [timePickerDealId, setTimePickerDealId] = useState<string | null>(null)
     const [schedulingProposal, setSchedulingProposal] = useState<{
         proposedTime: string;
@@ -91,7 +91,6 @@ export function ChannelOwnerPartnerships() {
             if (response.ok) {
                 const data = await response.json()
                 setDeals(data)
-                setLastFetchedAt(new Date())
             }
         } catch (error) {
             console.error('Failed to load deals:', error)
@@ -169,10 +168,7 @@ export function ChannelOwnerPartnerships() {
         }
     }
 
-    const openBot = () => {
-        haptic.light()
-        openTelegramLink(getBotUrl())
-    }
+
 
     // Deep link to bot for specific actions
     const openBotDeepLink = (path: string) => {
@@ -305,7 +301,10 @@ export function ChannelOwnerPartnerships() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <StatusBadge status={deal.status} />
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-muted-foreground font-mono">#{deal.id.substring(0, 8)}</span>
+                                            <StatusBadge status={deal.status} />
+                                        </div>
                                     </div>
 
                                     {/* Brief */}
@@ -501,17 +500,17 @@ export function ChannelOwnerPartnerships() {
                                         </div>
                                     )}
 
-                                    {/* Last updated indicator */}
-                                    <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
-                                        <span>Updated {formatRelativeTime(lastFetchedAt)}</span>
+                                    {/* Footer: Date + Support */}
+                                    <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
+                                        <span>{new Date(deal.createdAt).toLocaleDateString()}</span>
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            onClick={openBot}
+                                            onClick={() => { haptic.light(); showAlert('Support is coming soon') }}
                                             className="text-blue-400 h-6 px-2"
                                         >
-                                            <MessageCircle className="w-3 h-3 mr-1" />
-                                            Chat
+                                            <HelpCircle className="w-3 h-3 mr-1" />
+                                            Support
                                         </Button>
                                     </div>
                                 </div>

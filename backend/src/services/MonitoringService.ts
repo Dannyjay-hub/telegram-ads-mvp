@@ -232,7 +232,7 @@ export class MonitoringService {
             .from('deals')
             .select(`
                 id, posted_message_id, posted_at, monitoring_end_at, monitoring_checks,
-                channel:channels(telegram_channel_id, title),
+                channel:channels(telegram_channel_id, title, username),
                 advertiser:users!deals_advertiser_id_fkey(telegram_id)
             `)
             .eq('id', dealId)
@@ -306,7 +306,7 @@ export class MonitoringService {
                 await bot.api.sendMessage(
                     deal.advertiser.telegram_id,
                     `⚠️ **Post Removed Early**\n\n` +
-                    `The post in **${deal.channel?.title}** was deleted before the 24-hour period ended.\n\n` +
+                    `The post in ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title}**`} was deleted before the 24-hour period ended.\n\n` +
                     `Your funds will be refunded.`,
                     { parse_mode: 'Markdown' }
                 );
@@ -420,9 +420,10 @@ export class MonitoringService {
         // Notify both parties
         if (bot) {
             const hasWallet = !!ownerWalletAddress;
+            const channelLink = deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title}**`;
             const ownerMessage = hasWallet
-                ? `💰 **Payment Released!**\n\nYour payment for deal with **${deal.channel?.title}** has been released. The funds are now in your wallet.`
-                : `💰 **Deal Completed!**\n\nYour deal with **${deal.channel?.title}** monitoring is complete! Connect your wallet in the app to receive your payout of ${fullDeal.price_amount} ${fullDeal.price_currency}.`;
+                ? `💰 **Payment Released!**\n\nYour payment for deal with ${channelLink} has been released. The funds are now in your wallet.`
+                : `💰 **Deal Completed!**\n\nYour deal with ${channelLink} monitoring is complete! Connect your wallet in the app to receive your payout of ${fullDeal.price_amount} ${fullDeal.price_currency}.`;
             const advertiserMessage = `✅ **Deal Completed!**\n\nThe 24-hour monitoring period has ended. Your post stayed live and funds have been released to the channel owner.\n\nHow was your experience? Rate this channel:`;
 
             // Notify advertiser with rating buttons

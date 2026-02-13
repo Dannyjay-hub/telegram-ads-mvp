@@ -190,7 +190,7 @@ export class DraftService {
             // Get channel info
             const { data: channel } = await supabase
                 .from('channels')
-                .select('title')
+                .select('title, username')
                 .eq('id', deal.channel_id)
                 .single();
 
@@ -212,7 +212,7 @@ export class DraftService {
                 await bot.api.sendMessage(
                     advertiser.telegram_id,
                     `📝 **Draft Ready for Review**\n\n` +
-                    `**${channel?.title || 'Channel'}** has submitted a draft:\n\n` +
+                    `${channel?.username ? `[${channel.title}](https://t.me/${channel.username})` : `**${channel?.title || 'Channel'}**`} has submitted a draft:\n\n` +
                     `"${deal.draft_text?.substring(0, 200) || 'No text'}${deal.draft_text && deal.draft_text.length > 200 ? '...' : ''}"\n\n` +
                     `Open the app to approve or request changes.`,
                     {
@@ -236,7 +236,7 @@ export class DraftService {
                     await bot.api.sendMessage(
                         telegramId,
                         `✅ **Draft Submitted**\n\n` +
-                        `Your draft for **${channel?.title || 'the channel'}** has been sent to the advertiser for review.\n\n` +
+                        `Your draft for ${channel?.username ? `[${channel.title}](https://t.me/${channel.username})` : `**${channel?.title || 'the channel'}**`} has been sent to the advertiser for review.\n\n` +
                         `You'll be notified when they respond.`,
                         {
                             parse_mode: 'Markdown',

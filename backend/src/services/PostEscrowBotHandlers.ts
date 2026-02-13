@@ -197,7 +197,7 @@ async function handleEnterDraftMode(
 
     // Show briefing
     let message = `📝 **Create Draft Post**\n\n`;
-    message += `📢 Channel: **${deal.channel?.title || 'Unknown'}**\n`;
+    message += `📢 Channel: ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title || 'Unknown'}**`}\n`;
     message += `💰 Amount: **$${deal.price_amount}**\n\n`;
 
     if (deal.brief_text) {
@@ -252,7 +252,7 @@ async function handleEnterChatMode(
 
     await ctx.reply(
         `💬 **Chat Mode**\n\n` +
-        `You are now chatting about deal with **${deal.channel?.title}**.\n\n` +
+        `You are now chatting about deal with ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title}**`}.\n\n` +
         `Messages you send will be forwarded to ${otherParty}.\n\n` +
         `Type /stop to exit chat mode.`,
         { parse_mode: 'Markdown' }
@@ -399,7 +399,7 @@ async function handleSubmitDraft(
                 await bot.api.sendMessage(
                     deal.advertiser.telegram_id,
                     `📝 **New Draft Submitted!**\n\n` +
-                    `Channel **${deal.channel?.title}** has submitted a draft for your review.`,
+                    `${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title}**`} has submitted a draft for your review.`,
                     {
                         parse_mode: 'Markdown',
                         reply_markup: {
@@ -490,7 +490,7 @@ async function handleApproveDraft(
                     await bot.api.sendMessage(
                         ownerTelegramId,
                         `✅ **Draft Approved!**\n\n` +
-                        `The advertiser approved your draft for **${deal.channel?.title || 'your channel'}**.` +
+                        `The advertiser approved your draft for ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title || 'your channel'}**`}.` +
                         `\n\nPlease go to the app to **schedule the post**.`,
                         {
                             parse_mode: 'Markdown',

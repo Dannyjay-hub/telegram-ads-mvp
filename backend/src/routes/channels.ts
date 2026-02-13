@@ -502,6 +502,16 @@ app.post('/verify_permissions', async (c) => {
             throw new Error('Failed to fetch channel info from Telegram');
         }
 
+        // 4b. Block private channels (no username = private)
+        if (!channelStats.username) {
+            return c.json({
+                state: 'PRIVATE_CHANNEL',
+                message: 'Private channels cannot be listed. Only public channels with a username are allowed.',
+                missing: ['Public Username'],
+                details: { title: channelStats.title }
+            });
+        }
+
         return c.json({
             state: 'D_READY',
             message: 'Channel is ready for listing.',
