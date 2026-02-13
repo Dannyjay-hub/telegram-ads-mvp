@@ -185,6 +185,8 @@ export class SupabaseCampaignRepository {
         if (updates.expiresInDays !== undefined) dbUpdates.expires_in_days = updates.expiresInDays;
         if (updates.refundAmount !== undefined) dbUpdates.refund_amount = updates.refundAmount;
         if (updates.endedAt !== undefined) dbUpdates.ended_at = updates.endedAt;
+        if (updates.paymentMemo !== undefined) dbUpdates.payment_memo = updates.paymentMemo;
+        if (updates.paymentExpiresAt !== undefined) dbUpdates.payment_expires_at = updates.paymentExpiresAt;
 
         const { data, error } = await supabase
             .from('campaigns')
