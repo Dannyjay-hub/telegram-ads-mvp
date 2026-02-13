@@ -1,9 +1,9 @@
 /**
  * TON Network Configuration (Frontend)
- * Uses VITE_TON_NETWORK env var (default: 'testnet' for safety)
+ * Uses VITE_TON_NETWORK env var (default: 'mainnet' for production safety)
  */
 
-const isTestnet = import.meta.env.VITE_TON_NETWORK !== 'mainnet'; // default testnet
+const isTestnet = import.meta.env.VITE_TON_NETWORK === 'testnet'; // default mainnet
 
 export const TON_FRONTEND_CONFIG = {
     network: isTestnet ? 'testnet' : 'mainnet',
