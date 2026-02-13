@@ -18,6 +18,8 @@ interface DealWithChannel {
     paymentMemo?: string
     briefText?: string
     contentItems?: Array<{ title: string; quantity: number }>
+    campaignTitle?: string
+    campaignId?: string
     createdAt: string
     channel?: {
         id: string
@@ -317,7 +319,6 @@ export function PartnershipsList() {
                                                     {deal.channel?.title || 'Unknown Channel'}
                                                 </h3>
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    <span className="text-[10px] text-muted-foreground font-mono">#{deal.id.substring(0, 8)}</span>
                                                     <StatusBadge status={deal.status} />
                                                 </div>
                                             </div>
@@ -326,10 +327,10 @@ export function PartnershipsList() {
                                                 <p className="text-xs text-muted-foreground">@{deal.channel.username}</p>
                                             )}
 
-                                            {/* Content Items Summary */}
-                                            {deal.contentItems && deal.contentItems.length > 0 && (
+                                            {/* Campaign / Service Title */}
+                                            {(deal.campaignTitle || deal.briefText) && (
                                                 <p className="text-xs text-muted-foreground mt-1">
-                                                    {deal.contentItems.map((item: any) => `${item.quantity}x ${item.title}`).join(' · ')}
+                                                    {deal.campaignTitle || deal.briefText}
                                                 </p>
                                             )}
 

@@ -121,7 +121,7 @@ export class SupabaseDealRepository implements IDealRepository {
     async findByAdvertiserIdWithChannel(advertiserId: string): Promise<any[]> {
         const { data, error } = await supabase
             .from('deals')
-            .select('*, channels(id, title, username, photo_url)')
+            .select('*, channels(id, title, username, photo_url), campaign:campaigns!deals_campaign_id_fkey(title)')
             .eq('advertiser_id', advertiserId)
             .order('created_at', { ascending: false });
 
@@ -145,7 +145,8 @@ export class SupabaseDealRepository implements IDealRepository {
                     title: row.channels.title,
                     username: row.channels.username,
                     photoUrl: row.channels.photo_url
-                } : null
+                } : null,
+                campaignTitle: row.campaign?.title || null
             }));
     }
 
@@ -183,7 +184,7 @@ export class SupabaseDealRepository implements IDealRepository {
         // 3. Get deals for those channels with advertiser info
         const { data, error } = await supabase
             .from('deals')
-            .select('*, channels(id, title, username, photo_url), advertiser:users!advertiser_id(id, telegram_id, first_name, username)')
+            .select('*, channels(id, title, username, photo_url), advertiser:users!advertiser_id(id, telegram_id, first_name, username), campaign:campaigns!deals_campaign_id_fkey(title)')
             .in('channel_id', channelIds)
             .neq('status', 'draft') // Exclude unpaid drafts
             .order('created_at', { ascending: false });
@@ -219,7 +220,8 @@ export class SupabaseDealRepository implements IDealRepository {
                     telegramId: row.advertiser.telegram_id,
                     firstName: row.advertiser.first_name,
                     username: row.advertiser.username
-                } : null
+                } : null,
+                campaignTitle: row.campaign?.title || null
             }));
     }
 

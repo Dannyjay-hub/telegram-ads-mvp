@@ -16,6 +16,8 @@ interface DealWithDetails {
     priceCurrency: string
     briefText?: string
     contentItems?: Array<{ title: string; quantity: number }>
+    campaignTitle?: string
+    campaignId?: string
     createdAt: string
     channel?: {
         id: string
@@ -303,15 +305,14 @@ export function ChannelOwnerPartnerships() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[10px] text-muted-foreground font-mono">#{deal.id.substring(0, 8)}</span>
                                             <StatusBadge status={deal.status} />
                                         </div>
                                     </div>
 
-                                    {/* Content Items Summary */}
-                                    {deal.contentItems && deal.contentItems.length > 0 && (
+                                    {/* Campaign / Service Title */}
+                                    {(deal.campaignTitle || deal.briefText) && (
                                         <p className="text-xs text-muted-foreground">
-                                            {deal.contentItems.map((item: any) => `${item.quantity}x ${item.title}`).join(' · ')}
+                                            {deal.campaignTitle || deal.briefText}
                                         </p>
                                     )}
 
@@ -320,9 +321,6 @@ export function ChannelOwnerPartnerships() {
                                         <span className="flex items-center gap-1 text-green-400 font-semibold">
                                             <DollarSign className="w-4 h-4" />
                                             {deal.priceAmount} {deal.priceCurrency}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">
-                                            {new Date(deal.createdAt).toLocaleDateString()}
                                         </span>
                                     </div>
 
