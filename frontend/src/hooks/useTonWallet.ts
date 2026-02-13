@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useTonConnectUI, useTonAddress, useIsConnectionRestored } from '@tonconnect/ui-react';
+import { useTonConnectUI, useTonAddress, useIsConnectionRestored, CHAIN } from '@tonconnect/ui-react';
 import { type JettonToken, isNativeToken, toSmallestUnit } from '@/lib/jettons';
 import { beginCell, Address } from '@ton/core';
 import { API_URL, getHeaders, apiFetch } from '@/api';
@@ -50,12 +50,29 @@ export function useTonWallet() {
 
     /**
      * Open wallet connection modal
+     * Sets the expected network before opening so wallets connect on the correct chain
      */
     const connectWallet = useCallback(async () => {
         if (tonConnectUI) {
             await tonConnectUI.openModal();
         }
     }, [tonConnectUI]);
+
+    // Validate connected wallet is on the correct network
+    useEffect(() => {
+        if (!isConnected || !tonConnectUI?.wallet) return;
+
+        const wallet = tonConnectUI.wallet;
+        const connectedChain = wallet.account?.chain;
+        const expectedChain = TON_FRONTEND_CONFIG.isTestnet ? CHAIN.TESTNET : CHAIN.MAINNET;
+        const networkName = TON_FRONTEND_CONFIG.isTestnet ? 'testnet' : 'mainnet';
+
+        if (connectedChain && connectedChain !== expectedChain) {
+            console.warn(`[TonWallet] ⚠️ Wrong network! Expected ${networkName} (${expectedChain}), got ${connectedChain}`);
+            alert(`⚠️ Wrong network!\n\nThis app runs on ${networkName}. Please switch your wallet to ${networkName} and reconnect.`);
+            tonConnectUI.disconnect();
+        }
+    }, [isConnected, tonConnectUI]);
 
     /**
      * Disconnect wallet
