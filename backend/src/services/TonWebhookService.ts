@@ -3,11 +3,13 @@
  * Registers webhooks on server start for instant payment detection
  */
 
-// TonAPI Webhook API (rt.tonapi.io)
-const TONAPI_WEBHOOK_URL = 'https://rt.tonapi.io/webhooks';
+import { TON_CONFIG } from '../config/tonConfig';
 
-// USDT Master Address on TON mainnet
-const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+// TonAPI Webhook API
+const TONAPI_WEBHOOK_URL = TON_CONFIG.tonapiWebhookUrl;
+
+// USDT Master Address (network-aware)
+const USDT_MASTER_ADDRESS = TON_CONFIG.usdtMasterAddress;
 
 export class TonWebhookService {
     private apiKey: string;
@@ -18,7 +20,7 @@ export class TonWebhookService {
     constructor() {
         this.apiKey = process.env.TONAPI_KEY || '';
         this.webhookUrl = process.env.WEBHOOK_URL || '';
-        this.platformWallet = process.env.MASTER_WALLET_ADDRESS || '';
+        this.platformWallet = TON_CONFIG.masterWalletAddress;
     }
 
     /**

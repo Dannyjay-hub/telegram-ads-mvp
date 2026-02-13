@@ -1,9 +1,10 @@
 import { Bot } from 'grammy';
 import dotenv from 'dotenv';
+import { TON_CONFIG } from './config/tonConfig';
 
 dotenv.config();
 
-const token = process.env.BOT_TOKEN;
+const token = TON_CONFIG.botToken;
 
 if (!token) {
     console.warn('BOT_TOKEN is not defined in .env');

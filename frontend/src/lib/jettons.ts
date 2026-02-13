@@ -3,6 +3,7 @@
  * Supported stablecoins: USDT, USDC (USDC pending confirmation)
  */
 
+import { TON_FRONTEND_CONFIG } from './tonConfig';
 export interface JettonToken {
     id: string;
     name: string;
@@ -22,12 +23,13 @@ export const TON_TOKEN: JettonToken = {
     icon: '💎'
 };
 
-// USDT on TON (Tether USD - verified mainnet address)
+
+// USDT on TON (Tether USD - network-aware address)
 export const USDT_TOKEN: JettonToken = {
     id: 'usdt',
     name: 'Tether USD',
     symbol: 'USDT',
-    masterAddress: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+    masterAddress: TON_FRONTEND_CONFIG.usdtMasterAddress,
     decimals: 6,
     icon: '💵'
 };

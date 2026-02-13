@@ -4,6 +4,7 @@ import { type JettonToken, isNativeToken, toSmallestUnit } from '@/lib/jettons';
 import { beginCell, Address } from '@ton/core';
 import { API_URL, getHeaders, apiFetch } from '@/api';
 import { useTelegram } from '@/providers/TelegramProvider';
+import { TON_FRONTEND_CONFIG } from '@/lib/tonConfig';
 
 /**
  * Hook for TON wallet connection and transactions
@@ -157,7 +158,7 @@ export function useTonWallet() {
     const getJettonWalletAddress = async (jettonMasterAddress: string, ownerAddress: string): Promise<string> => {
         // Use TON API to get the Jetton wallet address
         const response = await fetch(
-            `https://tonapi.io/v2/accounts/${ownerAddress}/jettons/${jettonMasterAddress}`
+            `${TON_FRONTEND_CONFIG.tonapiUrl}/accounts/${ownerAddress}/jettons/${jettonMasterAddress}`
         );
 
         if (!response.ok) {

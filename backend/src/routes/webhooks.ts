@@ -8,15 +8,16 @@ import { DealService } from '../services/DealService';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
 import { SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 import { Address } from '@ton/core';
+import { TON_CONFIG } from '../config/tonConfig';
 
 const app = new Hono();
 const dealService = new DealService(new SupabaseDealRepository());
 const campaignRepository = new SupabaseCampaignRepository();
 
-// Configuration
-const PLATFORM_WALLET = process.env.MASTER_WALLET_ADDRESS || '';
+// Network-aware configuration
+const PLATFORM_WALLET = TON_CONFIG.masterWalletAddress;
 const TON_API_KEY = process.env.TONAPI_KEY || '';
-const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Mainnet USDT
+const USDT_MASTER_ADDRESS = TON_CONFIG.usdtMasterAddress;
 
 let PLATFORM_ADDRESS: Address | null = null;
 let USDT_ADDRESS: Address | null = null;
@@ -121,7 +122,7 @@ async function fetchTransactionDetails(txHash: string) {
 
     try {
         const response = await fetch(
-            `https://tonapi.io/v2/blockchain/transactions/${txHash}`,
+            `${TON_CONFIG.tonapiUrl}/blockchain/transactions/${txHash}`,
             {
                 headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}
             }
@@ -304,7 +305,7 @@ async function checkRecentJettonTransfers() {
     if (!PLATFORM_WALLET || !USDT_ADDRESS) return;
 
     try {
-        const url = `https://tonapi.io/v2/accounts/${PLATFORM_WALLET}/jettons/history?limit=10`;
+        const url = `${TON_CONFIG.tonapiUrl}/accounts/${PLATFORM_WALLET}/jettons/history?limit=10`;
         const headers: Record<string, string> = { 'Accept': 'application/json' };
         if (TON_API_KEY) {
             headers['Authorization'] = `Bearer ${TON_API_KEY}`;

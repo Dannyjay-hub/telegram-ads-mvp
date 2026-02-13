@@ -1,12 +1,13 @@
 import { mnemonicToPrivateKey } from '@ton/crypto';
 import { WalletContractV4, internal, TonClient, Address, toNano, fromNano, Cell, beginCell } from '@ton/ton';
 import { supabase } from '../db';
+import { TON_CONFIG } from '../config/tonConfig';
 
-// Environment variables
-const HOT_WALLET_MNEMONIC = process.env.HOT_WALLET_MNEMONIC || '';
-const TON_API_URL = 'https://toncenter.com/api/v2';
+// Network-aware config from tonConfig
+const HOT_WALLET_MNEMONIC = TON_CONFIG.hotWalletMnemonic;
+const TON_API_URL = TON_CONFIG.toncenterApi;
 const TON_API_KEY = process.env.TON_API_KEY || '';
-const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Mainnet USDT
+const USDT_MASTER_ADDRESS = TON_CONFIG.usdtMasterAddress;
 
 // Auto-approve threshold (in TON or USDT)
 const AUTO_APPROVE_THRESHOLD = 5;
@@ -45,7 +46,7 @@ export class TonPayoutService {
 
     constructor() {
         this.client = new TonClient({
-            endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+            endpoint: TON_CONFIG.toncenterJsonRpc,
             apiKey: TON_API_KEY
         });
     }
@@ -351,7 +352,7 @@ export class TonPayoutService {
 
             // Use TonAPI to get the Jetton wallet address
             const response = await fetch(
-                `https://tonapi.io/v2/accounts/${ownerStr}/jettons/${jettonMasterStr}`,
+                `${TON_CONFIG.tonapiUrl}/accounts/${ownerStr}/jettons/${jettonMasterStr}`,
                 {
                     headers: {
                         'Accept': 'application/json',

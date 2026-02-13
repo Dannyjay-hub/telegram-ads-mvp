@@ -5,6 +5,7 @@ import { CampaignInsert, CampaignUpdate } from '../domain/entities';
 import { supabase } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import { createRouter } from '../types/app';
+import { TON_CONFIG } from '../config/tonConfig';
 
 const userRepository = new SupabaseUserRepository();
 const channelRepository = new SupabaseChannelRepository();
@@ -719,7 +720,7 @@ campaigns.post('/:id/end', async (c) => {
             // If no stored wallet address, look up the sender from the payment TX
             if (!refundAddress && campaign.escrowTxHash) {
                 try {
-                    const txLookupUrl = `https://tonapi.io/v2/events/${campaign.escrowTxHash}`;
+                    const txLookupUrl = `${TON_CONFIG.tonapiUrl}/events/${campaign.escrowTxHash}`;
                     const txResp = await fetch(txLookupUrl, {
                         headers: {
                             'Accept': 'application/json',

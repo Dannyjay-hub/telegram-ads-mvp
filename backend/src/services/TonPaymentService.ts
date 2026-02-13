@@ -8,17 +8,18 @@ import { DealService } from './DealService';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
 import { SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 import { Address } from '@ton/core';
+import { TON_CONFIG } from '../config/tonConfig';
 
-// TON Center API (legacy, kept for reference)
-const TON_CENTER_API = process.env.TON_CENTER_API || 'https://toncenter.com/api/v2';
+// Network-aware config from tonConfig
+const TON_CENTER_API = TON_CONFIG.toncenterApi;
 const TON_API_KEY = process.env.TONAPI_KEY || process.env.TON_API_KEY || '';
-const MASTER_WALLET_ADDRESS = process.env.MASTER_WALLET_ADDRESS || '';
+const MASTER_WALLET_ADDRESS = TON_CONFIG.masterWalletAddress;
 
 // TON API for transaction events
-const TON_API_URL = 'https://tonapi.io/v2';
+const TON_API_URL = TON_CONFIG.tonapiUrl;
 
-// Supported Jetton Master Addresses (mainnet)
-const USDT_MASTER_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+// Supported Jetton Master Addresses (network-aware)
+const USDT_MASTER_ADDRESS = TON_CONFIG.usdtMasterAddress;
 
 // Parse master wallet address once at startup
 let MASTER_ADDRESS: Address | null = null;
