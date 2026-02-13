@@ -17,6 +17,7 @@ interface DealWithChannel {
     priceCurrency: string
     paymentMemo?: string
     briefText?: string
+    contentItems?: Array<{ title: string; quantity: number }>
     createdAt: string
     channel?: {
         id: string
@@ -323,6 +324,13 @@ export function PartnershipsList() {
 
                                             {deal.channel?.username && (
                                                 <p className="text-xs text-muted-foreground">@{deal.channel.username}</p>
+                                            )}
+
+                                            {/* Content Items Summary */}
+                                            {deal.contentItems && deal.contentItems.length > 0 && (
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    {deal.contentItems.map((item: any) => `${item.quantity}x ${item.title}`).join(' · ')}
+                                                </p>
                                             )}
 
                                             {/* Price and Deal ID */}

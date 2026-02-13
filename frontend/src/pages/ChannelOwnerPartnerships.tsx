@@ -15,6 +15,7 @@ interface DealWithDetails {
     priceAmount: number
     priceCurrency: string
     briefText?: string
+    contentItems?: Array<{ title: string; quantity: number }>
     createdAt: string
     channel?: {
         id: string
@@ -307,10 +308,10 @@ export function ChannelOwnerPartnerships() {
                                         </div>
                                     </div>
 
-                                    {/* Brief */}
-                                    {deal.briefText && (
-                                        <p className="text-sm text-muted-foreground bg-secondary rounded p-2 line-clamp-2">
-                                            {deal.briefText}
+                                    {/* Content Items Summary */}
+                                    {deal.contentItems && deal.contentItems.length > 0 && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {deal.contentItems.map((item: any) => `${item.quantity}x ${item.title}`).join(' · ')}
                                         </p>
                                     )}
 
