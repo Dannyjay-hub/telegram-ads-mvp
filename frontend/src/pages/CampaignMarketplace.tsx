@@ -124,7 +124,7 @@ export function CampaignMarketplace() {
     return (
         <div className="flex flex-col h-full">
             {/* Sticky Header: Search + Filter/Sort */}
-            <div className="flex-shrink-0 pb-2 bg-[--tg-theme-bg-color]">
+            <div className="flex-shrink-0 pb-2">
                 {/* Search */}
                 <div className="mb-3">
                     <SearchInput
