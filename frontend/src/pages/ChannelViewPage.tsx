@@ -323,12 +323,20 @@ export function ChannelViewPage() {
 
             if (errMsg.includes('not authenticated') || errMsg.includes('auth')) {
                 errorMessage = 'Wallet session expired. Please disconnect and reconnect your wallet.'
-            } else if (errMsg.includes('rejected') || errMsg.includes('cancelled') || errMsg.includes('canceled')) {
-                errorMessage = 'Transaction cancelled'
+            } else if (errMsg.includes('rejected') || errMsg.includes('cancelled') || errMsg.includes('canceled') || errMsg.includes('declined')) {
+                errorMessage = 'Payment was cancelled. You can try again when ready.'
             } else if (errMsg.includes('insufficient') || errMsg.includes('balance')) {
-                errorMessage = 'Insufficient balance in your wallet'
-            } else if (error.message) {
-                errorMessage = error.message
+                errorMessage = 'Insufficient balance in your wallet. Please top up and try again.'
+            } else if (errMsg.includes('badrequest') || errMsg.includes('bad request') || errMsg.includes('contains errors')) {
+                errorMessage = 'Payment was cancelled. You can try again when ready.'
+            } else if (errMsg.includes('timeout') || errMsg.includes('timed out')) {
+                errorMessage = 'Connection timed out. Please check your internet and try again.'
+            } else if (errMsg.includes('network') || errMsg.includes('fetch')) {
+                errorMessage = 'Network error. Please check your connection and try again.'
+            } else {
+                // Don't show raw SDK errors to user
+                errorMessage = 'Something went wrong with the payment. Please try again.'
+                console.warn('Unhandled payment error:', error.message)
             }
 
             setPaymentError(errorMessage)

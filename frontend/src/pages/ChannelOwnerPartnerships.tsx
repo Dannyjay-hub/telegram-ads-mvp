@@ -1,12 +1,35 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye, HelpCircle } from 'lucide-react'
+import { Handshake, Clock, Copy, Check, AlertTriangle, CheckCircle, XCircle, User, Loader2, Send, Calendar, Eye, HelpCircle } from 'lucide-react'
 import { API_URL, getHeaders, apiFetch, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/api'
 import { haptic } from '@/utils/haptic'
 import { openTelegramLink, getBotUrl, getBotDeepLinkUrl, showAlert } from '@/lib/telegram'
 import { displayTime, formatCountdown } from '@/utils/time'
 import { TimePickerModal } from '@/components/TimePickerModal'
+
+// Compact Deal ID copy button
+function CopyMemo({ memo }: { memo: string }) {
+    const [copied, setCopied] = useState(false)
+
+    const handleCopy = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        await navigator.clipboard.writeText(memo)
+        haptic.light()
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
+
+    return (
+        <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+            <span>Deal ID</span>
+            {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+        </button>
+    )
+}
 
 // Deal with advertiser data
 interface DealWithDetails {
@@ -14,6 +37,7 @@ interface DealWithDetails {
     status: string
     priceAmount: number
     priceCurrency: string
+    paymentMemo?: string
     briefText?: string
     contentItems?: Array<{ title: string; quantity: number }>
     campaignTitle?: string
@@ -316,12 +340,12 @@ export function ChannelOwnerPartnerships() {
                                         </p>
                                     )}
 
-                                    {/* Price */}
-                                    <div className="flex items-center gap-4 text-sm">
-                                        <span className="flex items-center gap-1 text-green-400 font-semibold">
-                                            <DollarSign className="w-4 h-4" />
+                                    {/* Price and Deal ID */}
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-green-400 font-semibold">
                                             {deal.priceAmount} {deal.priceCurrency}
                                         </span>
+                                        <CopyMemo memo={deal.paymentMemo || deal.id} />
                                     </div>
 
                                     {/* Actions based on status */}
@@ -491,13 +515,6 @@ export function ChannelOwnerPartnerships() {
                                         </div>
                                     )}
 
-                                    {/* Posted: Shows ad is live */}
-                                    {deal.status === 'posted' && (
-                                        <div className="flex items-center gap-1 text-teal-400 text-sm pt-2 border-t border-border">
-                                            <CheckCircle className="w-4 h-4" />
-                                            <span>Ad is live on channel</span>
-                                        </div>
-                                    )}
 
                                     {/* Footer: Date + Support */}
                                     <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">

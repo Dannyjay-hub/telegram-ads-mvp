@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Handshake, Copy, Check, Clock, DollarSign, Eye, Calendar, CheckCircle, AlertTriangle, XCircle, Loader2, HelpCircle } from 'lucide-react'
+import { Handshake, Copy, Check, Clock, Eye, Calendar, CheckCircle, AlertTriangle, XCircle, Loader2, HelpCircle } from 'lucide-react'
 import { API_URL, getHeaders, apiFetch, proposePostTime, acceptPostTime, getSchedulingStatus } from '@/api'
 import { haptic } from '@/utils/haptic'
 import { openTelegramLink, getBotDeepLinkUrl, showAlert } from '@/lib/telegram'
@@ -84,7 +84,7 @@ function CopyMemo({ memo }: { memo: string }) {
             onClick={handleCopy}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-            <span className="font-mono">{memo}</span>
+            <span>Deal ID</span>
             {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
         </button>
     )
@@ -335,12 +335,10 @@ export function PartnershipsList() {
                                             )}
 
                                             {/* Price and Deal ID */}
-                                            <div className="flex items-center gap-4 mt-2 text-sm">
-                                                <span className="flex items-center gap-1 text-green-400">
-                                                    <DollarSign className="w-3 h-3" />
+                                            <div className="flex items-center justify-between mt-2 text-sm">
+                                                <span className="text-green-400 font-semibold">
                                                     {deal.priceAmount} {deal.priceCurrency}
                                                 </span>
-
                                                 <CopyMemo memo={deal.paymentMemo || deal.id} />
                                             </div>
                                         </div>
@@ -494,13 +492,6 @@ export function PartnershipsList() {
                                         </div>
                                     )}
 
-                                    {/* Posted: Shows ad is live */}
-                                    {deal.status === 'posted' && (
-                                        <div className="flex items-center gap-1 text-teal-400 text-sm">
-                                            <CheckCircle className="w-4 h-4" />
-                                            <span>Ad is live on channel</span>
-                                        </div>
-                                    )}
 
                                     {/* Monitoring: Info message */}
                                     {deal.status === 'monitoring' && (

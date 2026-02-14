@@ -84,6 +84,46 @@ async function runTimeouts() {
                 .eq('id', deal.id);
         }
 
+        // ── Funded too long (48h) → auto-refund ──
+        const FORTYEIGHT_HOURS_AGO = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: stuckFunded } = await (supabase as any)
+            .from('deals')
+            .select('id, advertiser_id')
+            .eq('status', 'funded')
+            .lt('funded_at', FORTYEIGHT_HOURS_AGO);
+
+        for (const deal of stuckFunded || []) {
+            console.log(`[BackgroundJobs] Refunding deal ${deal.id} - no channel owner response after 48h`);
+            await (supabase as any)
+                .from('deals')
+                .update({
+                    status: 'refunded',
+                    status_updated_at: new Date().toISOString()
+                })
+                .eq('id', deal.id);
+        }
+
+        // ── Scheduling too long (24h) → auto-accept proposed time ──
+        const TWENTYFOUR_HOURS_AGO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: stuckScheduling } = await (supabase as any)
+            .from('deals')
+            .select('id, proposed_post_time')
+            .eq('status', 'scheduling')
+            .not('proposed_post_time', 'is', null)
+            .lt('status_updated_at', TWENTYFOUR_HOURS_AGO);
+
+        for (const deal of stuckScheduling || []) {
+            console.log(`[BackgroundJobs] Auto-accepting time for deal ${deal.id} - no counter after 24h`);
+            await (supabase as any)
+                .from('deals')
+                .update({
+                    status: 'scheduled',
+                    agreed_post_time: deal.proposed_post_time,
+                    status_updated_at: new Date().toISOString()
+                })
+                .eq('id', deal.id);
+        }
+
     } catch (error) {
         console.error('[BackgroundJobs] Timeout processing failed:', error);
     }
