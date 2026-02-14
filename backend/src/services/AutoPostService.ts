@@ -190,15 +190,19 @@ export class AutoPostService {
     private async notifyFailure(deal: any, reason: string): Promise<void> {
         if (!bot) return;
 
-        // Get channel title
-        let channelTitle = 'your channel';
+        // Get channel title + username for hyperlink
+        let channelLink = '**your channel**';
         if (deal.channel_id) {
             const { data: ch } = await (supabase as any)
                 .from('channels')
-                .select('title')
+                .select('title, username')
                 .eq('id', deal.channel_id)
                 .single();
-            channelTitle = ch?.title || channelTitle;
+            if (ch) {
+                channelLink = ch.username
+                    ? `[${ch.title}](https://t.me/${ch.username})`
+                    : `**${ch.title}**`;
+            }
         }
 
         // Notify advertiser
@@ -214,7 +218,7 @@ export class AutoPostService {
                     await bot.api.sendMessage(
                         advertiser.telegram_id,
                         `⚠️ **Post Failed**\n\n` +
-                        `Your ad on **${channelTitle}** could not be posted.\n` +
+                        `Your ad on ${channelLink} could not be posted.\n` +
                         `Reason: ${reason}\n\n` +
                         `💰 A refund has been queued to your wallet.`,
                         { parse_mode: 'Markdown' }
@@ -239,7 +243,7 @@ export class AutoPostService {
                     await bot.api.sendMessage(
                         ownerAdmin.user.telegram_id,
                         `⚠️ **Post Failed**\n\n` +
-                        `A scheduled post on **${channelTitle}** could not go through.\n` +
+                        `A scheduled post on ${channelLink} could not go through.\n` +
                         `Reason: ${reason}\n\n` +
                         `Your channel has been moved to draft. Please re-verify bot permissions to re-list.`,
                         { parse_mode: 'Markdown' }

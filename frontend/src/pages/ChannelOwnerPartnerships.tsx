@@ -159,6 +159,31 @@ export function ChannelOwnerPartnerships() {
         }
     }, [deals, loadDeals])
 
+    // Auto-navigate to the correct tab when coming from a deep link
+    useEffect(() => {
+        if (deals.length === 0) return
+        const params = new URLSearchParams(window.location.search)
+        const dealId = params.get('deal')
+        if (!dealId) return
+
+        const deal = deals.find(d => d.id === dealId)
+        if (!deal) return
+
+        const pendingStatuses = ['funded', 'pending']
+        const activeStatuses = ['draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
+
+        if (pendingStatuses.includes(deal.status)) {
+            setActiveTab('pending')
+        } else if (activeStatuses.includes(deal.status)) {
+            setActiveTab('active')
+        } else {
+            setActiveTab('ended')
+        }
+
+        // Clear query param after handling
+        window.history.replaceState({}, '', window.location.pathname)
+    }, [deals])
+
     const handleApprove = async (dealId: string, reject: boolean) => {
         setProcessingId(dealId)
         setProcessingAction(reject ? 'reject' : 'accept')

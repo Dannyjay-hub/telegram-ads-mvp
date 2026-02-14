@@ -290,9 +290,18 @@ if (bot) {
             }
 
             // Edit the message to show the selected rating and remove buttons
+            // Get channel info for context
+            const { data: channel } = await (supabase as any)
+                .from('channels')
+                .select('title, username')
+                .eq('id', deal.channel_id)
+                .single();
+            const channelLink = channel?.username
+                ? `[${channel.title}](https://t.me/${channel.username})`
+                : `**${channel?.title || 'the channel'}**`;
             const stars = '⭐'.repeat(rating);
             await ctx.editMessageText(
-                `✅ **Deal Completed!**\n\nThe 24-hour monitoring period has ended. Your post stayed live and funds have been released to the channel owner.\n\nYour rating: ${stars} (${rating}/5)\n\nThank you for using our platform!`,
+                `✅ **Deal Completed!**\n\nYour post on ${channelLink} stayed live for 24 hours and funds have been released.\n\nYour rating: ${stars} (${rating}/5)\n\nThank you for using our platform!`,
                 { parse_mode: 'Markdown' }
             );
 

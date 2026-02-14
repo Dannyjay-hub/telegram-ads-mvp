@@ -234,11 +234,13 @@ export class SchedulingService {
                 // Get channel info
                 const { data: channel } = await supabase
                     .from('channels')
-                    .select('title')
+                    .select('title, username')
                     .eq('id', deal.channel_id)
                     .single();
 
-                const channelTitle = channel?.title || 'the channel';
+                const channelLink = channel?.username
+                    ? `[${channel.title}](https://t.me/${channel.username})`
+                    : `**${channel?.title || 'the channel'}**`;
 
                 // Notify advertiser
                 if (dealDetails?.advertiser_id) {
@@ -252,7 +254,7 @@ export class SchedulingService {
                         await bot.api.sendMessage(
                             advertiser.telegram_id,
                             `✅ **Time Confirmed!**\n\n` +
-                            `Your ad on **${channelTitle}** is scheduled for:\n` +
+                            `Your ad on ${channelLink} is scheduled for:\n` +
                             `**${formattedTime}**\n\n` +
                             `The post will go live automatically at this time.`,
                             {
@@ -280,7 +282,7 @@ export class SchedulingService {
                         await bot.api.sendMessage(
                             telegramId,
                             `✅ **Posting Time Confirmed!**\n\n` +
-                            `**${channelTitle}** is scheduled to post at:\n` +
+                            `${channelLink} is scheduled to post at:\n` +
                             `**${formattedTime}**\n\n` +
                             `The ad will be published automatically.`,
                             {

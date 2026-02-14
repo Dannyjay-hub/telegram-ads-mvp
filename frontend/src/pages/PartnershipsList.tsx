@@ -152,6 +152,31 @@ export function PartnershipsList() {
         }
     }, [deals, loadDeals])
 
+    // Auto-navigate to the correct tab when coming from a deep link
+    useEffect(() => {
+        if (deals.length === 0) return
+        const params = new URLSearchParams(window.location.search)
+        const dealId = params.get('deal')
+        if (!dealId) return
+
+        const deal = deals.find(d => d.id === dealId)
+        if (!deal) return
+
+        const pendingStatuses = ['pending', 'funded']
+        const activeStatuses = ['draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
+
+        if (pendingStatuses.includes(deal.status)) {
+            setActiveTab('pending')
+        } else if (activeStatuses.includes(deal.status)) {
+            setActiveTab('active')
+        } else {
+            setActiveTab('completed')
+        }
+
+        // Clear query param after handling
+        window.history.replaceState({}, '', window.location.pathname)
+    }, [deals])
+
 
     // Deep link to bot for specific actions
     const openBotDeepLink = (path: string) => {
@@ -189,9 +214,9 @@ export function PartnershipsList() {
     const visibleDeals = deals.filter(d => d.status !== 'draft')
 
     // Pending: ONLY accept/reject decisions
-    const pendingStatuses = ['pending']
+    const pendingStatuses = ['pending', 'funded']
     // Active: all working deals (drafting, reviewing, scheduling, posting, monitoring)
-    const activeStatuses = ['funded', 'draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
+    const activeStatuses = ['draft_pending', 'draft_submitted', 'changes_requested', 'approved', 'scheduling', 'scheduled', 'posted', 'monitoring', 'disputed', 'in_progress']
     // Completed: finished states
     const completedStatuses = ['released', 'cancelled', 'refunded', 'pending_refund', 'completed', 'rejected']
 

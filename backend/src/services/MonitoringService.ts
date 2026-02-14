@@ -424,20 +424,20 @@ export class MonitoringService {
             const ownerMessage = hasWallet
                 ? `💰 **Payment Released!**\n\nYour payment for deal with ${channelLink} has been released. The funds are now in your wallet.`
                 : `💰 **Deal Completed!**\n\nYour deal with ${channelLink} monitoring is complete! Connect your wallet in the app to receive your payout of ${fullDeal.price_amount} ${fullDeal.price_currency}.`;
-            const advertiserMessage = `✅ **Deal Completed!**\n\nThe 24-hour monitoring period has ended. Your post stayed live and funds have been released to the channel owner.\n\nHow was your experience? Rate this channel:`;
+            const advertiserMessage = `✅ **Deal Completed!**\n\nThe 24-hour monitoring period has ended. Your post on ${channelLink} stayed live and funds have been released to the channel owner.\n\nHow was your experience? Rate this channel:`;
 
-            // Notify advertiser with rating buttons
+            // Notify advertiser with rating buttons (numbered for clarity)
             if (deal.advertiser?.telegram_id) {
                 try {
                     await bot.api.sendMessage(deal.advertiser.telegram_id, advertiserMessage, {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [[
-                                { text: '⭐', callback_data: `rate_deal:${deal.id}:1` },
-                                { text: '⭐⭐', callback_data: `rate_deal:${deal.id}:2` },
-                                { text: '⭐⭐⭐', callback_data: `rate_deal:${deal.id}:3` },
-                                { text: '⭐⭐⭐⭐', callback_data: `rate_deal:${deal.id}:4` },
-                                { text: '⭐⭐⭐⭐⭐', callback_data: `rate_deal:${deal.id}:5` },
+                                { text: '1⭐', callback_data: `rate_deal:${deal.id}:1` },
+                                { text: '2⭐', callback_data: `rate_deal:${deal.id}:2` },
+                                { text: '3⭐', callback_data: `rate_deal:${deal.id}:3` },
+                                { text: '4⭐', callback_data: `rate_deal:${deal.id}:4` },
+                                { text: '5⭐', callback_data: `rate_deal:${deal.id}:5` },
                             ]]
                         }
                     });

@@ -378,7 +378,14 @@ async function handleSubmitDraft(
             `✅ **Draft Submitted!**\n\n` +
             `The advertiser will be notified to review your draft.\n` +
             `You'll receive a notification when they respond.`,
-            { parse_mode: 'Markdown' }
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '📱 View Partnership', url: getMiniAppUrl(`owner_deal_${dealId}`) }]
+                    ]
+                }
+            }
         );
 
         // Clear user context
