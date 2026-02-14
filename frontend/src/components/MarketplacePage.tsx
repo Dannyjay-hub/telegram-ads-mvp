@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getMarketplaceChannels, type Channel } from '@/api'
-import { GlassCard } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { MessageCircle, Star } from 'lucide-react'
+import { ChevronRight, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { parseTagArray } from '@/lib/parseTagArray'
 
@@ -55,11 +53,32 @@ export function MarketplacePage() {
         return count.toString()
     }
 
-    // Get min price from rate card
+    // Get min price from rate card — reads actual lowest package price
     const getMinPrice = (channel: Channel) => {
         if (!channel.rateCard?.length) return null
-        const minPrice = Math.min(...channel.rateCard.map((p: any) => p.price || Infinity))
-        return minPrice === Infinity ? null : minPrice
+        const prices = channel.rateCard
+            .map((p: any) => Number(p.price))
+            .filter((p: number) => p > 0 && isFinite(p))
+        if (!prices.length) return null
+        return Math.min(...prices)
+    }
+
+    // Get currency from rate card
+    const getCurrency = (channel: Channel) => {
+        if (!channel.rateCard?.length) return 'TON'
+        return channel.rateCard[0]?.currency || 'TON'
+    }
+
+    // Format categories — show 1 + count of extra
+    const formatCategories = (channel: Channel) => {
+        const categories = parseTagArray(channel.category)
+        const languages = parseTagArray(channel.language)
+        const all = [...categories, ...languages]
+        if (!all.length) return null
+
+        const first = all[0]
+        const extra = all.length - 1
+        return { first, extra }
     }
 
     return (
@@ -117,113 +136,114 @@ export function MarketplacePage() {
 
             {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto scrollbar-hide pb-4">
-                <div className="space-y-3">
-                    {loading ? (
-                        // Loading Skeletons
-                        Array.from({ length: 3 }).map((_, i) => (
-                            <GlassCard key={i} className="p-4">
-                                <div className="animate-pulse">
-                                    <div className="flex gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-muted" />
-                                        <div className="flex-1">
-                                            <div className="h-4 bg-muted rounded w-32 mb-2" />
-                                            <div className="h-3 bg-muted rounded w-20" />
-                                        </div>
-                                    </div>
-                                    <div className="h-10 bg-muted rounded" />
-                                </div>
-                            </GlassCard>
-                        ))
-                    ) : filteredChannels.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-[14px]">
-                            <p className="mb-2">No channels match your filters</p>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={clearFilters}
+                {loading ? (
+                    // Loading Skeletons — Access-style grouped list
+                    <div className="rounded-[10px] overflow-hidden">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div
+                                key={i}
+                                className="bg-card px-4 py-[10px] animate-pulse"
+                                style={i > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
                             >
-                                Clear Filters
-                            </Button>
-                        </div>
-                    ) : (
-                        filteredChannels.map(channel => (
-                            <GlassCard
-                                key={channel.id}
-                                className="p-4 cursor-pointer hover:border-primary/30 transition-colors active:scale-[0.99]"
-                                onClick={() => navigate(`/marketplace/channel/${channel.id}`, { state: { from: '/marketplace?tab=channels' } })}
-                            >
-                                {/* Header: Avatar + Name */}
-                                <div className="flex gap-3 mb-3">
-                                    {channel.photoUrl ? (
-                                        <img
-                                            src={channel.photoUrl}
-                                            alt={channel.title}
-                                            className="w-11 h-11 rounded-full object-cover flex-shrink-0"
-                                        />
-                                    ) : (
-                                        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                                            {channel.title.charAt(0)}
-                                        </div>
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                        <h3 className="font-semibold text-[15px] truncate">{channel.title}</h3>
-                                        <p className="text-[13px] text-muted-foreground truncate">
-                                            @{channel.username} • {formatSubs(channel.verifiedStats?.subscribers || 0)} subs
-                                        </p>
+                                <div className="flex items-center gap-[10px]">
+                                    <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="h-4 bg-muted rounded w-32 mb-1.5" />
+                                        <div className="h-3 bg-muted rounded w-48" />
                                     </div>
+                                    <div className="h-4 bg-muted rounded w-16" />
                                 </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : filteredChannels.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                        <p className="mb-2">No channels match your filters</p>
+                        <button
+                            onClick={clearFilters}
+                            className="text-[13px] text-primary font-medium"
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
+                ) : (
+                    /* Grouped List — Access mini app style */
+                    <div className="rounded-[10px] overflow-hidden">
+                        {filteredChannels.map((channel, index) => {
+                            const minPrice = getMinPrice(channel)
+                            const currency = getCurrency(channel)
+                            const catInfo = formatCategories(channel)
 
-                                {/* Stats Row */}
-                                <div className="flex items-center gap-3 text-[13px] text-muted-foreground mb-3">
-                                    {/* Rating */}
-                                    {(channel as any).avg_rating ? (
-                                        <span className="flex items-center gap-1">
-                                            <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                                            {Number((channel as any).avg_rating).toFixed(1)}
-                                            <span className="text-muted-foreground/60">
-                                                ({(channel as any).total_ratings || 0})
-                                            </span>
-                                        </span>
-                                    ) : (
-                                        <span className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-medium">
-                                            New
-                                        </span>
-                                    )}
-                                    <span className="flex items-center gap-1">
-                                        <MessageCircle className="w-3.5 h-3.5" />
-                                        ~{channel.avgViews || 0} views
-                                    </span>
-                                </div>
-
-                                {/* Category & Price */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex gap-1.5 flex-wrap">
-                                        {parseTagArray(channel.category)
-                                            .slice(0, 2)
-                                            .map((cat, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium"
-                                                >
-                                                    {cat}
-                                                </span>
-                                            ))}
-                                        {parseTagArray(channel.language).length > 0 && (
-                                            <span className="px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium">
-                                                {parseTagArray(channel.language)[0]}
-                                            </span>
+                            return (
+                                <div
+                                    key={channel.id}
+                                    className="bg-card px-4 py-[10px] cursor-pointer active:bg-accent transition-colors"
+                                    style={index > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
+                                    onClick={() => navigate(`/marketplace/channel/${channel.id}`, { state: { from: '/marketplace?tab=channels' } })}
+                                >
+                                    <div className="flex items-center gap-[10px]">
+                                        {/* Avatar */}
+                                        {channel.photoUrl ? (
+                                            <img
+                                                src={channel.photoUrl}
+                                                alt={channel.title}
+                                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0 text-white">
+                                                {channel.title.charAt(0)}
+                                            </div>
                                         )}
+
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0">
+                                            {/* Row 1: Name */}
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-medium text-[15px] truncate">
+                                                    {channel.title}
+                                                </span>
+                                                {(channel as any).avg_rating ? (
+                                                    <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground flex-shrink-0">
+                                                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                                        {Number((channel as any).avg_rating).toFixed(1)}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+
+                                            {/* Row 2: Subs + Category */}
+                                            <div className="flex items-center gap-1 text-[13px] text-muted-foreground mt-0.5">
+                                                <span className="truncate">
+                                                    {formatSubs(channel.verifiedStats?.subscribers || 0)} members
+                                                </span>
+                                                {catInfo && (
+                                                    <>
+                                                        <span className="text-muted-foreground/40">·</span>
+                                                        <span className="truncate">{catInfo.first}</span>
+                                                        {catInfo.extra > 0 && (
+                                                            <span className="text-muted-foreground/60 flex-shrink-0">
+                                                                +{catInfo.extra}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Right: Price + Chevron */}
+                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                            {minPrice !== null && (
+                                                <span className="text-[13px] font-medium text-primary">
+                                                    {minPrice} {currency}
+                                                </span>
+                                            )}
+                                            <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+                                        </div>
                                     </div>
-                                    {getMinPrice(channel) !== null && (
-                                        <span className="text-[13px] font-semibold text-primary">
-                                            From {getMinPrice(channel)} TON
-                                        </span>
-                                    )}
                                 </div>
-                            </GlassCard>
-                        ))
-                    )}
-                </div>
+                            )
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     )

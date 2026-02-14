@@ -111,10 +111,10 @@ function AppContent() {
         WebApp.disableVerticalSwipes();
       }
 
-      // Sync colors with theme
+      // Sync colors with theme (matches Access/Giveaway reference apps)
       const isDark = WebApp.colorScheme === 'dark';
-      const bgColor = isDark ? '#0a0a0f' : '#ffffff';
-      const headerColor = isDark ? '#0a0a0f' : '#ffffff';
+      const bgColor = isDark ? '#1c1c1e' : '#EFEFF4';
+      const headerColor = isDark ? '#1c1c1e' : '#EFEFF4';
 
       if (typeof WebApp.setHeaderColor === 'function') {
         WebApp.setHeaderColor(headerColor);

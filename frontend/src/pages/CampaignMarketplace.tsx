@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GlassCard } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Search, Users, Clock, Zap, SlidersHorizontal, ChevronDown, Check } from 'lucide-react'
+import { Search, Users, Clock, Zap, SlidersHorizontal, ChevronDown, ChevronRight, Check } from 'lucide-react'
 import { useTelegram } from '@/providers/TelegramProvider'
 import { API_URL, getHeaders, apiFetch } from '@/api'
 import { SearchInput } from '@/components/ui/search-input'
@@ -273,23 +273,27 @@ export function CampaignMarketplace() {
                     )}
 
                     {loading ? (
-                        // Loading Skeletons
-                        Array.from({ length: 3 }).map((_, i) => (
-                            <GlassCard key={i} className="p-4">
-                                <div className="animate-pulse">
-                                    <div className="flex gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-muted" />
-                                        <div className="flex-1">
-                                            <div className="h-4 bg-muted rounded w-32 mb-2" />
-                                            <div className="h-3 bg-muted rounded w-20" />
+                        // Loading Skeletons — grouped list style
+                        <div className="rounded-[10px] overflow-hidden">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="bg-card px-4 py-[10px] animate-pulse"
+                                    style={i > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
+                                >
+                                    <div className="flex items-center gap-[10px]">
+                                        <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="h-4 bg-muted rounded w-32 mb-1.5" />
+                                            <div className="h-3 bg-muted rounded w-48" />
                                         </div>
+                                        <div className="h-4 bg-muted rounded w-16" />
                                     </div>
-                                    <div className="h-10 bg-muted rounded" />
                                 </div>
-                            </GlassCard>
-                        ))
+                            ))}
+                        </div>
                     ) : filteredCampaigns.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-[14px]">
+                        <div className="text-center py-12 text-muted-foreground">
                             {campaigns.length === 0 ? (
                                 <>
                                     <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -299,74 +303,85 @@ export function CampaignMarketplace() {
                             ) : (
                                 <>
                                     <p className="mb-2">No campaigns match your filters</p>
-                                    <Button variant="secondary" size="sm" onClick={clearFilters}>
+                                    <button onClick={clearFilters} className="text-[13px] text-primary font-medium">
                                         Clear Filters
-                                    </Button>
+                                    </button>
                                 </>
                             )}
                         </div>
                     ) : (
-                        filteredCampaigns.map(campaign => {
-                            const slotsLeft = campaign.slots - campaign.slotsFilled
-                            const timeLeft = getTimeLeft(campaign.expiresAt)
+                        /* Grouped List — Access mini app style */
+                        <div className="rounded-[10px] overflow-hidden">
+                            {filteredCampaigns.map((campaign, index) => {
+                                const slotsLeft = campaign.slots - campaign.slotsFilled
+                                const timeLeft = getTimeLeft(campaign.expiresAt)
 
-                            return (
-                                <GlassCard
-                                    key={campaign.id}
-                                    className="p-4 cursor-pointer hover:border-primary/50 transition-colors"
-                                    onClick={() => navigate(`/campaigns/marketplace/${campaign.id}${selectedChannel ? `?channel=${selectedChannel}` : ''}`)}
-                                >
-                                    {/* Header: Avatar + Title */}
-                                    <div className="flex items-start gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/60 to-primary flex items-center justify-center text-white font-bold text-lg shrink-0">
-                                            {campaign.advertiser?.firstName?.charAt(0)?.toUpperCase() || 'A'}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold truncate">{campaign.title}</h3>
-                                                {campaign.campaignType === 'open' && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/20 text-green-400 flex items-center gap-0.5">
-                                                        <Zap className="w-2.5 h-2.5" />
-                                                        Auto
-                                                    </span>
-                                                )}
+                                return (
+                                    <div
+                                        key={campaign.id}
+                                        className="bg-card px-4 py-[10px] cursor-pointer active:bg-accent transition-colors"
+                                        style={index > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
+                                        onClick={() => navigate(`/campaigns/marketplace/${campaign.id}${selectedChannel ? `?channel=${selectedChannel}` : ''}`)}
+                                    >
+                                        <div className="flex items-center gap-[10px]">
+                                            {/* Avatar */}
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/60 to-primary flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                                {campaign.advertiser?.firstName?.charAt(0)?.toUpperCase() || 'A'}
                                             </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                by {campaign.advertiser?.firstName || 'Advertiser'}
-                                            </p>
+
+                                            {/* Content */}
+                                            <div className="flex-1 min-w-0">
+                                                {/* Row 1: Title + Auto badge */}
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-medium text-[15px] truncate">
+                                                        {campaign.title}
+                                                    </span>
+                                                    {campaign.campaignType === 'open' && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/20 text-green-400 flex items-center gap-0.5 flex-shrink-0">
+                                                            <Zap className="w-2.5 h-2.5" />
+                                                            Auto
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Row 2: Slots + Time */}
+                                                <div className="flex items-center gap-1 text-[13px] text-muted-foreground mt-0.5">
+                                                    <span>{slotsLeft} slot{slotsLeft !== 1 ? 's' : ''} left</span>
+                                                    {timeLeft && (
+                                                        <>
+                                                            <span className="text-muted-foreground/40">·</span>
+                                                            <span className="text-amber-400 flex items-center gap-0.5">
+                                                                <Clock className="w-3 h-3" />
+                                                                {timeLeft}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                    {campaign.minSubscribers && campaign.minSubscribers > 0 && (
+                                                        <>
+                                                            <span className="text-muted-foreground/40">·</span>
+                                                            <span className="flex items-center gap-0.5">
+                                                                <Users className="w-3 h-3" />
+                                                                {campaign.minSubscribers >= 1000
+                                                                    ? `${(campaign.minSubscribers / 1000).toFixed(0)}K`
+                                                                    : campaign.minSubscribers}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Right: Budget + Chevron */}
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                <span className="text-[13px] font-semibold text-primary">
+                                                    {campaign.perChannelBudget} {campaign.currency}+
+                                                </span>
+                                                <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* Stats row */}
-                                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-                                        {campaign.minSubscribers && campaign.minSubscribers > 0 && (
-                                            <span className="flex items-center gap-1">
-                                                <Users className="w-3 h-3" />
-                                                {campaign.minSubscribers >= 1000
-                                                    ? `${(campaign.minSubscribers / 1000).toFixed(campaign.minSubscribers >= 10000 ? 0 : 1)}K`
-                                                    : campaign.minSubscribers} min
-                                            </span>
-                                        )}
-                                        {timeLeft && (
-                                            <span className="flex items-center gap-1 text-amber-400">
-                                                <Clock className="w-3 h-3" />
-                                                {timeLeft}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Footer: Slots + Budget */}
-                                    <div className="flex items-center justify-between py-2 px-3 bg-card/50 rounded-lg border border-border/50">
-                                        <span className="text-sm text-muted-foreground">
-                                            {slotsLeft} slot{slotsLeft !== 1 ? 's' : ''} left
-                                        </span>
-                                        <span className="font-mono font-bold text-primary">
-                                            {campaign.perChannelBudget} {campaign.currency}+
-                                        </span>
-                                    </div>
-                                </GlassCard>
-                            )
-                        })
+                                )
+                            })}
+                        </div>
                     )}
                 </div>
             </div>

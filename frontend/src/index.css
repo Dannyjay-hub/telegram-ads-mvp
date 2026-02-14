@@ -20,9 +20,9 @@
     --tg-warning: 35 100% 50%;
     /* #FF9500 */
 
-    /* Light Mode - iOS Grey Scale */
-    --background: 240 10% 97%;
-    /* #F2F2F7 Grey 6 */
+    /* Light Mode - Telegram Default (matches Access/Giveaway apps) */
+    --background: 240 7% 95%;
+    /* #EFEFF4 */
     --foreground: 0 0% 0%;
     /* Black */
     --card: 0 0% 100%;
@@ -82,9 +82,9 @@
   }
 
   .dark {
-    /* Dark Mode - iOS Dark Grey Scale */
-    --background: 0 0% 0%;
-    /* Black */
+    /* Dark Mode - Telegram Default (matches Access/Giveaway apps) */
+    --background: 240 4% 12%;
+    /* #1C1C1E */
     --foreground: 0 0% 100%;
     /* White */
     --card: 240 4% 11%;
