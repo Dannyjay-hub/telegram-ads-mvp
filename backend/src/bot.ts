@@ -312,6 +312,69 @@ if (bot) {
         }
     });
 
+    // 8. Edit Detection — instant cancellation when a monitored ad is edited
+    bot.on('edited_channel_post', async (ctx) => {
+        const editedPost = ctx.editedChannelPost;
+        const channelId = editedPost.chat.id;
+        const messageId = editedPost.message_id;
+
+        try {
+            const { supabase } = await import('./db');
+
+            // Check if this message belongs to an active monitored deal
+            // Join with channels to match telegram_channel_id
+            const { data: deals, error } = await (supabase as any)
+                .from('deals')
+                .select(`
+                    id, posted_message_id, status, price_amount, price_currency,
+                    channel:channels!inner(telegram_channel_id, title, username),
+                    advertiser:users!deals_advertiser_id_fkey(telegram_id)
+                `)
+                .eq('status', 'posted')
+                .eq('posted_message_id', messageId)
+                .eq('channels.telegram_channel_id', channelId);
+
+            if (error || !deals || deals.length === 0) {
+                // Not a monitored post — ignore silently
+                return;
+            }
+
+            const deal = deals[0];
+            console.log(`[EditDetection] ⚠️ EDIT DETECTED on deal ${deal.id} — message ${messageId} in channel ${deal.channel.title} (${channelId})`);
+
+            // Cancel the deal
+            await (supabase as any)
+                .from('deals')
+                .update({
+                    status: 'cancelled',
+                    status_updated_at: new Date().toISOString()
+                })
+                .eq('id', deal.id);
+
+            console.log(`[EditDetection] Deal ${deal.id} cancelled due to post edit`);
+
+            // Notify advertiser
+            if (deal.advertiser?.telegram_id) {
+                const channelLink = deal.channel.username
+                    ? `[${deal.channel.title}](https://t.me/${deal.channel.username})`
+                    : `**${deal.channel.title}**`;
+                try {
+                    await bot!.api.sendMessage(
+                        deal.advertiser.telegram_id,
+                        `⚠️ **Ad Post Edited**\n\n` +
+                        `The post in ${channelLink} was edited during the monitoring period.\n\n` +
+                        `This is a violation of the advertising agreement. The deal has been cancelled and your funds will be refunded.`,
+                        { parse_mode: 'Markdown' }
+                    );
+                } catch (e) {
+                    console.warn('[EditDetection] Failed to notify advertiser:', e);
+                }
+            }
+        } catch (e) {
+            console.error('[EditDetection] Error processing edit:', e);
+        }
+    });
+
     // Error handling
     bot.catch((err) => {
         console.error('Bot error:', err);
@@ -326,9 +389,15 @@ export async function startBot() {
             await bot.api.deleteWebhook({ drop_pending_updates: true });
             console.log('Cleared pending updates');
 
-            // Start polling
+            // Start polling — include edited_channel_post for edit detection
             bot.start({
                 onStart: () => console.log('Bot started successfully'),
+                allowed_updates: [
+                    'message',
+                    'edited_channel_post',
+                    'my_chat_member',
+                    'callback_query',
+                ],
             });
         } catch (error) {
             console.error('Failed to start bot:', error);
