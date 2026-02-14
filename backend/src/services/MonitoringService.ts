@@ -108,9 +108,9 @@ export class MonitoringService {
                 return { exists: false, reason: 'Bot removed from channel' };
             }
 
-            // --- Unknown errors — assume post exists to be safe ---
-            console.warn(`[MonitoringService] ⚠️ Unknown error verifying deal ${dealId || 'unknown'} post ${messageId}: [${error.error_code}] ${errorDescription}`);
-            return { exists: true, reason: `Check failed: ${errorDescription}` };
+            // --- Unknown errors — flag for support instead of assuming ---
+            console.error(`[MonitoringService] ❗ UNKNOWN verification error for deal ${dealId || 'unknown'} post ${messageId}: [${error.error_code}] ${errorDescription}`);
+            return { exists: false, reason: `Verification failed – contact support. Error: ${errorDescription}` };
         }
     }
 
@@ -146,9 +146,9 @@ export class MonitoringService {
                 return { exists: false, reason: 'Bot removed from channel' };
             }
 
-            // Any other error — assume post exists to be safe
-            console.warn(`[MonitoringService] ⚠️ copyMessage fallback also failed for deal ${dealId || 'unknown'} post ${messageId}: [${error.error_code}] ${errorDescription}`);
-            return { exists: true, reason: `Both verification methods failed: ${errorDescription}` };
+            // Any other error — flag for support instead of assuming
+            console.error(`[MonitoringService] ❗ UNKNOWN copyMessage error for deal ${dealId || 'unknown'} post ${messageId}: [${error.error_code}] ${errorDescription}`);
+            return { exists: false, reason: `Verification failed – contact support. Error: ${errorDescription}` };
         }
     }
 

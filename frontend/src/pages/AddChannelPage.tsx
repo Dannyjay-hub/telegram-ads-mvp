@@ -133,7 +133,7 @@ export function AddChannelPage() {
             // Timeout — reset to idle and show toast (exactly like Access)
             stopPolling()
             setState('idle')
-            showToast('Please check if the bot was added to the group or channel')
+            showToast('Please check if the bot was added to the channel')
             haptic.error()
         }
     }
@@ -242,7 +242,7 @@ export function AddChannelPage() {
     const getButtonConfig = () => {
         switch (state) {
             case 'idle':
-                return { text: 'Add Group or Channel', onClick: handleAddChannel, loading: false }
+                return { text: 'Add Channel', onClick: handleAddChannel, loading: false }
             case 'checking':
                 return { text: 'Cancel', onClick: handleCancel, loading: false }
             case 'verifying':
@@ -250,7 +250,7 @@ export function AddChannelPage() {
             case 'success':
                 return { text: 'Next', onClick: handleNext, loading: false }
             default:
-                return { text: 'Add Group or Channel', onClick: handleAddChannel, loading: false }
+                return { text: 'Add Channel', onClick: handleAddChannel, loading: false }
         }
     }
 
