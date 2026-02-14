@@ -87,10 +87,10 @@
     /* #1C1C1E */
     --foreground: 0 0% 100%;
     /* White */
-    --card: 240 4% 11%;
-    /* #1C1C1E Grey 6 dark */
+    --card: 240 4% 17%;
+    /* #2C2C2E Grey 5 dark - section bg (lighter than page bg) */
     --card-foreground: 0 0% 100%;
-    --popover: 240 4% 11%;
+    --popover: 240 4% 17%;
     --popover-foreground: 0 0% 100%;
 
     /* Primary - Telegram Blue Dark */
@@ -99,17 +99,17 @@
     --primary-foreground: 0 0% 100%;
 
     /* Secondary */
-    --secondary: 240 4% 11%;
+    --secondary: 240 4% 17%;
     --secondary-foreground: 0 0% 100%;
 
     /* Muted */
-    --muted: 240 4% 11%;
+    --muted: 240 4% 17%;
     --muted-foreground: 240 3% 56%;
     /* #8E8E93 */
 
     /* Accent */
-    --accent: 240 4% 16%;
-    /* #2C2C2E Grey 5 dark */
+    --accent: 240 4% 22%;
+    /* #38383A hover/pressed state */
     --accent-foreground: 0 0% 100%;
 
     /* Destructive - iOS Red Dark */
@@ -124,7 +124,7 @@
     --ring: 214 100% 52%;
 
     /* Section backgrounds */
-    --section-bg: 240 4% 11%;
+    --section-bg: 240 4% 17%;
     --fill-secondary: rgba(116, 116, 128, 0.24);
     --fill-tertiary: rgba(116, 116, 128, 0.18);
     --fill-quaternary: rgba(116, 116, 128, 0.12);

@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
-import { Megaphone, Briefcase } from 'lucide-react'
 import { MarketplacePage } from '@/components/MarketplacePage'
 import { CampaignMarketplace } from './CampaignMarketplace'
+import { haptic } from '@/utils/haptic'
 
 // CampaignsMarketplaceTab - uses the real CampaignMarketplace component
 function CampaignsMarketplaceTab() {
@@ -13,37 +13,41 @@ export function MarketplaceContainer() {
     const activeTab = searchParams.get('tab') || 'channels' // 'channels' or 'campaigns'
 
     const setTab = (tab: string) => {
+        haptic.light()
         // Use replace: true so tab changes don't add to browser history
         setSearchParams({ tab }, { replace: true })
     }
 
     return (
         <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
-            {/* Sticky Tabs - No "Marketplace" title */}
-            <div className="flex-shrink-0 bg-[--tg-theme-bg-color] pb-3">
-                {/* P2P Style Toggle */}
-                <div className="bg-secondary p-1 rounded-xl flex relative">
-                    {/* Sliding Background */}
+            {/* Sticky Header — center-aligned compact pill toggle (matches Access) */}
+            <div className="flex-shrink-0 flex justify-center pb-4">
+                <div
+                    className="relative flex items-center rounded-[18px] h-[36px] p-[2px]"
+                    style={{ backgroundColor: 'var(--fill-secondary)' }}
+                >
+                    {/* Sliding indicator */}
                     <div
-                        className="absolute top-1 bottom-1 rounded-lg bg-accent transition-all duration-300 ease-out"
+                        className="absolute top-[2px] h-[calc(100%-4px)] rounded-[16px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none z-0"
                         style={{
-                            left: activeTab === 'channels' ? '0.25rem' : '50%',
-                            width: 'calc(50% - 0.25rem)'
+                            backgroundColor: 'var(--tg-theme-section-bg-color, var(--card))',
+                            width: activeTab === 'channels' ? '136px' : '150px',
+                            left: activeTab === 'channels' ? '2px' : '138px',
                         }}
                     />
 
                     <button
                         onClick={() => setTab('channels')}
-                        className={`flex-1 relative z-10 py-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${activeTab === 'channels' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                        className="relative z-10 flex items-center justify-center h-full px-5 text-[15px] font-semibold bg-transparent transition-colors"
+                        style={{ color: 'var(--tg-theme-text-color, inherit)' }}
                     >
-                        <Megaphone className="w-4 h-4" />
                         Find Channels
                     </button>
                     <button
                         onClick={() => setTab('campaigns')}
-                        className={`flex-1 relative z-10 py-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${activeTab === 'campaigns' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                        className="relative z-10 flex items-center justify-center h-full px-5 text-[15px] font-semibold bg-transparent transition-colors"
+                        style={{ color: 'var(--tg-theme-text-color, inherit)' }}
                     >
-                        <Briefcase className="w-4 h-4" />
                         Find Campaigns
                     </button>
                 </div>
