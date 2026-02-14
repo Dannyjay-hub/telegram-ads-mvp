@@ -62,6 +62,7 @@ export class MonitoringService {
 
     /**
      * Primary verification method: forward to private verification channel
+     * Falls back to copyMessage if verification channel is inaccessible
      */
     private async checkPostExistsViaVerificationChannel(
         channelId: number,
@@ -78,13 +79,44 @@ export class MonitoringService {
             console.log(`[MonitoringService] ✅ Verified deal ${dealId || 'unknown'}: post ${messageId} exists`);
             return { exists: true };
         } catch (error: any) {
-            return this.handleVerificationError(error, messageId);
+            const errorMessage = error.message || 'Unknown error';
+            const errorDescription = error.description || errorMessage;
+
+            // --- MESSAGE-LEVEL errors (post was actually deleted) ---
+            if (errorDescription.includes('message to forward not found') ||
+                errorDescription.includes('MESSAGE_ID_INVALID') ||
+                errorDescription.includes("message can't be forwarded")) {
+                console.log(`[MonitoringService] ❌ Post ${messageId} was DELETED from channel`);
+                return { exists: false, reason: 'Post was deleted' };
+            }
+
+            // --- CHANNEL-LEVEL errors (verification channel issue, NOT post deletion) ---
+            // Fall back to copyMessage instead of declaring the post deleted
+            if (errorDescription.includes('chat not found') ||
+                errorDescription.includes('bot is not a member') ||
+                errorDescription.includes('not enough rights') ||
+                errorDescription.includes('CHAT_WRITE_FORBIDDEN') ||
+                errorDescription.includes('CHANNEL_PRIVATE')) {
+                console.warn(`[MonitoringService] ⚠️ Verification channel inaccessible for deal ${dealId || 'unknown'}: ${errorDescription}`);
+                console.warn(`[MonitoringService] Falling back to copyMessage method...`);
+                return this.checkPostExistsViaCopyMessage(channelId, messageId, dealId);
+            }
+
+            // --- SOURCE CHANNEL errors (bot kicked from the actual channel) ---
+            if (error.error_code === 403 || errorDescription.includes('bot was kicked')) {
+                console.log(`[MonitoringService] ⚠️ Bot kicked from source channel for deal ${dealId || 'unknown'} post ${messageId}`);
+                return { exists: false, reason: 'Bot removed from channel' };
+            }
+
+            // --- Unknown errors — assume post exists to be safe ---
+            console.warn(`[MonitoringService] ⚠️ Unknown error verifying deal ${dealId || 'unknown'} post ${messageId}: [${error.error_code}] ${errorDescription}`);
+            return { exists: true, reason: `Check failed: ${errorDescription}` };
         }
     }
 
     /**
-     * Fallback verification: copyMessage (causes phantom notifications but works)
-     * Used when VERIFICATION_CHANNEL_ID is not configured
+     * Fallback verification: copyMessage (works when verification channel is unavailable)
+     * Copies message to same channel then immediately deletes the copy
      */
     private async checkPostExistsViaCopyMessage(
         channelId: number,
@@ -98,36 +130,26 @@ export class MonitoringService {
             console.log(`[MonitoringService] ✅ Verified deal ${dealId || 'unknown'}: post ${messageId} exists (via copyMessage)`);
             return { exists: true };
         } catch (error: any) {
-            return this.handleVerificationError(error, messageId);
+            const errorDescription = error.description || error.message || 'Unknown error';
+
+            // Message-level errors: post was genuinely deleted
+            if (errorDescription.includes('message to copy not found') ||
+                errorDescription.includes('MESSAGE_ID_INVALID') ||
+                errorDescription.includes('message not found')) {
+                console.log(`[MonitoringService] ❌ Post ${messageId} was DELETED from channel (confirmed via copyMessage)`);
+                return { exists: false, reason: 'Post was deleted' };
+            }
+
+            // Bot kicked from source channel
+            if (error.error_code === 403 || errorDescription.includes('bot was kicked')) {
+                console.log(`[MonitoringService] ⚠️ Bot kicked from channel for deal ${dealId || 'unknown'} post ${messageId}`);
+                return { exists: false, reason: 'Bot removed from channel' };
+            }
+
+            // Any other error — assume post exists to be safe
+            console.warn(`[MonitoringService] ⚠️ copyMessage fallback also failed for deal ${dealId || 'unknown'} post ${messageId}: [${error.error_code}] ${errorDescription}`);
+            return { exists: true, reason: `Both verification methods failed: ${errorDescription}` };
         }
-    }
-
-    /**
-     * Handle verification errors - determine if post was deleted or other issue
-     */
-    private handleVerificationError(error: any, messageId: number): { exists: boolean; reason?: string } {
-        const errorCode = error.error_code || (error.message?.includes('400') ? 400 : null);
-        const errorMessage = error.message || 'Unknown error';
-
-        // 400: Message doesn't exist or was deleted
-        if (errorCode === 400 ||
-            errorMessage.includes('message to forward not found') ||
-            errorMessage.includes("message can't be forwarded") ||
-            errorMessage.includes('message to copy not found') ||
-            errorMessage.includes('MESSAGE_ID_INVALID')) {
-            console.log(`[MonitoringService] ❌ Post ${messageId} was DELETED from channel`);
-            return { exists: false, reason: 'Post was deleted' };
-        }
-
-        // 403: Bot was kicked from the channel
-        if (errorCode === 403 || errorMessage.includes('bot was kicked')) {
-            console.log(`[MonitoringService] ⚠️ Bot kicked from channel for deal with post ${messageId}`);
-            return { exists: false, reason: 'Bot removed from channel' };
-        }
-
-        // Other errors - assume exists to be safe
-        console.warn(`[MonitoringService] Error checking post ${messageId}: ${errorMessage}`);
-        return { exists: true, reason: `Check failed: ${errorMessage}` };
     }
 
     /**

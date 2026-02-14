@@ -64,10 +64,9 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
                 className={cn(
                     "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                     "text-[13px] font-medium",
-                    "bg-card border border-border",
+                    "bg-[var(--fill-secondary)]",
                     "transition-all duration-200",
-                    "active:scale-[0.96]",
-                    isOpen && "border-primary/30"
+                    "active:scale-[0.96]"
                 )}
             >
                 <span className="text-muted-foreground">Sort</span>

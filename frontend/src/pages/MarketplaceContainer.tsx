@@ -26,26 +26,26 @@ export function MarketplaceContainer() {
                     className="relative flex items-center rounded-[18px] h-[36px] p-[2px]"
                     style={{ backgroundColor: 'var(--fill-secondary)' }}
                 >
-                    {/* Sliding indicator */}
+                    {/* Sliding indicator — equal 50% width for both tabs */}
                     <div
                         className="absolute top-[2px] h-[calc(100%-4px)] rounded-[16px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none z-0"
                         style={{
-                            backgroundColor: 'var(--tg-theme-section-bg-color, var(--card))',
-                            width: activeTab === 'channels' ? '136px' : '150px',
-                            left: activeTab === 'channels' ? '2px' : '138px',
+                            backgroundColor: 'var(--tg-theme-section-bg-color, hsl(var(--card)))',
+                            width: 'calc(50% - 2px)',
+                            left: activeTab === 'channels' ? '2px' : '50%',
                         }}
                     />
 
                     <button
                         onClick={() => setTab('channels')}
-                        className="relative z-10 flex items-center justify-center h-full px-5 text-[15px] font-semibold bg-transparent transition-colors"
+                        className="relative z-10 flex items-center justify-center h-full w-[140px] text-[15px] font-semibold bg-transparent transition-colors"
                         style={{ color: 'var(--tg-theme-text-color, inherit)' }}
                     >
                         Find Channels
                     </button>
                     <button
                         onClick={() => setTab('campaigns')}
-                        className="relative z-10 flex items-center justify-center h-full px-5 text-[15px] font-semibold bg-transparent transition-colors"
+                        className="relative z-10 flex items-center justify-center h-full w-[140px] text-[15px] font-semibold bg-transparent transition-colors"
                         style={{ color: 'var(--tg-theme-text-color, inherit)' }}
                     >
                         Find Campaigns

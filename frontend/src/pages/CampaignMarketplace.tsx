@@ -138,7 +138,7 @@ export function CampaignMarketplace() {
                 {userChannels.length > 0 && (
                     <div className="mb-3">
                         <select
-                            className="w-full bg-transparent border border-input rounded-md px-3 py-2 text-sm"
+                            className="w-full bg-[var(--fill-secondary)] border-0 rounded-[10px] px-3 py-2.5 text-sm text-foreground appearance-none"
                             value={selectedChannel || ''}
                             onChange={e => setSelectedChannel(e.target.value)}
                         >
@@ -161,9 +161,9 @@ export function CampaignMarketplace() {
                             className={cn(
                                 "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                                 "text-[13px] font-medium",
-                                "bg-card border border-border",
+                                "bg-[var(--fill-secondary)]",
                                 "transition-all duration-200 active:scale-[0.96]",
-                                (filters.budgetRange || activeFilterCount > 0) && "border-primary/30 text-primary"
+                                (filters.budgetRange || activeFilterCount > 0) && "text-primary"
                             )}
                         >
                             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -217,9 +217,8 @@ export function CampaignMarketplace() {
                             className={cn(
                                 "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                                 "text-[13px] font-medium",
-                                "bg-card border border-border",
-                                "transition-all duration-200 active:scale-[0.96]",
-                                sortOpen && "border-primary/30"
+                                "bg-[var(--fill-secondary)]",
+                                "transition-all duration-200 active:scale-[0.96]"
                             )}
                         >
                             <span className="text-muted-foreground">Sort</span>
