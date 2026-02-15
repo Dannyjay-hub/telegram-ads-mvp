@@ -254,6 +254,7 @@ export class MonitoringService {
             .from('deals')
             .select(`
                 id, posted_message_id, posted_at, monitoring_end_at, monitoring_checks, channel_id,
+                price_amount, price_currency, advertiser_wallet_address, campaign_id,
                 channel:channels(telegram_channel_id, title, username),
                 advertiser:users!deals_advertiser_id_fkey(telegram_id)
             `)
@@ -306,11 +307,18 @@ export class MonitoringService {
 
     /**
      * Handle case where post was deleted before 24h
+     * 1. Cancel deal
+     * 2. Refund advertiser (service package) or return slot (campaign)
+     * 3. Notify both parties
      */
     private async handleEarlyDeletion(deal: any): Promise<void> {
         console.log(`[MonitoringService] Post deleted early for deal ${deal.id}`);
 
-        // Update deal status
+        const channelLink = deal.channel?.username
+            ? `[${deal.channel.title}](https://t.me/${deal.channel.username})`
+            : `**${deal.channel?.title}**`;
+
+        // 1. Update deal status
         await (supabase as any)
             .from('deals')
             .update({
@@ -319,21 +327,77 @@ export class MonitoringService {
             })
             .eq('id', deal.id);
 
-        // TODO: Trigger refund process
-        // For MVP, we'll mark it and handle refund manually or via separate job
+        // 2. Refund advertiser if they paid
+        if (deal.advertiser_wallet_address && deal.price_amount) {
+            try {
+                const { tonPayoutService } = await import('./TonPayoutService');
+                await tonPayoutService.queueRefund(
+                    deal.id,
+                    deal.advertiser_wallet_address,
+                    deal.price_amount,
+                    (deal.price_currency as 'TON' | 'USDT') || 'TON',
+                    'Post deleted during monitoring period'
+                );
+                console.log(`[MonitoringService] Refund queued for deal ${deal.id}`);
+            } catch (refundErr) {
+                console.error(`[MonitoringService] Refund queue failed for deal ${deal.id}:`, refundErr);
+            }
+        }
 
-        // Notify advertiser
+        // 3. Release campaign slot if this was a campaign deal
+        if (deal.campaign_id) {
+            try {
+                const { SupabaseCampaignRepository } = await import('../repositories/supabase/SupabaseCampaignRepository');
+                const campaignRepo = new SupabaseCampaignRepository();
+                await campaignRepo.releaseSlot(deal.campaign_id, deal.price_amount || 0);
+                console.log(`[MonitoringService] Campaign slot released for deal ${deal.id}`);
+            } catch (slotErr) {
+                console.error(`[MonitoringService] Slot release failed for deal ${deal.id}:`, slotErr);
+            }
+        }
+
+        // 4. Notify advertiser
         if (bot && deal.advertiser?.telegram_id) {
             try {
+                const refundNote = deal.advertiser_wallet_address
+                    ? 'Your funds will be refunded to your wallet.'
+                    : 'Please contact support regarding your refund.';
                 await bot.api.sendMessage(
                     deal.advertiser.telegram_id,
                     `⚠️ **Post Removed Early**\n\n` +
-                    `The post in ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title}**`} was deleted before the 24-hour period ended.\n\n` +
-                    `Your funds will be refunded.`,
+                    `The post in ${channelLink} was deleted before the 24-hour period ended.\n\n` +
+                    `${refundNote}`,
                     { parse_mode: 'Markdown' }
                 );
             } catch (e) {
                 console.warn('[MonitoringService] Failed to notify advertiser');
+            }
+        }
+
+        // 5. Notify channel admins
+        if (bot && deal.channel_id) {
+            try {
+                const { data: channelAdmins } = await (supabase as any)
+                    .from('channel_admins')
+                    .select('user:users(telegram_id)')
+                    .eq('channel_id', deal.channel_id);
+
+                if (channelAdmins) {
+                    for (const admin of channelAdmins) {
+                        const tid = (admin as any)?.user?.telegram_id;
+                        if (!tid) continue;
+                        try {
+                            await bot.api.sendMessage(tid,
+                                `⚠️ **Post Deleted Early**\n\n` +
+                                `The ad post for ${channelLink} was removed before the 24-hour monitoring period ended.\n\n` +
+                                `The deal has been cancelled and the advertiser will be refunded.`,
+                                { parse_mode: 'Markdown' }
+                            );
+                        } catch (e) { /* skip */ }
+                    }
+                }
+            } catch (e) {
+                console.warn('[MonitoringService] Failed to notify channel admins');
             }
         }
     }

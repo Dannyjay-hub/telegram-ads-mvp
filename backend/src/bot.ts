@@ -322,11 +322,11 @@ if (bot) {
             const { supabase } = await import('./db');
 
             // Check if this message belongs to an active monitored deal
-            // Join with channels to match telegram_channel_id
             const { data: deals, error } = await (supabase as any)
                 .from('deals')
                 .select(`
                     id, posted_message_id, status, price_amount, price_currency,
+                    advertiser_wallet_address, campaign_id, channel_id,
                     channel:channels!inner(telegram_channel_id, title, username),
                     advertiser:users!deals_advertiser_id_fkey(telegram_id)
                 `)
@@ -335,14 +335,13 @@ if (bot) {
                 .eq('channels.telegram_channel_id', channelId);
 
             if (error || !deals || deals.length === 0) {
-                // Not a monitored post — ignore silently
                 return;
             }
 
             const deal = deals[0];
             console.log(`[EditDetection] ⚠️ EDIT DETECTED on deal ${deal.id} — message ${messageId} in channel ${deal.channel.title} (${channelId})`);
 
-            // Cancel the deal
+            // 1. Cancel the deal
             await (supabase as any)
                 .from('deals')
                 .update({
@@ -353,21 +352,82 @@ if (bot) {
 
             console.log(`[EditDetection] Deal ${deal.id} cancelled due to post edit`);
 
-            // Notify advertiser
+            const channelLink = deal.channel.username
+                ? `[${deal.channel.title}](https://t.me/${deal.channel.username})`
+                : `**${deal.channel.title}**`;
+
+            // 2. Refund advertiser if they paid
+            if (deal.advertiser_wallet_address && deal.price_amount) {
+                try {
+                    const { tonPayoutService } = await import('./services/TonPayoutService');
+                    await tonPayoutService.queueRefund(
+                        deal.id,
+                        deal.advertiser_wallet_address,
+                        deal.price_amount,
+                        (deal.price_currency as 'TON' | 'USDT') || 'TON',
+                        'Post edited during monitoring period'
+                    );
+                    console.log(`[EditDetection] Refund queued for deal ${deal.id}`);
+                } catch (refundErr) {
+                    console.error(`[EditDetection] Refund queue failed for deal ${deal.id}:`, refundErr);
+                }
+            }
+
+            // 3. Release campaign slot if this was a campaign deal
+            if (deal.campaign_id) {
+                try {
+                    const { SupabaseCampaignRepository } = await import('./repositories/supabase/SupabaseCampaignRepository');
+                    const campaignRepo = new SupabaseCampaignRepository();
+                    await campaignRepo.releaseSlot(deal.campaign_id, deal.price_amount || 0);
+                    console.log(`[EditDetection] Campaign slot released for deal ${deal.id}`);
+                } catch (slotErr) {
+                    console.error(`[EditDetection] Slot release failed for deal ${deal.id}:`, slotErr);
+                }
+            }
+
+            // 4. Notify advertiser
             if (deal.advertiser?.telegram_id) {
-                const channelLink = deal.channel.username
-                    ? `[${deal.channel.title}](https://t.me/${deal.channel.username})`
-                    : `**${deal.channel.title}**`;
+                const refundNote = deal.advertiser_wallet_address
+                    ? 'Your funds will be refunded to your wallet.'
+                    : 'Please contact support regarding your refund.';
                 try {
                     await bot!.api.sendMessage(
                         deal.advertiser.telegram_id,
                         `⚠️ **Ad Post Edited**\n\n` +
                         `The post in ${channelLink} was edited during the monitoring period.\n\n` +
-                        `This is a violation of the advertising agreement. The deal has been cancelled and your funds will be refunded.`,
+                        `This is a violation of the advertising agreement. The deal has been cancelled.\n\n` +
+                        `${refundNote}`,
                         { parse_mode: 'Markdown' }
                     );
                 } catch (e) {
                     console.warn('[EditDetection] Failed to notify advertiser:', e);
+                }
+            }
+
+            // 5. Notify channel admins
+            if (deal.channel_id) {
+                try {
+                    const { data: channelAdmins } = await (supabase as any)
+                        .from('channel_admins')
+                        .select('user:users(telegram_id)')
+                        .eq('channel_id', deal.channel_id);
+
+                    if (channelAdmins) {
+                        for (const admin of channelAdmins) {
+                            const tid = (admin as any)?.user?.telegram_id;
+                            if (!tid) continue;
+                            try {
+                                await bot!.api.sendMessage(tid,
+                                    `⚠️ **Ad Post Edited**\n\n` +
+                                    `The ad post in ${channelLink} was edited during the monitoring period.\n\n` +
+                                    `The deal has been cancelled and the advertiser will be refunded.`,
+                                    { parse_mode: 'Markdown' }
+                                );
+                            } catch (e) { /* skip */ }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[EditDetection] Failed to notify channel admins:', e);
                 }
             }
         } catch (e) {
