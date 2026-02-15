@@ -79,7 +79,8 @@ export class SchedulingService {
                 });
 
                 if (proposedBy === 'advertiser') {
-                    // Notify channel admins
+                    // Notify channel admins with combined "Draft Approved & Time Proposed"
+                    // (advertiser always proposes time right after approving the draft)
                     const { data: admins } = await supabase
                         .from('channel_admins')
                         .select('users(telegram_id)')
@@ -90,10 +91,10 @@ export class SchedulingService {
                         if (telegramId) {
                             await bot.api.sendMessage(
                                 telegramId,
-                                `⏰ **Time Proposed**\n\n` +
-                                `The advertiser wants to post at:\n` +
+                                `✅ **Draft Approved & Time Proposed**\n\n` +
+                                `The advertiser approved your draft and wants to post at:\n` +
                                 `**${formattedTime}**\n\n` +
-                                `Open the app to Accept or Counter.`,
+                                `Open the app to **Accept** or **Counter**.`,
                                 {
                                     parse_mode: 'Markdown',
                                     reply_markup: {
@@ -105,7 +106,7 @@ export class SchedulingService {
                             );
                         }
                     }
-                    console.log(`[SchedulingService] Notified channel admins of time proposal`);
+                    console.log(`[SchedulingService] Notified channel admins of approval + time proposal`);
                 } else {
                     // Notify advertiser - get advertiser_id directly from deal
                     const { data: dealDetails } = await (supabase as any)

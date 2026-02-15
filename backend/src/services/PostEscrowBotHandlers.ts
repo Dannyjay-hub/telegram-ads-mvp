@@ -482,40 +482,11 @@ async function handleApproveDraft(
             });
         }
 
-        // Notify channel admins (owner + PR managers) that draft was approved
-        const deal = await draftService.getDealWithDraft(dealId);
-        if (deal?.channel_id) {
-            const { data: admins } = await supabase
-                .from('channel_admins')
-                .select('users(telegram_id)')
-                .eq('channel_id', deal.channel_id);
 
-            if (admins) {
-                for (const admin of admins) {
-                    const tid = (admin as any)?.users?.telegram_id;
-                    if (!tid) continue;
-                    try {
-                        await bot!.api.sendMessage(
-                            tid,
-                            `✅ **Draft Approved!**\n\n` +
-                            `The advertiser approved your draft for ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title || 'your channel'}**`}.` +
-                            `\n\nPlease go to the app to **schedule the post**.`,
-                            {
-                                parse_mode: 'Markdown',
-                                reply_markup: {
-                                    inline_keyboard: [
-                                        [{ text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }],
-                                        [{ text: '💬 Chat with Advertiser', url: getBotDeepLink(`chat_${dealId}`) }]
-                                    ]
-                                }
-                            }
-                        );
-                    } catch (notifErr) {
-                        console.warn(`[PostEscrowBotHandlers] Failed to notify admin ${tid}:`, notifErr);
-                    }
-                }
-            }
-        }
+        // NOTE: Channel admins are NOT notified here separately.
+        // The advertiser proposes a time immediately after approving,
+        // so SchedulingService.proposeTime() sends a combined
+        // "Draft Approved & Time Proposed" message to avoid double notifications.
 
     } catch (error: any) {
         console.error('[PostEscrowBotHandlers] Error approving draft:', error);
@@ -677,7 +648,11 @@ async function handleChatMessage(
     if (!sender) return;
 
     const isAdvertiser = sender.id === deal.advertiser_id;
-    const senderLabel = isAdvertiser ? 'Advertiser' : deal.channel?.title || 'Channel';
+    const senderName = sender.first_name || sender.username || (isAdvertiser ? 'Advertiser' : 'Channel');
+    const dealContext = isAdvertiser
+        ? (deal.channel?.title ? ` (re: ${deal.channel.title})` : '')
+        : (deal.advertiser?.first_name ? ` (re: ${deal.advertiser.first_name})` : '');
+    const senderLabel = `${senderName}${dealContext}`;
 
     // Store message
     await supabase.from('deal_messages').insert({

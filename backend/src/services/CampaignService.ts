@@ -370,7 +370,7 @@ export class CampaignService {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [
-                                        [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }],
+                                        [{ text: '📝 Create Draft', url: getBotDeepLink(`draft_${deal.id}`) }],
                                         [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }],
                                         [{ text: '💬 Chat with Advertiser', url: getBotDeepLink(`chat_${deal.id}`) }]
                                     ]
@@ -546,7 +546,7 @@ export class CampaignService {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
                                     inline_keyboard: [
-                                        [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }],
+                                        [{ text: '📝 Create Draft', url: getBotDeepLink(`draft_${deal.id}`) }],
                                         [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }]
                                     ]
                                 }

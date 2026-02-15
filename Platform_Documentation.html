@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Ad Marketplace — Platform Documentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            line-height: 1.7;
+            color: #1a1a2e;
+            background: #fff;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 32px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            color: #0f0f23;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            color: #1e293b;
+        }
+
+        h3 {
+            font-size: 1.15em;
+            margin-top: 28px;
+            margin-bottom: 10px;
+            color: #334155;
+        }
+
+        h4 {
+            font-size: 1em;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            color: #475569;
+        }
+
+        p {
+            margin-bottom: 14px;
+        }
+
+        blockquote {
+            border-left: 4px solid #3b82f6;
+            background: #eff6ff;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        blockquote.warning {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        blockquote.important {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.92em;
+        }
+
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-size: 0.88em;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        ul,
+        ol {
+            margin: 10px 0 14px 24px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        strong {
+            color: #0f172a;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 32px 0;
+        }
+
+        .mermaid {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 1.05em;
+            margin-bottom: 32px;
+            font-style: italic;
+        }
+
+        .toc {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px 28px;
+            margin: 24px 0;
+        }
+
+        .toc ol {
+            margin: 8px 0 0 20px;
+        }
+
+        .toc li {
+            margin-bottom: 4px;
+        }
+
+        .toc a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        a {
+            color: #3b82f6;
+        }
+
+        @media print {
+            body {
+                padding: 20px;
+                font-size: 11pt;
+            }
+
+            h2 {
+                page-break-before: auto;
+            }
+
+            pre,
+            .mermaid,
+            table {
+                page-break-inside: avoid;
+            }
+
+            blockquote {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Telegram Ad Marketplace — Platform Documentation</h1>
+    <p class="subtitle">Final submission documentation covering architecture, engineering decisions, flows, key
+        decisions, known limitations, and future roadmap.</p>
+
+    <div class="toc">
+        <strong>Table of Contents</strong>
+        <ol>
+            <li><a href="#s1">Architecture Overview</a></li>
+            <li><a href="#s2">Channel Listing Flow</a></li>
+            <li><a href="#s3">PR Manager System</a></li>
+            <li><a href="#s4">Campaign Model: Open vs Closed</a></li>
+            <li><a href="#s5">Unified Deal Flow</a></li>
+            <li><a href="#s6">Creative Approval</a></li>
+            <li><a href="#s7">Scheduling &amp; Auto-Posting</a></li>
+            <li><a href="#s8">Monitoring Service</a></li>
+            <li><a href="#s9">Escrow &amp; Payment System</a></li>
+            <li><a href="#s10">Payout &amp; Refund</a></li>
+            <li><a href="#s11">Platform Fees</a></li>
+            <li><a href="#s12">Deal Timeouts</a></li>
+            <li><a href="#s13">User Role Flows</a></li>
+            <li><a href="#s14">Partnerships View</a></li>
+            <li><a href="#s15">Known Limitations</a></li>
+            <li><a href="#s16">Future Roadmap</a></li>
+        </ol>
+    </div>
+
+    <hr>
+
+    <!-- SECTION 1 -->
+    <h2 id="s1">1. Architecture Overview</h2>
+    <p>The platform is a <strong>Telegram Mini App</strong> built on the TON blockchain for trustless advertising deals.
+    </p>
+
+    <table>
+        <tr>
+            <th>Layer</th>
+            <th>Technology</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>Frontend</td>
+            <td>React + TypeScript + Vite</td>
+            <td>Telegram Mini App UI</td>
+        </tr>
+        <tr>
+            <td>Backend</td>
+            <td>Node.js + Hono + Grammy</td>
+            <td>REST API + Telegram Bot</td>
+        </tr>
+        <tr>
+            <td>Database</td>
+            <td>Supabase (PostgreSQL)</td>
+            <td>Data persistence</td>
+        </tr>
+        <tr>
+            <td>Blockchain</td>
+            <td>TON (native + USDT Jetton)</td>
+            <td>Escrow payments &amp; payouts</td>
+        </tr>
+        <tr>
+            <td>Bot Framework</td>
+            <td>Grammy</td>
+            <td>Channel posting, monitoring, notifications</td>
+        </tr>
+    </table>
+
+    <div class="mermaid">
+        graph TB
+        subgraph "Frontend - Telegram Mini App"
+        UI["React UI"]
+        TC["TonConnect Wallet"]
+        end
+        subgraph "Backend - Hono Server"
+        API["REST API Routes"]
+        BOT["Grammy Bot"]
+        BG["Background Jobs"]
+        MON["Monitoring Service"]
+        PAY["TonPaymentService"]
+        end
+        subgraph "External"
+        TG["Telegram API"]
+        TON["TON Blockchain"]
+        TAPI["TonAPI Webhooks"]
+        DB[("Supabase PostgreSQL")]
+        end
+        UI --> API
+        TC --> TON
+        API --> DB
+        BOT --> TG
+        BG --> BOT
+        MON --> BOT
+        PAY --> TON
+        TAPI --> API
+        TON --> TAPI
+    </div>
+
+    <hr>
+
+    <!-- SECTION 2 -->
+    <h2 id="s2">2. Channel Listing Flow</h2>
+    <h3>How It Works</h3>
+    <p>A channel goes through a strict verification pipeline before it can appear on the marketplace.</p>
+
+    <div class="mermaid">
+        flowchart TD
+        A["Channel Owner enters channel username"] --> B{"Duplicate Check"}
+        B -->|"Already listed"| CONFLICT["409 Conflict: Already listed"]
+        B -->|"Not listed"| C{"Bot Added?"}
+        C -->|"No"| STATE_A["State A: NOT_ADDED — Add bot as admin"]
+        C -->|"Yes"| D{"Bot is Admin?"}
+        D -->|"No"| STATE_B["State B: NOT_ADMIN — Promote bot to admin"]
+        D -->|"Yes"| E{"Required Permissions?"}
+        E -->|"Missing"| STATE_C["State C: MISSING_PERMS — Enable specific permissions"]
+        E -->|"All present"| F{"User is Creator?"}
+        F -->|"No"| NOT_OWNER["NOT_OWNER — Only channel creator can list"]
+        F -->|"Yes"| G{"Public Channel?"}
+        G -->|"No username"| PRIVATE["PRIVATE_CHANNEL — Only public channels allowed"]
+        G -->|"Has username"| READY["State D: READY ✅"]
+        READY --> H["Owner fills details: description, category, pricing, payout wallet"]
+        H --> I{"Content Moderation"}
+        I -->|"Blacklisted"| BLOCKED["400: Content Policy Violation"]
+        I -->|"Clean"| J["Channel saved as draft"]
+        J --> K["Owner publishes → active"]
+        K --> LISTED["Channel appears on marketplace"]
+    </div>
+
+    <h3>Key Engineering Decisions</h3>
+    <ol>
+        <li><strong>Bot Permission State Machine (A → B → C → D)</strong>: Rather than a single pass/fail check, we
+            implemented a 4-state machine that guides the user through each specific issue. The bot needs
+            <code>can_post_messages</code>, <code>can_edit_messages</code>, and <code>can_delete_messages</code> — each
+            checked individually with clear error messages.</li>
+        <li><strong>Owner-Only Listing</strong>: Only the Telegram channel <code>creator</code> can list a channel. We
+            enforce this via <code>getChatMember()</code> and checking <code>status === 'creator'</code>. PR managers
+            and other admins cannot list channels — this prevents unauthorized listings.</li>
+        <li><strong>Duplicate Prevention</strong>: Before the expensive Telegram API calls, we run a fast DB query
+            checking <code>telegram_channel_id</code> uniqueness. Returns <code>409 Conflict</code> with the existing
+            channel details.</li>
+        <li><strong>Private Channel Rejection</strong>: Channels without a <code>username</code> (private channels) are
+            blocked. Advertisers need to verify the channel exists and view it.</li>
+        <li><strong>Content Moderation on Entry</strong>: All text fields (description, category, rate card
+            titles/descriptions) are checked against a 250+ word blacklist before saving. Runs on both creation AND
+            updates.</li>
+        <li><strong>Payout Wallet at Listing</strong>: We ask for the channel owner's payout wallet during listing to
+            enable automatic payouts. If they skip it, they can connect their wallet later via TonConnect, and any
+            <code>payout_pending</code> deals will auto-process.</li>
+        <li><strong>Channel Deletion Protection</strong>: A channel cannot be deleted if it has active deals in any of
+            10 active states (<code>funded</code>, <code>draft_pending</code>, <code>draft_submitted</code>,
+            <code>changes_requested</code>, <code>approved</code>, <code>scheduling</code>, <code>scheduled</code>,
+            <code>posted</code>, <code>monitoring</code>, <code>in_progress</code>).</li>
+    </ol>
+
+    <hr>
+
+    <!-- SECTION 3 -->
+    <h2 id="s3">3. PR Manager System</h2>
+    <h3>The Problem</h3>
+    <p>Channel owners shouldn't need to manage every deal personally. They need to delegate operations while retaining
+        control over finances and channel ownership.</p>
+
+    <h3>Our Decision</h3>
+    <ul>
+        <li><strong>Only channel owners can list a channel</strong> — full control over what goes on the platform</li>
+        <li><strong>After listing, owners can add PR managers</strong> who can do everything except:
+            <ul>
+                <li>Receive payouts (only the owner's wallet gets paid)</li>
+                <li>Delete the channel from the platform</li>
+            </ul>
+        </li>
+        <li>PR managers can: manage deals, approve/reject drafts, negotiate scheduling, chat with advertisers</li>
+    </ul>
+
+    <h3>How PR Managers Are Added</h3>
+    <div class="mermaid">
+        flowchart TD
+        A["Owner opens channel settings"] --> B["Selects Add PR Manager"]
+        B --> C{"Fetch Telegram channel admins"}
+        C --> D["Show eligible admins — filter out bots and existing PR managers"]
+        D --> E["Owner selects admin to add"]
+        E --> F{"Verify Telegram permissions"}
+        F -->|"No permissions"| FAIL["Must have at least one permission"]
+        F -->|"Has permissions"| G{"User exists in DB?"}
+        G -->|"No"| H["Auto-create user record"]
+        G -->|"Yes"| I{"Already admin in DB?"}
+        I -->|"Yes"| DUP["Already a PR manager"]
+        I -->|"No"| J["Insert as pr_manager in channel_admins"]
+        J --> K["Notify PR manager via bot message"]
+    </div>
+
+    <h3>Permission Model</h3>
+    <table>
+        <tr>
+            <th>Action</th>
+            <th>Owner</th>
+            <th>PR Manager</th>
+        </tr>
+        <tr>
+            <td>List channel</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Edit channel details</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Manage deals</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Approve/reject drafts</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Negotiate scheduling</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Chat with advertisers</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Receive payouts</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Delete channel</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Remove PR managers</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+    </table>
+
+    <h3>Key Engineering Decision</h3>
+    <p>The benefit of this model is that <strong>channel owners can step away from operations entirely</strong> and just
+        receive their payouts after every completed deal. PR managers handle the day-to-day negotiations, scheduling,
+        and content coordination.</p>
+
+    <h3>Team Verification</h3>
+    <p>Before any channel update, we verify ALL team members (bot, owner, every PR manager) still have valid Telegram
+        admin permissions. If any member has lost permissions, the update is blocked with a detailed per-member error
+        list. PR managers who are no longer admin on Telegram are automatically cleaned up from the database.</p>
+
+    <hr>
+
+    <!-- SECTION 4 -->
+    <h2 id="s4">4. Campaign Model: Open vs Closed</h2>
+
+    <h3>Open Campaign</h3>
+    <p><strong>Use case:</strong> "I have a budget and criteria — any matching channel can run my ad."</p>
+    <ul>
+        <li>Advertiser sets eligibility criteria: subscriber range, language, category, minimum avg views</li>
+        <li>Any channel meeting the criteria can <strong>apply and immediately enter the deal flow</strong> (→ draft
+            creation)</li>
+        <li>No advertiser review of applications — if you meet the criteria, you're in</li>
+        <li>Slots are allocated atomically (DB-level) to prevent race conditions</li>
+        <li>When all slots are filled, campaign is marked as <code>filled</code></li>
+    </ul>
+
+    <h3>Closed Campaign</h3>
+    <p><strong>Use case:</strong> "I want to review which channels will run my ad before committing."</p>
+    <ul>
+        <li>Same criteria as open campaigns</li>
+        <li>Channels that meet criteria can <strong>apply</strong>, but there's an extra step</li>
+        <li>Applications go to a <code>pending</code> state — the advertiser reviews each channel's profile</li>
+        <li>Advertiser can <strong>approve or reject</strong> each application</li>
+        <li>Only approved channels enter the deal flow</li>
+        <li>This gives advertisers control over brand alignment, audience quality, etc.</li>
+    </ul>
+
+    <h3>Why Both Models?</h3>
+    <p>Some advertisers just want reach: set criteria, fund it, and let matching channels pick it up. Others care deeply
+        about which specific channels represent their brand. The dual model serves both without forcing a
+        one-size-fits-all approach.</p>
+
+    <h3>Campaign Lifecycle</h3>
+    <div class="mermaid">
+        stateDiagram-v2
+        [*] --> draft: Create campaign
+        draft --> draft: Save/edit
+        draft --> active: Pay escrow → Published
+        active --> filled: All slots taken
+        active --> expired: Past expiry date
+        active --> ended: Advertiser ends early
+        expired --> ended: 24h grace period passes
+        filled --> ended: All deals complete
+        ended --> [*]
+    </div>
+
+    <hr>
+
+    <!-- SECTION 5 -->
+    <h2 id="s5">5. Unified Deal Flow</h2>
+    <p>All three entry points — <strong>Open Campaign</strong>, <strong>Closed Campaign</strong>, and <strong>Service
+            Packages</strong> — converge into a single unified deal pipeline.</p>
+
+    <h3>Three Entry Points, One Pipeline</h3>
+    <div class="mermaid">
+        flowchart TD
+        subgraph "Entry Points"
+        OP["Open Campaign<br />Channel meets criteria → auto-accepted"]
+        CL["Closed Campaign<br />Channel applies → advertiser reviews → approved"]
+        SP["Service Packages<br />Advertiser browses channel → picks package → pays"]
+        end
+        OP --> FUNDED
+        CL --> FUNDED
+        SP --> FUNDED
+        subgraph "Unified Deal Pipeline"
+        FUNDED["funded<br />💰 Escrow received"]
+        FUNDED --> DP["draft_pending<br />✏️ Channel owner creates draft"]
+        DP --> DS["draft_submitted<br />📤 Sent to advertiser for review"]
+        DS -->|"Approved"| SCHED["scheduling<br />⏰ Negotiate posting time"]
+        DS -->|"Changes requested"| CR["changes_requested<br />💬 Feedback sent to channel"]
+        CR --> DS
+        SCHED --> SCHEDULED["scheduled<br />📅 Time agreed, auto-post queued"]
+        SCHEDULED --> POSTED["posted<br />📢 Live on channel"]
+        POSTED --> MONITORING["monitoring<br />👁 24h verification checks"]
+        MONITORING -->|"Post stays up"| RELEASED["released<br />✅ Funds paid to channel owner"]
+        MONITORING -->|"Post deleted"| CANCELLED["cancelled<br />❌ Refund to advertiser"]
+        end
+        subgraph "Terminal States"
+        RELEASED
+        CANCELLED
+        REFUNDED["refunded<br />↩ Funds returned"]
+        FAILED["failed_to_post<br />⚠️ Bot could not post"]
+        end
+    </div>
+
+    <blockquote class="important">
+        <strong>⚠️ Key Architecture Decision:</strong> Regardless of how a deal enters the pipeline, every deal goes
+        through the same draft → review → schedule → post → monitor → release flow. Security checks, monitoring, and
+        payment logic only need to be implemented once.
+    </blockquote>
+
+    <h3>Service Packages</h3>
+    <p>Service packages are the simplest entry point. An advertiser browses listed channels, views their rate card
+        (package offerings), picks a package, and pays. The deal is created with the package details as content items.
+    </p>
+    <blockquote>
+        <strong>Note:</strong> Currently, only <strong>Posting</strong> works for service packages.
+        <strong>Story</strong> posting requires MTProto client integration (see <a href="#s15">Limitations</a>).
+    </blockquote>
+
+    <hr>
+
+    <!-- SECTION 6 -->
+    <h2 id="s6">6. Creative Approval</h2>
+    <h3>The Draft → Review → Feedback Loop</h3>
+    <p>All content goes through a creative approval process before posting. This happens entirely through the Telegram
+        bot — no webapp interface needed.</p>
+
+    <div class="mermaid">
+        sequenceDiagram
+        participant CO as Channel Owner/PR Manager
+        participant Bot as Telegram Bot
+        participant DB as Database
+        participant AD as Advertiser
+        Note over CO,AD: Deal reaches funded status
+        Bot->>CO: 📝 New deal! Create your draft
+        CO->>Bot: Sends text or photo draft
+        Bot->>DB: Save draft content
+        Bot->>CO: Preview your draft + Submit/Edit buttons
+        CO->>Bot: Clicks Submit Draft ✅
+        Bot->>DB: Status → draft_submitted
+        Bot->>AD: 📋 Review this draft + Approve/Changes buttons
+        alt Advertiser Approves
+        AD->>Bot: Clicks Approve ✅
+        Bot->>DB: Status → scheduling
+        Bot->>AD: Shows scheduling UI immediately
+        Bot->>CO: Draft approved! Waiting for scheduling
+        else Advertiser Requests Changes
+        AD->>Bot: Clicks Request Changes 📝
+        AD->>Bot: Types feedback
+        Bot->>DB: Save feedback, status → changes_requested
+        Bot->>CO: Changes requested with feedback
+        CO->>Bot: Sends revised draft
+        Note over CO,AD: Loop repeats
+        end
+    </div>
+
+    <h3>Key Implementation Details</h3>
+    <ol>
+        <li><strong>Context-Based Routing</strong>: When a user sends a text message to the bot, we check the
+            <code>user_contexts</code> table to route it correctly — <code>draft</code> context saves draft content,
+            <code>chat</code> context forwards to the other party, <code>feedback</code> context saves advertiser
+            feedback.</li>
+        <li><strong>Race Condition Prevention on Submit</strong>: We use conditional UPDATE queries —
+            <code>.in('status', ['draft_pending', 'changes_requested'])</code> — so if two PR managers try to submit the
+            same draft simultaneously, only one succeeds.</li>
+        <li><strong>Multi-Admin Notifications</strong>: All notifications go to ALL channel admins (owner + every PR
+            manager), not just the one who acted.</li>
+        <li><strong>Photo/Text Handling</strong>: The bot detects whether a draft is text or photo (with caption). Uses
+            <code>editMessageCaption</code> for photo messages and <code>editMessageText</code> for text-only, with
+            fallback to <code>ctx.reply()</code>.</li>
+        <li><strong>Highest Quality Photo</strong>: When receiving photos, we take <code>photo[photo.length - 1]</code>
+            — Telegram provides photos in ascending size order, so the last element is always the highest quality.</li>
+        <li><strong>12h Auto-Approve</strong>: If the advertiser doesn't review a submitted draft within 12 hours, it's
+            automatically approved and moves to scheduling.</li>
+    </ol>
+
+    <h3>In-Bot Chat System</h3>
+    <ul>
+        <li><strong>Advertiser → Channel</strong>: Messages are sent to ALL channel admins (owner + PR managers)</li>
+        <li><strong>Channel Admin → Advertiser</strong>: Messages are sent to the advertiser</li>
+        <li>Messages are stored in a <code>deal_messages</code> table with sender role and timestamp</li>
+        <li>If notification delivery fails, the message is still saved — data integrity over delivery guarantee</li>
+    </ul>
+
+    <hr>
+
+    <!-- SECTION 7 -->
+    <h2 id="s7">7. Scheduling &amp; Auto-Posting</h2>
+    <h3>Time Negotiation</h3>
+    <p>After the advertiser approves a draft, they're immediately shown the scheduling interface.</p>
+
+    <div class="mermaid">
+        sequenceDiagram
+        participant AD as Advertiser
+        participant SYS as System
+        participant CO as Channel Owner
+        AD->>SYS: Proposes time (1h – 30 days ahead)
+        SYS->>CO: ⏰ Advertiser wants to post at time
+        alt Channel Accepts
+        CO->>SYS: Accepts proposed time
+        SYS->>AD: ✅ Time confirmed! Auto-posting
+        SYS->>CO: ✅ Time confirmed!
+        Note over SYS: Status → scheduled
+        else Channel Counter-Proposes
+        CO->>SYS: Proposes different time
+        SYS->>AD: ⏰ Counter proposal sent
+        Note over AD,CO: Negotiation continues
+        end
+    </div>
+
+    <h3>Engineering Details</h3>
+    <ul>
+        <li><strong>Optimistic Locking</strong>: Time acceptance uses <code>.is('agreed_post_time', null)</code> — if
+            two admins try to accept simultaneously, only the first succeeds</li>
+        <li><strong>24h Auto-Accept Timeout</strong>: If a proposed time gets no response within 24 hours, it's
+            automatically accepted</li>
+        <li><strong>Scheduling Window</strong>: Posts can be scheduled 1 hour to 30 days ahead</li>
+        <li><strong>Timezone</strong>: Times are displayed in WAT (UTC+1) for the user's locale</li>
+    </ul>
+
+    <h3>Auto-Posting</h3>
+    <p>A background job checks every minute for deals where <code>status = 'scheduled'</code> and
+        <code>agreed_post_time ≤ now</code>. When it finds one:</p>
+    <ol>
+        <li><strong>Re-verify bot permissions</strong> — confirms bot is still admin with <code>can_post_messages</code>
+        </li>
+        <li><strong>Post to channel</strong> — text or photo with caption</li>
+        <li><strong>Start monitoring</strong> — generate random check times</li>
+        <li><strong>Notify both parties</strong> — "Post is live!"</li>
+    </ol>
+
+    <p>If posting fails (5-step failure cleanup):</p>
+    <ol>
+        <li>Set status to <code>failed_to_post</code> (atomic guard prevents double-processing)</li>
+        <li>Queue refund to advertiser</li>
+        <li>Release the campaign slot</li>
+        <li>Demote channel to <code>draft</code> (requires re-verification before listing again)</li>
+        <li>Notify both parties</li>
+    </ol>
+
+    <hr>
+
+    <!-- SECTION 8 -->
+    <h2 id="s8">8. Monitoring Service</h2>
+    <h3>Anti-Gaming Architecture</h3>
+    <p>The monitoring service is designed to prevent channel owners from gaming the system — for example, posting the
+        ad, then deleting it and reposting just before a check.</p>
+
+    <h4>Time-Band Algorithm</h4>
+    <p>Instead of predictable check times (1h, 6h, 12h, 24h), we use <strong>random checks within time bands</strong>:
+    </p>
+
+    <pre><code>Formula: numBands = ceil(monitoringDuration / 3)
+Each band = duration / numBands hours wide
+One random check per band + 1 final check at the end
+
+Examples:
+  6h monitoring  → 2 bands of 3h  → 2 random + 1 final = 3 checks
+  24h monitoring → 8 bands of 3h  → 8 random + 1 final = 9 checks</code></pre>
+
+    <pre><code>24h Monitoring — Random Check Distribution (Example)
+
+Band 1  [0h ─────── 3h]    ✓ Check at ~1:47
+Band 2  [3h ─────── 6h]    ✓ Check at ~4:22
+Band 3  [6h ─────── 9h]    ✓ Check at ~7:51
+Band 4  [9h ──────12h]     ✓ Check at ~10:33
+Band 5  [12h ─────15h]     ✓ Check at ~13:08
+Band 6  [15h ─────18h]     ✓ Check at ~16:45
+Band 7  [18h ─────21h]     ✓ Check at ~19:12
+Band 8  [21h ─────24h]     ✓ Check at ~22:39
+Final   [────────24h]      ✓ Final check at exactly 24:00
+
+Total: 9 checks, all at unpredictable times</code></pre>
+
+    <p>Each random check is placed with a <strong>5-minute buffer</strong> from band edges (or 10% of band width if
+        smaller) to prevent clustering at boundaries.</p>
+
+    <blockquote class="important">
+        <strong>⚠️ Why random?</strong> If checks were at predictable times (every 3 hours), a channel owner could
+        delete the ad immediately after a check, keep it deleted for ~2.5 hours, then repost it 5 minutes before the
+        next check. Random timing within bands makes this strategy impossible — you never know when the next check is
+        coming.
+    </blockquote>
+
+    <h3>How We Verify a Post Is Still Live</h3>
+
+    <p><strong>Primary Method — <code>forwardMessage</code> to a private verification channel:</strong></p>
+    <p>We forward the post to a private channel that only the bot has access to. If the forward succeeds, the post
+        exists. If it fails with "message to forward not found" or "MESSAGE_ID_INVALID", the post was deleted.</p>
+
+    <p><strong>Why <code>forwardMessage</code> instead of <code>copyMessage</code>?</strong></p>
+    <p>We initially used <code>copyMessage</code> (copy to same channel → immediately delete the copy). The problem:
+        every <code>copyMessage</code> call sends a notification to the channel owner/subscribers, even though we delete
+        the copy within milliseconds. With 8-9 checks over 24 hours, this caused <strong>notification spam</strong>.
+        <code>forwardMessage</code> to a private verification channel solves this entirely — no notifications, no
+        visible traces.</p>
+
+    <p><strong>Fallback — <code>copyMessage</code>:</strong> If the verification channel is inaccessible, we fall back
+        to <code>copyMessage</code>. Less ideal but ensures monitoring doesn't break.</p>
+
+    <h3>Error Classification</h3>
+    <table>
+        <tr>
+            <th>Error Type</th>
+            <th>Meaning</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td><code>message to forward not found</code></td>
+            <td>Post was actually deleted</td>
+            <td>Cancel deal + refund</td>
+        </tr>
+        <tr>
+            <td><code>MESSAGE_ID_INVALID</code></td>
+            <td>Post was deleted</td>
+            <td>Cancel deal + refund</td>
+        </tr>
+        <tr>
+            <td><code>chat not found</code> / <code>CHAT_WRITE_FORBIDDEN</code></td>
+            <td>Verification channel issue</td>
+            <td>Fallback to <code>copyMessage</code></td>
+        </tr>
+        <tr>
+            <td><code>bot was kicked</code> (403)</td>
+            <td>Bot removed from source channel</td>
+            <td>Cancel deal + refund</td>
+        </tr>
+        <tr>
+            <td>Unknown error</td>
+            <td>Unexpected issue</td>
+            <td>Flag for support, don't assume deleted</td>
+        </tr>
+    </table>
+
+    <h3>Edited Message Detection</h3>
+    <p><code>forwardMessage</code> forwards the <strong>original</strong> message content. If a channel owner edits the
+        post, the forwarded version in the verification channel shows the current state. We can compare the forwarded
+        content against the approved draft to detect unauthorized edits.</p>
+
+    <h3>Post Deleted During Monitoring</h3>
+    <p>If a post is verified as deleted during any check, the deal is immediately cancelled and the advertiser receives
+        a refund. Both parties are notified.</p>
+
+    <hr>
+
+    <!-- SECTION 9 -->
+    <h2 id="s9">9. Escrow &amp; Payment System</h2>
+    <h3>Master Wallet Architecture</h3>
+    <blockquote class="important">
+        <strong>Key Decision:</strong> We use a <strong>single master wallet</strong> for all escrow deposits instead of
+        generating per-deal wallets.
+    </blockquote>
+    <p><strong>Why?</strong> Per-deal wallets would create hundreds of wallets with small balances — "dust" that's
+        expensive to consolidate. A single master wallet means:</p>
+    <ul>
+        <li>One wallet to secure</li>
+        <li>One wallet to monitor</li>
+        <li>Efficient fund management</li>
+        <li>Lower operational overhead</li>
+    </ul>
+
+    <h3>How We Track Payments — Memo System</h3>
+    <p>Every deal/campaign generates a unique payment memo:</p>
+    <ul>
+        <li><strong>Deals:</strong> <code>deal_&lt;uuid16&gt;</code> (e.g., <code>deal_a3b4c5d6e7f8g9h0</code>)</li>
+        <li><strong>Campaigns:</strong> <code>campaign_&lt;uuid16&gt;</code> (e.g.,
+            <code>campaign_x1y2z3w4v5u6t7s8</code>)</li>
+    </ul>
+    <p>When the advertiser pays, they include this memo as a comment in their TON transaction. The system matches
+        incoming transactions to deals/campaigns by this memo.</p>
+
+    <h3>Where We Escrow</h3>
+    <p>All funds are held in the <strong>platform's master wallet</strong> on the TON blockchain:</p>
+    <ul>
+        <li><strong>Funded</strong> when the advertiser sends payment with the correct memo</li>
+        <li><strong>Held</strong> throughout the deal lifecycle (draft → approval → posting → monitoring)</li>
+        <li><strong>Released</strong> to the channel owner after successful 24h monitoring</li>
+        <li><strong>Refunded</strong> to the advertiser if the deal is rejected, cancelled, or times out</li>
+    </ul>
+
+    <h3>Hybrid Payment Detection: Webhook + Polling</h3>
+
+    <div class="mermaid">
+        flowchart LR
+        subgraph "Payment Detection"
+        WH["TonAPI Webhook<br />Real-time notifications"]
+        POLL["Polling Service<br />Backup every 30s"]
+        end
+        TON["TON Blockchain"] --> WH
+        TON --> POLL
+        WH --> PROCESS{"Process Payment"}
+        POLL --> PROCESS
+        PROCESS --> IDEM{"Idempotency Check"}
+        IDEM -->|"Already processed"| SKIP["Skip silently"]
+        IDEM -->|"New payment"| CONFIRM["Confirm Payment ✅"]
+    </div>
+
+    <p><strong>Webhook (Primary)</strong>: TonAPI sends real-time <code>account-tx</code> notifications when our wallet
+        receives a transaction. We fetch full transaction details, extract the memo, and process the payment.</p>
+    <p><strong>Polling (Backup)</strong>: A service polls TonCenter API every 30 seconds, checking for new transactions.
+        TON and Jetton (USDT) polls are <strong>staggered by 15 seconds</strong> to avoid rate limits (429 errors).</p>
+    <p><strong>Why both?</strong></p>
+    <ul>
+        <li>Webhooks can fail (network issues, TonAPI downtime)</li>
+        <li>Polling can be slow (30-second gap)</li>
+        <li>Together, they provide near-instant detection with guaranteed eventual processing</li>
+    </ul>
+
+    <h3>Idempotency</h3>
+    <ol>
+        <li><strong>In-memory Set</strong> — tracks processed transaction hashes (max 1000 entries, FIFO eviction)</li>
+        <li><strong>DB-backed check</strong> — verifies <code>escrowTxHash</code> or <code>escrowDeposited &gt; 0</code>
+            before processing</li>
+        <li><strong>Mutex for campaigns</strong> — <code>processingCampaigns</code> Set prevents parallel processing of
+            the same memo</li>
+    </ol>
+
+    <h3>Dual Currency Support</h3>
+    <table>
+        <tr>
+            <th>Aspect</th>
+            <th>TON</th>
+            <th>USDT</th>
+        </tr>
+        <tr>
+            <td>Decimals</td>
+            <td>9 (<code>/1e9</code>)</td>
+            <td>6 (<code>/1e6</code>)</td>
+        </tr>
+        <tr>
+            <td>Transfer type</td>
+            <td>Native</td>
+            <td>Jetton (<code>op: 0xf8a7ea5</code>)</td>
+        </tr>
+        <tr>
+            <td>Memo extraction</td>
+            <td><code>decoded_body.text</code></td>
+            <td><code>forward_payload.text</code></td>
+        </tr>
+        <tr>
+            <td>Platform fee</td>
+            <td>0.01 TON</td>
+            <td>0.1 USDT</td>
+        </tr>
+        <tr>
+            <td>Gas for payout</td>
+            <td>~0.01 TON</td>
+            <td>~0.05 TON</td>
+        </tr>
+    </table>
+
+    <h3>Address Normalization</h3>
+    <p>TON addresses come in multiple formats (raw, bounceable, non-bounceable). We use
+        <code>@ton/core Address.parse().equals()</code> for all comparisons to handle format differences correctly.</p>
+
+    <h3>Payment Window</h3>
+    <p>Every payment has a <strong>15-minute expiry window</strong>. If payment doesn't arrive in time, the
+        deal/campaign is not automatically cancelled (the user already committed), but the expiry is logged for audit.
+    </p>
+
+    <hr>
+
+    <!-- SECTION 10 -->
+    <h2 id="s10">10. Payout &amp; Refund</h2>
+    <h3>Automatic Payouts</h3>
+    <p>After successful 24h monitoring, the system automatically pays the channel owner.</p>
+    <p><strong>Wallet Resolution Cascade (3-tier):</strong></p>
+    <ol>
+        <li>Channel's <code>payout_wallet</code> (set during listing)</li>
+        <li>Deal's <code>channel_owner_wallet</code> (stored at deal creation)</li>
+        <li>Owner's TonConnect <code>ton_wallet_address</code> (from user profile)</li>
+    </ol>
+    <p>If no wallet is found at any tier, the deal enters <code>payout_pending</code> status — the DB stays honest that
+        money hasn't moved.</p>
+
+    <h3>Payout-Pending Recovery</h3>
+    <p>When a channel owner later connects their TonConnect wallet:</p>
+    <ol>
+        <li>Wallet auto-saved to their user profile</li>
+        <li>All owned channels without a payout wallet get updated</li>
+        <li>All <code>payout_pending</code> deals are <strong>immediately processed</strong></li>
+    </ol>
+
+    <h3>Auto-Approve Threshold</h3>
+    <ul>
+        <li>Payouts ≤ 5 TON/USDT: <strong>auto-executed immediately</strong></li>
+        <li>Payouts &gt; 5 TON/USDT: require admin approval (<code>pending_approval</code> status)</li>
+    </ul>
+
+    <h3>Retry Logic</h3>
+    <p>Failed payouts retry up to <strong>3 times</strong> with incrementing <code>retry_count</code>. Each attempt is
+        logged.</p>
+
+    <h3>Refund Flow</h3>
+    <table>
+        <tr>
+            <th>Trigger</th>
+            <th>When</th>
+        </tr>
+        <tr>
+            <td>Channel rejects deal</td>
+            <td>Advertiser gets full refund</td>
+        </tr>
+        <tr>
+            <td>Draft times out (12h)</td>
+            <td>Channel never created draft</td>
+        </tr>
+        <tr>
+            <td>Deal times out (48h)</td>
+            <td>No activity from channel</td>
+        </tr>
+        <tr>
+            <td>Post deleted during monitoring</td>
+            <td>Advertiser gets refund</td>
+        </tr>
+        <tr>
+            <td>Campaign ended (unfilled slots)</td>
+            <td><code>slots_remaining × perChannelBudget</code> refunded</td>
+        </tr>
+        <tr>
+            <td>Post failed to publish</td>
+            <td>Bot couldn't post → full refund</td>
+        </tr>
+    </table>
+    <p><strong>Refund wallet resolution</strong>: Uses the stored <code>escrow_wallet_address</code>. If not stored,
+        looks up the original sender from the escrow TX hash via TonAPI and caches the address.</p>
+    <p>If refund queueing fails, the deal goes to <code>pending_refund</code> status for manual intervention — we never
+        silently lose money.</p>
+
+    <h3>Campaign Refund for Unfilled Slots</h3>
+    <pre><code>refundAmount = (totalSlots - slotsFilled) × perChannelBudget</code></pre>
+    <p>Active deals continue running — the refund only covers slots that were never used.</p>
+
+    <hr>
+
+    <!-- SECTION 11 -->
+    <h2 id="s11">11. Platform Fees</h2>
+    <table>
+        <tr>
+            <th>Currency</th>
+            <th>Fee</th>
+            <th>Rationale</th>
+        </tr>
+        <tr>
+            <td>TON</td>
+            <td>0.01 TON</td>
+            <td>Covers network gas for sending, releasing, and refunding</td>
+        </tr>
+        <tr>
+            <td>USDT</td>
+            <td>0.1 USDT</td>
+            <td>Jetton transfers cost ~0.05 TON in gas, higher fee covers overhead</td>
+        </tr>
+    </table>
+    <p><strong>Why flat instead of percentage?</strong> Flat fees are more transparent and predictable. A percentage fee
+        would disproportionately affect smaller deals. The fee covers blockchain transaction costs so the platform
+        doesn't lose money on gas.</p>
+    <p><strong>Precision handling</strong>: Total is calculated with <code>Math.round((budget + fee) × 1e9) / 1e9</code>
+        to avoid floating-point precision errors.</p>
+
+    <hr>
+
+    <!-- SECTION 12 -->
+    <h2 id="s12">12. Deal Timeouts</h2>
+
+    <div class="mermaid">
+        flowchart TD
+        F["funded"] -->|"48h no response"| R1["Auto-refund to advertiser"]
+        DP["draft_pending"] -->|"12h no draft"| R2["Auto-refund to advertiser"]
+        DS["draft_submitted"] -->|"12h no review"| AA["Auto-approve → scheduling"]
+        SCH["scheduling"] -->|"24h no counter"| AT["Auto-accept proposed time"]
+        EXP["Campaign expired"] -->|"24h grace period"| END["Auto-end + refund unfilled slots"]
+    </div>
+
+    <table>
+        <tr>
+            <th>Stage</th>
+            <th>Timeout</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td><code>funded</code> → no response</td>
+            <td>48 hours</td>
+            <td>Auto-refund to advertiser</td>
+        </tr>
+        <tr>
+            <td><code>draft_pending</code> → no draft</td>
+            <td>12 hours</td>
+            <td>Auto-refund to advertiser</td>
+        </tr>
+        <tr>
+            <td><code>draft_submitted</code> → no review</td>
+            <td>12 hours</td>
+            <td>Auto-approve draft → scheduling</td>
+        </tr>
+        <tr>
+            <td><code>scheduling</code> → no counter</td>
+            <td>24 hours</td>
+            <td>Auto-accept proposed time</td>
+        </tr>
+        <tr>
+            <td>Campaign expired</td>
+            <td>24h grace</td>
+            <td>Auto-end + refund unfilled slots</td>
+        </tr>
+        <tr>
+            <td>Payment window</td>
+            <td>15 minutes</td>
+            <td>Logged (payment still accepted)</td>
+        </tr>
+    </table>
+    <blockquote>
+        <strong>Note:</strong> Campaign expiry has a special 24-hour grace period. When a campaign expires, the
+        advertiser is notified and given 24 hours to extend. An <code>expiry_notified</code> flag prevents duplicate
+        notifications.
+    </blockquote>
+
+    <hr>
+
+    <!-- SECTION 13 -->
+    <h2 id="s13">13. User Role Flows</h2>
+
+    <h3>What an Advertiser Can Do</h3>
+    <ol>
+        <li><strong>Create campaigns</strong> (open or closed) with targeting criteria</li>
+        <li><strong>Browse channels</strong> on the marketplace</li>
+        <li><strong>Buy service packages</strong> directly from channel listings</li>
+        <li><strong>Review applications</strong> (closed campaigns)</li>
+        <li><strong>Review draft posts</strong> and provide feedback</li>
+        <li><strong>Schedule posting times</strong> (1h – 30 days ahead)</li>
+        <li><strong>Chat with channel owners</strong> through the bot</li>
+        <li><strong>End campaigns</strong> early (unfilled slots refunded)</li>
+        <li><strong>Edit campaign</strong> duration</li>
+        <li><strong>Rate channels</strong> after deal completion (1-5 stars)</li>
+    </ol>
+
+    <h3>What a Channel Owner Can Do</h3>
+    <ol>
+        <li><strong>List channels</strong> with verification pipeline</li>
+        <li><strong>Set pricing</strong> via rate card (service packages)</li>
+        <li><strong>Add/remove PR managers</strong> for delegation</li>
+        <li><strong>Browse campaigns</strong> on the marketplace</li>
+        <li><strong>Apply to campaigns</strong> (if channel meets criteria)</li>
+        <li><strong>Create draft posts</strong> through the bot</li>
+        <li><strong>Negotiate scheduling</strong> (accept or counter-propose times)</li>
+        <li><strong>Chat with advertisers</strong> through the bot</li>
+        <li><strong>Rate advertisers</strong> after deal completion</li>
+        <li><strong>Connect wallet</strong> for payouts (can be done anytime)</li>
+    </ol>
+
+    <h3>What a PR Manager Can Do</h3>
+    <p>Everything a channel owner can do <strong>except</strong>:</p>
+    <ul>
+        <li>❌ Receive payouts</li>
+        <li>❌ Delete the channel</li>
+        <li>❌ Add/remove other PR managers</li>
+    </ul>
+
+    <hr>
+
+    <!-- SECTION 14 -->
+    <h2 id="s14">14. Partnerships View</h2>
+    <p><strong>Advertiser's Partnerships</strong>: All deals they've funded, grouped by status. Shows channel details,
+        deal progress, and action buttons (review draft, schedule time, rate).</p>
+    <p><strong>Channel Owner's Partnerships</strong>: All deals on their channels, including deals managed by their PR
+        managers. Shows advertiser details, deal progress, and action buttons (create draft, accept/counter time, rate).
+    </p>
+    <p>Both views use the same underlying deal data but present it from each party's perspective with role-appropriate
+        actions.</p>
+
+    <hr>
+
+    <!-- SECTION 15 -->
+    <h2 id="s15">15. Known Limitations</h2>
+
+    <h3>Story Posting</h3>
+    <blockquote class="warning">
+        <strong>⚠️ Story posting is not supported.</strong> The Telegram Bot API does not allow bots to post stories,
+        view stories, or edit stories. Story functionality can only be implemented with the <strong>MTProto
+            client</strong>, which requires significant additional security infrastructure (user sessions, 2FA handling,
+        rate limit management). This is a planned future enhancement.
+    </blockquote>
+    <p>Currently, only <strong>posting</strong> (text and photo posts to channels) is functional.</p>
+
+    <h3>Channel Stats</h3>
+    <p>Telegram's Bot API provides limited channel statistics:</p>
+    <ul>
+        <li>Member count (subscribers)</li>
+        <li>Basic channel info (title, username, photo)</li>
+    </ul>
+    <p>Advanced analytics (engagement rates, views per post, audience demographics) require the <strong>MTProto
+            client</strong> and the <code>stats.GetBroadcastStats</code> API. We have a
+        <code>TelegramStatsService</code> with MTProto integration prepared, but it currently falls back to mock data
+        when API credentials aren't configured.</p>
+
+    <h3>Content Moderation Bypass</h3>
+    <p>The current blacklist (250+ words across 10 categories) can be bypassed with creative spelling, Unicode
+        substitutions, or obfuscation. Future versions will implement more sophisticated NLP-based content moderation,
+        including in the chat system.</p>
+
+    <hr>
+
+    <!-- SECTION 16 -->
+    <h2 id="s16">16. Future Roadmap</h2>
+
+    <h3>Near-Term Enhancements</h3>
+    <p><strong>Bidding System for Channel Listings</strong><br>
+        Advertisers will be able to bid slightly below a channel's listed service package price. After the third bid,
+        the advertiser cannot bid again — prevents spam while enabling price negotiation.</p>
+
+    <p><strong>PR Manager Financial Permissions</strong><br>
+        Channel owners will be able to grant financial permissions to specific PR managers, allowing them to set their
+        own payout wallet and receive payouts directly.</p>
+
+    <p><strong>Campaign Scheduling</strong><br>
+        Campaigns will be schedulable to go live at a specific future time.</p>
+
+    <p><strong>Channel Invitations</strong><br>
+        Advertisers will be able to invite specific channels to their campaigns. Likely limited to channels already
+        listed on the platform.</p>
+
+    <h3>Advanced Analytics (MTProto)</h3>
+    <ul>
+        <li><strong>Audience demographics</strong>: Language distribution, geographic data</li>
+        <li><strong>Engagement metrics</strong>: Views per post, forwards, reactions</li>
+        <li><strong>Advanced targeting</strong>: More specific campaign criteria based on real channel analytics</li>
+        <li><strong>Post-campaign reporting</strong>: Actual performance metrics for completed ads</li>
+    </ul>
+    <blockquote class="important">
+        <strong>⚠️ Security Note:</strong> MTProto integration requires secure session storage, API credential
+        management, rate limiting, and proper error handling for session invalidation. This is non-trivial and will be a
+        dedicated engineering effort.
+    </blockquote>
+
+    <h3>Support System</h3>
+    <p>We plan to use the <strong>private verification channel</strong> as a support system. Since every monitored post
+        is forwarded to this channel, support staff can use a deal ID to trace exactly what happened — was the post
+        published? Deleted? Edited?</p>
+
+    <h3>Stricter Content Moderation</h3>
+    <ul>
+        <li>NLP-based detection (not just keyword matching)</li>
+        <li>Chat message moderation</li>
+        <li>Unicode/homoglyph detection to prevent bypass attempts</li>
+    </ul>
+
+    <h3>UI Revamp</h3>
+    <p>The UI will be revamped to a much more intuitive design based on the screens in this Figma: <a
+            href="https://www.figma.com/design/lxpgTVPiaX2yByEnhcxA8K/Ad-Marketplace?node-id=0-1&t=39yTqnZwnlEDk28M-1"
+            target="_blank">Ad Marketplace Design</a></p>
+
+    <hr>
+    <p style="text-align:center; color:#94a3b8; margin-top:40px;">Telegram Ad Marketplace — Platform Documentation •
+        2026</p>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+    </script>
+</body>
+
+</html>

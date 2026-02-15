@@ -253,7 +253,7 @@ export class MonitoringService {
         const { data: deal, error } = await (supabase as any)
             .from('deals')
             .select(`
-                id, posted_message_id, posted_at, monitoring_end_at, monitoring_checks,
+                id, posted_message_id, posted_at, monitoring_end_at, monitoring_checks, channel_id,
                 channel:channels(telegram_channel_id, title, username),
                 advertiser:users!deals_advertiser_id_fkey(telegram_id)
             `)
