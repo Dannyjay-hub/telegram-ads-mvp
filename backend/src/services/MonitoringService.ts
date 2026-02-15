@@ -384,7 +384,7 @@ export class MonitoringService {
                 .from('channel_admins')
                 .select('users(ton_wallet_address)')
                 .eq('channel_id', fullDeal.channel_id)
-                .eq('is_owner', true)
+                .eq('role', 'owner')
                 .single();
 
             ownerWalletAddress = ownerData?.users?.ton_wallet_address || null;
@@ -466,20 +466,22 @@ export class MonitoringService {
                 } catch (e) { }
             }
 
-            // Notify channel owner
-            const { data: channelAdmin } = await (supabase as any)
+            // Notify channel admins (owner + PR managers)
+            const { data: channelAdmins } = await (supabase as any)
                 .from('channel_admins')
                 .select('user:users(telegram_id)')
-                .eq('channel_id', deal.channel_id)
-                .eq('is_owner', true)
-                .single();
+                .eq('channel_id', deal.channel_id);
 
-            if (channelAdmin?.user?.telegram_id) {
-                try {
-                    await bot.api.sendMessage(channelAdmin.user.telegram_id, ownerMessage, {
-                        parse_mode: 'Markdown'
-                    });
-                } catch (e) { }
+            if (channelAdmins) {
+                for (const admin of channelAdmins) {
+                    const tid = (admin as any)?.user?.telegram_id;
+                    if (!tid) continue;
+                    try {
+                        await bot.api.sendMessage(tid, ownerMessage, {
+                            parse_mode: 'Markdown'
+                        });
+                    } catch (e) { /* skip */ }
+                }
             }
         }
     }

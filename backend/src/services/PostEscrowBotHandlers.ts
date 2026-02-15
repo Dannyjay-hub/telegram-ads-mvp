@@ -481,35 +481,36 @@ async function handleApproveDraft(
             });
         }
 
-        // Notify channel owner that draft was approved
+        // Notify channel admins (owner + PR managers) that draft was approved
         const deal = await draftService.getDealWithDraft(dealId);
         if (deal?.channel_id) {
-            const { data: ownerAdmin } = await supabase
+            const { data: admins } = await supabase
                 .from('channel_admins')
                 .select('users(telegram_id)')
-                .eq('channel_id', deal.channel_id)
-                .eq('is_owner', true)
-                .single();
+                .eq('channel_id', deal.channel_id);
 
-            const ownerTelegramId = (ownerAdmin as any)?.users?.telegram_id;
-            if (ownerTelegramId) {
-                try {
-                    await bot.api.sendMessage(
-                        ownerTelegramId,
-                        `✅ **Draft Approved!**\n\n` +
-                        `The advertiser approved your draft for ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title || 'your channel'}**`}.` +
-                        `\n\nPlease go to the app to **schedule the post**.`,
-                        {
-                            parse_mode: 'Markdown',
-                            reply_markup: {
-                                inline_keyboard: [[
-                                    { text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }
-                                ]]
+            if (admins) {
+                for (const admin of admins) {
+                    const tid = (admin as any)?.users?.telegram_id;
+                    if (!tid) continue;
+                    try {
+                        await bot!.api.sendMessage(
+                            tid,
+                            `✅ **Draft Approved!**\n\n` +
+                            `The advertiser approved your draft for ${deal.channel?.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel?.title || 'your channel'}**`}.` +
+                            `\n\nPlease go to the app to **schedule the post**.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [[
+                                        { text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }
+                                    ]]
+                                }
                             }
-                        }
-                    );
-                } catch (notifErr) {
-                    console.warn('[PostEscrowBotHandlers] Failed to notify channel owner of approval:', notifErr);
+                        );
+                    } catch (notifErr) {
+                        console.warn(`[PostEscrowBotHandlers] Failed to notify admin ${tid}:`, notifErr);
+                    }
                 }
             }
         }
@@ -691,14 +692,33 @@ async function handleChatMessage(
     let recipientTelegramId: number | null = null;
 
     if (isAdvertiser) {
-        // Find channel owner's telegram ID
-        const { data: channelAdmin } = await supabase
+        // Find ALL channel admins' telegram IDs
+        const { data: channelAdmins } = await supabase
             .from('channel_admins')
             .select('user:users(telegram_id)')
-            .eq('channel_id', deal.channel_id)
-            .eq('is_owner', true)
-            .single();
-        recipientTelegramId = (channelAdmin?.user as any)?.telegram_id;
+            .eq('channel_id', deal.channel_id);
+
+        if (channelAdmins) {
+            for (const admin of channelAdmins) {
+                const tid = (admin?.user as any)?.telegram_id;
+                if (!tid) continue;
+                try {
+                    await bot.api.sendMessage(
+                        tid,
+                        `💬 **Message from ${senderLabel}**\n\n${text}`,
+                        {
+                            parse_mode: 'Markdown',
+                            reply_markup: {
+                                inline_keyboard: [[
+                                    { text: '💬 Reply', url: getBotDeepLink(`chat_${dealId}`) }
+                                ]]
+                            }
+                        }
+                    );
+                } catch (e) { /* skip */ }
+            }
+        }
+        recipientTelegramId = null; // Already handled above
     } else {
         // Send to advertiser
         recipientTelegramId = deal.advertiser?.telegram_id;

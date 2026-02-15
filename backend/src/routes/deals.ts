@@ -377,7 +377,7 @@ app.post('/admin/retrigger-payout', async (c) => {
                 .from('channel_admins' as any)
                 .select('users(ton_wallet_address)')
                 .eq('channel_id', (deal as any).channel_id)
-                .eq('is_owner', true)
+                .eq('role', 'owner')
                 .single();
 
             walletAddress = (ownerData as any)?.users?.ton_wallet_address;

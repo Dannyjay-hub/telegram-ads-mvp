@@ -328,12 +328,10 @@ export class CampaignService {
             const advertiser = await userRepository.findById(campaign.advertiserId);
 
             // Get channel owner info from channel_admins table
-            const { data: ownerData } = await supabase
+            const { data: adminsData } = await supabase
                 .from('channel_admins')
                 .select('users(telegram_id, first_name)')
-                .eq('channel_id', channel.id)
-                .eq('is_owner', true)
-                .single();
+                .eq('channel_id', channel.id);
 
             // Notify advertiser: Channel joined their campaign
             if (advertiser?.telegramId && bot) {
@@ -355,25 +353,31 @@ export class CampaignService {
                 console.log(`[CampaignService] ✅ Notified advertiser ${advertiser.telegramId}`);
             }
 
-            // Notify channel owner: Create draft post
-            const ownerTelegramId = (ownerData?.users as any)?.telegram_id;
-            if (ownerTelegramId && bot) {
-                await bot.api.sendMessage(
-                    ownerTelegramId,
-                    `📝 **Create Draft Post**\n\n` +
-                    `You've joined a campaign! Please draft a post based on the brief:\n\n` +
-                    `"${campaign.brief || 'No brief provided'}"\n\n` +
-                    `**Next step:** Open the app and create your draft post.`,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: [
-                                [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }]
-                            ]
-                        }
-                    }
-                );
-                console.log(`[CampaignService] ✅ Notified channel owner ${ownerTelegramId}`);
+            // Notify channel admins (owner + PR managers): Create draft post
+            if (adminsData && bot) {
+                for (const admin of adminsData) {
+                    const tid = (admin?.users as any)?.telegram_id;
+                    if (!tid) continue;
+                    try {
+                        await bot.api.sendMessage(
+                            tid,
+                            `📝 **Create Draft Post**\n\n` +
+                            `You've joined a campaign! Please draft a post based on the brief:\n\n` +
+                            `"${campaign.brief || 'No brief provided'}"\n\n` +
+                            `**Next step:** Open the app and create your draft post.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }],
+                                        [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }]
+                                    ]
+                                }
+                            }
+                        );
+                    } catch (e) { /* skip */ }
+                }
+                console.log(`[CampaignService] ✅ Notified ${adminsData.length} channel admin(s)`);
             }
         } catch (notifyError) {
             console.error('[CampaignService] Failed to send notifications:', notifyError);
@@ -507,41 +511,53 @@ export class CampaignService {
 
         console.log(`[CampaignService] Application ${applicationId} approved, deal ${deal.id} created`);
 
-        // Notify channel owner that their application was approved
+        // Notify channel admins (owner + PR managers) that the application was approved
         try {
             const { bot } = await import('../botInstance');
             const { supabase } = await import('../db');
 
-            // Get channel owner's telegram ID
-            const { data: ownerData } = await supabase
+            // Get ALL channel admins (owner + PR managers)
+            const { data: adminsData } = await supabase
                 .from('channel_admins')
                 .select('users(telegram_id, first_name)')
                 .eq('channel_id', channel.id)
-                .eq('is_owner', true)
-                .single();
+                .in('role', ['owner', 'pr_manager']);
 
-            const ownerTelegramId = (ownerData?.users as any)?.telegram_id;
-            if (ownerTelegramId && bot) {
-                await bot.api.sendMessage(
-                    ownerTelegramId,
-                    `✅ **Application Approved!**\n\n` +
-                    `Your channel ${channel.username ? `[${channel.title}](https://t.me/${channel.username})` : `**${channel.title}**`} has been accepted for:\n` +
-                    `"${campaign.title}"\n\n` +
-                    `💰 ${campaign.perChannelBudget} ${campaign.currency} per channel\n\n` +
-                    `**Next step:** Open the app and create your draft post.`,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: [
-                                [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }]
-                            ]
-                        }
+            const channelLink = channel.username
+                ? `[${channel.title}](https://t.me/${channel.username})`
+                : `**${channel.title}**`;
+
+            if (adminsData && bot) {
+                for (const admin of adminsData) {
+                    const adminTelegramId = (admin?.users as any)?.telegram_id;
+                    if (!adminTelegramId) continue;
+
+                    try {
+                        await bot.api.sendMessage(
+                            adminTelegramId,
+                            `✅ **Application Approved!**\n\n` +
+                            `Your channel ${channelLink} has been accepted for:\n` +
+                            `"${campaign.title}"\n\n` +
+                            `💰 ${campaign.perChannelBudget} ${campaign.currency} per channel\n\n` +
+                            `**Next step:** Open the app and create your draft post.`,
+                            {
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }],
+                                        [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }]
+                                    ]
+                                }
+                            }
+                        );
+                    } catch (e) {
+                        console.warn(`[CampaignService] Failed to notify admin ${adminTelegramId}:`, e);
                     }
-                );
-                console.log(`[CampaignService] ✅ Notified channel owner ${ownerTelegramId} of approval`);
+                }
+                console.log(`[CampaignService] ✅ Notified ${adminsData.length} channel admin(s) of approval`);
             }
         } catch (notifyError) {
-            console.error('[CampaignService] Failed to notify channel owner of approval:', notifyError);
+            console.error('[CampaignService] Failed to notify channel admins of approval:', notifyError);
         }
 
         return {

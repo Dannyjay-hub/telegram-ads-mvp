@@ -229,27 +229,27 @@ export class AutoPostService {
             }
         }
 
-        // Notify channel owner
+        // Notify channel admins (owner + PR managers)
         if (deal.channel_id) {
-            const { data: ownerAdmin } = await (supabase as any)
+            const { data: admins } = await (supabase as any)
                 .from('channel_admins')
                 .select('user:users(telegram_id)')
-                .eq('channel_id', deal.channel_id)
-                .eq('is_owner', true)
-                .single();
+                .eq('channel_id', deal.channel_id);
 
-            if (ownerAdmin?.user?.telegram_id) {
-                try {
-                    await bot.api.sendMessage(
-                        ownerAdmin.user.telegram_id,
-                        `⚠️ **Post Failed**\n\n` +
-                        `A scheduled post on ${channelLink} could not go through.\n` +
-                        `Reason: ${reason}\n\n` +
-                        `Your channel has been moved to draft. Please re-verify bot permissions to re-list.`,
-                        { parse_mode: 'Markdown' }
-                    );
-                } catch (e) {
-                    console.warn('[AutoPostService] Failed to notify channel owner of failure');
+            if (admins) {
+                for (const admin of admins) {
+                    const tid = (admin as any)?.user?.telegram_id;
+                    if (!tid) continue;
+                    try {
+                        await bot.api.sendMessage(
+                            tid,
+                            `⚠️ **Post Failed**\n\n` +
+                            `A scheduled post on ${channelLink} could not go through.\n` +
+                            `Reason: ${reason}\n\n` +
+                            `Your channel has been moved to draft. Please re-verify bot permissions to re-list.`,
+                            { parse_mode: 'Markdown' }
+                        );
+                    } catch (e) { /* skip */ }
                 }
             }
         }
@@ -281,23 +281,23 @@ export class AutoPostService {
             }
         }
 
-        // Notify channel owner
-        const { data: channelAdmin } = await (supabase as any)
+        // Notify channel admins (owner + PR managers)
+        const { data: channelAdmins } = await (supabase as any)
             .from('channel_admins')
             .select('user:users(telegram_id)')
-            .eq('channel_id', deal.channel_id)
-            .eq('is_owner', true)
-            .single();
+            .eq('channel_id', deal.channel_id);
 
-        if (channelAdmin?.user?.telegram_id) {
-            try {
-                await bot.api.sendMessage(
-                    channelAdmin.user.telegram_id,
-                    `✅ **Post published!**\n\nYour content is now live in ${deal.channel.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel.title}**`}.\n\nThe 24-hour monitoring period has started.`,
-                    { parse_mode: 'Markdown' }
-                );
-            } catch (e) {
-                console.warn('[AutoPostService] Failed to notify channel owner');
+        if (channelAdmins) {
+            for (const admin of channelAdmins) {
+                const tid = (admin as any)?.user?.telegram_id;
+                if (!tid) continue;
+                try {
+                    await bot.api.sendMessage(
+                        tid,
+                        `✅ **Post published!**\n\nYour content is now live in ${deal.channel.username ? `[${deal.channel.title}](https://t.me/${deal.channel.username})` : `**${deal.channel.title}**`}.\n\nThe 24-hour monitoring period has started.`,
+                        { parse_mode: 'Markdown' }
+                    );
+                } catch (e) { /* skip */ }
             }
         }
     }
