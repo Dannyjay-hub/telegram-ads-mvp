@@ -318,28 +318,49 @@ if (bot) {
         const channelId = editedPost.chat.id;
         const messageId = editedPost.message_id;
 
+        console.log(`[EditDetection] 📝 Edit event received — channel ${channelId}, message ${messageId}`);
+
         try {
             const { supabase } = await import('./db');
 
-            // Check if this message belongs to an active monitored deal
+            // Step 1: Find the channel by telegram_channel_id
+            const { data: channel } = await (supabase as any)
+                .from('channels')
+                .select('id, title, username')
+                .eq('telegram_channel_id', channelId)
+                .single();
+
+            if (!channel) {
+                console.log(`[EditDetection] Channel ${channelId} not found in DB — ignoring`);
+                return;
+            }
+
+            // Step 2: Find active monitored deal for this message
             const { data: deals, error } = await (supabase as any)
                 .from('deals')
                 .select(`
                     id, posted_message_id, status, price_amount, price_currency,
                     advertiser_wallet_address, campaign_id, channel_id,
-                    channel:channels!inner(telegram_channel_id, title, username),
                     advertiser:users!deals_advertiser_id_fkey(telegram_id)
                 `)
                 .eq('status', 'posted')
                 .eq('posted_message_id', messageId)
-                .eq('channels.telegram_channel_id', channelId);
+                .eq('channel_id', channel.id);
 
-            if (error || !deals || deals.length === 0) {
+            if (error) {
+                console.error(`[EditDetection] Query error:`, error);
+                return;
+            }
+
+            if (!deals || deals.length === 0) {
+                console.log(`[EditDetection] No active deal for message ${messageId} in channel ${channel.title} — ignoring`);
                 return;
             }
 
             const deal = deals[0];
-            console.log(`[EditDetection] ⚠️ EDIT DETECTED on deal ${deal.id} — message ${messageId} in channel ${deal.channel.title} (${channelId})`);
+            // Attach channel info for notifications
+            deal.channel = channel;
+            console.log(`[EditDetection] ⚠️ EDIT DETECTED on deal ${deal.id} — message ${messageId} in channel ${channel.title} (${channelId})`);
 
             // 1. Cancel the deal
             await (supabase as any)
