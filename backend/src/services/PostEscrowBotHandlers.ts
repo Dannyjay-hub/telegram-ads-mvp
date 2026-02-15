@@ -602,9 +602,10 @@ async function handleFeedbackReceived(
                             {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
-                                    inline_keyboard: [[
-                                        { text: '📝 Revise Draft', url: getBotDeepLink(`draft_${dealId}`) }
-                                    ]]
+                                    inline_keyboard: [
+                                        [{ text: '📝 Revise Draft', url: getBotDeepLink(`draft_${dealId}`) }],
+                                        [{ text: '💬 Chat with Advertiser', url: getBotDeepLink(`chat_${dealId}`) }]
+                                    ]
                                 }
                             }
                         );
