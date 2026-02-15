@@ -343,7 +343,7 @@ if (bot) {
                     advertiser_wallet_address, campaign_id, channel_id,
                     advertiser:users!deals_advertiser_id_fkey(telegram_id)
                 `)
-                .eq('status', 'posted')
+                .in('status', ['posted', 'monitoring'])
                 .eq('posted_message_id', messageId)
                 .eq('channel_id', channel.id);
 
