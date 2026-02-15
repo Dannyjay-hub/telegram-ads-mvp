@@ -1,420 +1,403 @@
-# Telegram Ad Marketplace
+# Telegram Ad Marketplace MVP
 
-> **A decentralized ad marketplace for Telegram channels, powered by TON blockchain escrow**
+A Telegram Mini App that connects advertisers with channel owners through a TON blockchain escrow system.
 
-[![Telegram Mini App](https://img.shields.io/badge/Telegram-Mini%20App-0088cc)](https://t.me/DanielAdsMVP_bot)
-[![TON Blockchain](https://img.shields.io/badge/TON-Escrow%20Payments-0098ea)](https://ton.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
-[![Status](https://img.shields.io/badge/status-MVP%20Complete-success)](https://github.com/Dannyjay-hub/telegram-ads-mvp)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+**Mainnet Bot:** [@DanielAdsMVP_bot](https://t.me/DanielAdsMVP_bot)
+**Testnet Bot:** [@DanielAdsMvpTestnet_bot](https://t.me/DanielAdsMvpTestnet_bot)
 
 ---
 
-## 🎯 Problem
+## Prerequisites
 
-Telegram advertising is fragmented and trust-dependent:
+Before you begin, make sure you have the following:
 
-- **Advertisers** risk prepayment with no delivery guarantee
-- **Channel owners** risk creating content without payment guarantee
-- **No verification** — subscriber counts and engagement stats are easily faked
-- **No accountability** — posts can be deleted minutes after being published
-- **Manual coordination** between parties creates friction and delays
-
-## 💡 Solution
-
-A **trust-minimized marketplace** where code enforces fairness:
-
-1. **Verified Channels** — Bot verifies ownership and fetches real stats from Telegram API
-2. **Escrow Payments** — TON/USDT funds locked until content is delivered and verified
-3. **Creative Approval** — Full draft → review → revision → approval loop
-4. **Auto-Posting** — Bot publishes content at agreed time
-5. **24h Monitoring** — Random checks verify post isn't deleted; funds auto-release on success
-6. **PR Manager Flow** — Channel teams (not just owners) can manage deals
+- **Node.js 18+** and **npm** installed
+- A **Supabase** account and project ([supabase.com](https://supabase.com))
+- A **Telegram Bot** created via [@BotFather](https://t.me/BotFather)
+- A **TON Wallet** with a 24-word mnemonic (this will be the escrow wallet)
+- A **TonCenter API key** from [@tonapibot](https://t.me/tonapibot) (free tier available)
+- A **TonAPI key** from [tonapi.io](https://tonapi.io) (for payment webhooks)
 
 ---
 
-## 🔗 Live Demo
-
-| | Link |
-|--|------|
-| **Mainnet Bot** | [@DanielAdsMVP_bot](https://t.me/DanielAdsMVP_bot) |
-| **Testnet Bot** | [@DanielAdsMvpTestnet_bot](https://t.me/DanielAdsMvpTestnet_bot) |
-| **Mini App** | [Open in Telegram](https://t.me/DanielAdsMVP_bot?startapp=marketplace) |
-
-### Switching Wallet Network (for Testing)
-
-To test with the **Testnet Bot**, switch your TON Wallet to testnet:
-
-1. Open **Wallet** in Telegram → tap the `⋮` menu → **Settings**
-2. Scroll to **Version & Network**
-3. Under **Network**, select **Testnet** (or **Mainnet** for the production bot)
-4. Get free testnet TON from the [Testnet Faucet Bot](https://t.me/testgiver_ton_bot)
-
-> **Note:** Use the **Testnet Bot** with **Testnet wallet**, and the **Mainnet Bot** with **Mainnet wallet**. Mixing them will cause payment failures.
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Telegram Mini App                      │
-│                    (React Frontend)                      │
-└──────────────────────┬──────────────────────────────────┘
-                       │ REST API
-┌──────────────────────▼──────────────────────────────────┐
-│                   Hono API Server                        │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐   │
-│  │ Auth Routes │ │ Deal Routes │ │ Campaign Routes │   │
-│  └─────────────┘ └─────────────┘ └─────────────────┘   │
-│  ┌─────────────┐ ┌──────────────────────────────────┐   │
-│  │ Bot Webhook │ │ Webhooks (TON/USDT Payments)     │   │
-│  └─────────────┘ └──────────────────────────────────┘   │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────┐
-│                   Service Layer                          │
-│  ┌───────────────┐ ┌──────────────┐ ┌───────────────┐   │
-│  │ TonPayment    │ │ Monitoring   │ │ AutoPost      │   │
-│  │ Service       │ │ Service      │ │ Service       │   │
-│  ├───────────────┤ ├──────────────┤ ├───────────────┤   │
-│  │ DraftService  │ │ Scheduling   │ │ Campaign      │   │
-│  │               │ │ Service      │ │ Service       │   │
-│  └───────────────┘ └──────────────┘ └───────────────┘   │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-        ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│   Supabase   │ │ Grammy Bot   │ │ TON/TonAPI   │
-│  PostgreSQL  │ │  (Telegram)  │ │  Blockchain  │
-└──────────────┘ └──────────────┘ └──────────────┘
-```
-
-### Tech Stack
-
-| Layer | Technology | Why |
-|-------|------------|-----|
-| Frontend | React, Vite, TypeScript, TailwindCSS | Fast dev, great for mini apps |
-| Backend | Node.js, Hono, TypeScript | Lightweight, TypeScript-native |
-| Bot | grammY | Modern, TypeScript-first bot framework |
-| Database | PostgreSQL (Supabase) | Relational integrity for financial data |
-| Blockchain | TON + USDT (Jetton) | Native Telegram wallet integration |
-| Stats | Bot API + MTProto (gramjs) | Verified subscriber counts, views, language data |
-| Hosting | Vercel (frontend) + Railway (backend) | Separate scaling, reliable |
-
----
-
-## 📋 MVP Implementation Status
-
-| Requirement | Status | Notes |
-|-------------|--------|-------|
-| **1. Marketplace Model** | ✅ Complete | Channel listings + advertiser campaigns with filters |
-| **2. Verified Stats** | ✅ Complete | Bot API + MTProto for subscribers, views, language charts, boosts |
-| **3. Ad Formats & Pricing** | ✅ Complete | Rate cards with post/story/repost/custom + TON/USDT pricing |
-| **4. Escrow Deal Flow** | ✅ Complete | TON/USDT payments, auto-timeout, refunds, internal ledger |
-| **5. Creative Approval** | ✅ Complete | Full loop: brief → draft → review → revise → approve |
-| **6. Auto-Posting** | ✅ Complete | Bot posts at scheduled time + 24h random monitoring |
-| **7. PR Manager Flow** | ✅ Complete | Role-based permissions, multi-admin channel management |
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js 18+** and npm
-- **Telegram Bot Token** — create via [@BotFather](https://t.me/BotFather)
-- **Supabase Project** — [supabase.com](https://supabase.com) (free tier works)
-- **TON Wallet** — for escrow operations
-
-### 1. Clone & Install
+## Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/Dannyjay-hub/telegram-ads-mvp.git
 cd telegram-ads-mvp
-
-# Backend
-cd backend && npm install
-
-# Frontend
-cd ../frontend && npm install
 ```
 
-### 2. Configure Environment
+---
+
+## Step 2: Create Your Telegram Bot
+
+1. Open Telegram and message [@BotFather](https://t.me/BotFather)
+2. Send `/newbot` and follow the prompts to create a bot
+3. Save the **bot token** — you'll need it for the backend `.env`
+4. Note your **bot username** (e.g. `MyAdBot_bot`)
+
+> **Tip:** If you want separate bots for testing and production, create two bots — a mainnet bot and a testnet bot.
+
+### Configure the Bot in BotFather
+
+Set these up for a polished experience:
+
+1. **Bot description** — send `/setdescription`, select your bot, then enter a description (shown when users open the bot for the first time)
+2. **Bot about text** — send `/setabouttext` to set the short bio visible in the bot's profile
+3. **Bot profile picture** — send `/setuserpic` and upload a profile picture
+4. **Inline mode** — send `/setinline` if you want to enable inline mode (optional)
+5. **Bot commands** — send `/setcommands` and set:
+   ```
+   start - Start the bot
+   negotiate - Enter deal negotiation mode
+   stop - Exit negotiation
+   ```
+
+### Set Up the Mini App
+
+Still in BotFather:
+
+1. Send `/newapp`
+2. Select your bot
+3. Enter an app title (e.g. "Ad Marketplace")
+4. Enter a short description
+5. Upload an icon (512×512px)
+6. For the **Web App URL**, enter your frontend URL (e.g. `https://your-app.vercel.app`)
+   - You can set a placeholder and update this after deployment (Step 8c)
+7. Set the **short name** to `marketplace` — this is critical because the app links use `https://t.me/<bot_username>/marketplace`
+
+### Enable Group Privacy Mode
+
+The bot needs to receive `edited_channel_post` updates to detect when monitored posts are edited:
+
+1. Send `/setprivacy` and select your bot
+2. Choose **Disable** (this allows the bot to see all messages in groups/channels it's added to)
+
+---
+
+## Step 3: Set Up Supabase
+
+### 3a. Create a Project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Once created, go to **Project Settings → API** and copy:
+   - **Project URL** (e.g. `https://xxxx.supabase.co`)
+   - **Service Role Key** (under "Project API keys" — use the `service_role` key, **not** the `anon` key)
+
+### 3b. Run the Database Schema
+
+1. Go to **SQL Editor** in your Supabase dashboard
+2. Open the file `schema.sql` from the repo root
+3. Paste the entire contents into the SQL Editor and click **Run**
+
+This creates all required tables (`users`, `channels`, `channel_admins`, `deals`, `campaigns`, `campaign_slots`, `wallets`, `pending_payouts`, `deal_messages`, `user_contexts`, `bot_channel_events`) and all associated enums, indexes, and foreign keys.
+
+> The `migrations/` folder contains incremental migration files used during development. For a fresh setup, `schema.sql` is all you need.
+
+### 3c. Create the Storage Bucket
+
+The app stores channel profile photos in Supabase Storage.
+
+1. In Supabase, go to **Storage** (left sidebar)
+2. Click **New bucket**
+3. Name it exactly: `channel-photos`
+4. Set it to **Public** (so the frontend can display channel avatars)
+5. Click **Create bucket**
+
+### 3d. Set Storage Policy
+
+After creating the bucket, you need to allow uploads:
+
+1. Click on the `channel-photos` bucket
+2. Go to the **Policies** tab
+3. Click **New Policy** → **For full customization**
+4. Create a policy that allows `INSERT` and `SELECT` for the `service_role`:
+   - **Policy name:** `Allow service role uploads`
+   - **Allowed operations:** `SELECT`, `INSERT`
+   - **Target roles:** Leave default (applies to all, service role bypasses RLS anyway)
+   - **Policy definition:** `true`
+5. Click **Save**
+
+### 3e. Create a Verification Channel (Optional but Recommended)
+
+The monitoring system can log verification checks to a private Telegram channel for transparency:
+
+1. Create a **new private channel** in Telegram (e.g. "Ad Verification Logs")
+2. Add your bot as an **admin** of this channel (with permission to post messages)
+3. Get the channel ID:
+   - Forward any message from the channel to [@userinfobot](https://t.me/userinfobot)
+   - Or forward a message from the channel to your bot — it will reply with the channel ID
+   - The ID will be a negative number like `-1001234567890`
+4. Add this ID to your `backend/.env` as `VERIFICATION_CHANNEL_ID`
+
+When set, the monitoring service will post check results (pass/fail) to this channel during the 24h post monitoring window.
+
+---
+
+## Step 4: Set Up TON Wallet
+
+You need a TON wallet that the backend will use to receive and send escrow payments.
+
+### Option A: Use an Existing Wallet
+
+If you already have a TON wallet with a 24-word mnemonic, use that. You need:
+- The **wallet address** (starts with `UQ` for mainnet, `0Q` for testnet)
+- The **24-word mnemonic phrase**
+
+### Option B: Create a New Wallet
+
+1. Open the **Wallet** bot in Telegram (@wallet)
+2. Create a wallet and back up your mnemonic
+3. Copy the wallet address
+
+> **Important:** For testnet, use the testnet version of your wallet. The address format changes from `UQ...` (mainnet) to `0Q...` (testnet).
+
+### Get API Keys
+
+1. **TonCenter API Key:** Message [@tonapibot](https://t.me/tonapibot) on Telegram → get a free API key
+   - For testnet, request a separate testnet key
+2. **TonAPI Key:** Go to [tonapi.io](https://tonapi.io) → create an account → generate an API key
+
+---
+
+## Step 5: Configure Environment Variables
+
+### Backend
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-Edit `backend/.env` with your credentials. See [`.env.example`](backend/.env.example) for all variables.
+Edit `backend/.env` and fill in all values:
+
+```env
+# ── Supabase ──
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# ── Telegram Bot ──
+BOT_TOKEN=your-bot-token
+BOT_USERNAME=YourBotUsername_bot
+
+# ── MTProto (optional — for advanced channel stats) ──
+# Get from https://my.telegram.org/apps
+TELEGRAM_API_ID=your-api-id
+TELEGRAM_API_HASH=your-api-hash
+
+# ── TON Payments ──
+MASTER_WALLET_ADDRESS=UQxxxxxxx     # Your mainnet escrow wallet
+HOT_WALLET_MNEMONIC="word1 word2 word3 ... word24"
+TON_API_KEY=your-toncenter-api-key
+TONAPI_KEY=your-tonapi-key
+
+# ── TON Webhook ──
+# Your deployed backend URL (set after deployment)
+WEBHOOK_URL=https://your-backend-url.com/webhooks/ton
+
+# ── Post Monitoring ──
+VERIFICATION_CHANNEL_ID=            # Optional: private channel for verification logs
+MONITORING_DURATION_HOURS=24        # How long to monitor posts (24 for production, 6 for testing)
+
+# ── Network ──
+# Set to 'testnet' for testing, 'mainnet' for production
+TON_NETWORK=testnet
+
+# ── Testnet-Specific (used when TON_NETWORK=testnet) ──
+TESTNET_BOT_TOKEN=your-testnet-bot-token
+TESTNET_MASTER_WALLET_ADDRESS=0Qxxxxxxx    # Testnet wallet address (0Q prefix)
+TESTNET_HOT_WALLET_MNEMONIC="word1 word2 word3 ... word24"
+TESTNET_TON_API_KEY=your-testnet-toncenter-api-key
+```
+
+**How network switching works:** When `TON_NETWORK=testnet`, the app automatically uses:
+- `TESTNET_BOT_TOKEN` instead of `BOT_TOKEN`
+- `TESTNET_MASTER_WALLET_ADDRESS` instead of `MASTER_WALLET_ADDRESS`
+- `TESTNET_HOT_WALLET_MNEMONIC` instead of `HOT_WALLET_MNEMONIC`
+- Testnet API endpoints (testnet.toncenter.com, testnet.tonapi.io)
+
+### Frontend
 
 Create `frontend/.env`:
+
 ```env
 VITE_API_URL=http://localhost:3000
+VITE_BOT_USERNAME=YourBotUsername_bot
+VITE_TON_NETWORK=testnet
 ```
 
-### 3. Setup Database
+For production, create `frontend/.env.production`:
 
-Run migrations in the Supabase SQL Editor:
-
-```bash
-# Apply migration files in /migrations folder (in order)
-# Or for a fresh setup:
-migrations/testnet_full_setup.sql
+```env
+VITE_API_URL=https://your-backend-url.com
+VITE_BOT_USERNAME=YourBotUsername_bot
+VITE_TON_NETWORK=mainnet
 ```
 
-### 4. Run Locally
-
-```bash
-# Terminal 1: Backend
-cd backend && npm run dev
-
-# Terminal 2: Frontend
-cd frontend && npm run dev
-```
-
-Backend runs on `http://localhost:3000`, Frontend on `http://localhost:5173`.
-
-### 5. Set Up Telegram Bot
-
-1. Create a bot via [@BotFather](https://t.me/BotFather)
-2. Get your bot token and add to `.env`
-3. Configure Mini App via BotFather:
-   ```
-   /newapp → Select bot → Enter title/description → Upload icon → Enter web app URL
-   ```
-4. Set bot webhook:
-   ```bash
-   curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://your-backend.com/bot"
-   ```
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend API URL |
+| `VITE_BOT_USERNAME` | Your bot's username (without @) |
+| `VITE_TON_NETWORK` | `testnet` or `mainnet` — controls which TON Connect network the wallet modal shows |
+| `VITE_PLATFORM_WALLET_ADDRESS` | *(optional)* Overrides the platform wallet address shown in the payment UI |
 
 ---
 
-## 📦 Deployment
-
-### Backend (Railway)
-
-1. Push to GitHub
-2. Connect repo to [Railway](https://railway.app)
-3. Set all environment variables from `.env.example`
-4. Deploy — Railway auto-detects Node.js
-
-### Frontend (Vercel)
-
-1. Connect GitHub repo to [Vercel](https://vercel.com)
-2. Set `VITE_API_URL` to your Railway backend URL
-3. Deploy
-
-### Bot Webhook
+## Step 6: Install Dependencies
 
 ```bash
-curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://your-backend-url.com/bot"
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd ../frontend
+npm install
 ```
 
 ---
 
-## 📋 Deal Flow
+## Step 7: Run Locally
 
-The complete lifecycle of an advertising deal:
+Open two terminal windows:
 
+```bash
+# Terminal 1 — Backend
+cd backend
+npm run dev
 ```
-draft → submitted → negotiating → funded → draft_pending → draft_submitted
-→ changes_requested → approved → scheduling → scheduled → posted
-→ monitoring → released | cancelled | refunded
+
+```bash
+# Terminal 2 — Frontend
+cd frontend
+npm run dev
 ```
 
-### Step-by-Step
+- Backend runs on **http://localhost:3000**
+- Frontend runs on **http://localhost:5173**
 
-1. **Advertiser** creates a campaign or finds a channel → initiates deal
-2. **Channel side** reviews and accepts/rejects the deal
-3. **Advertiser** funds escrow (TON or USDT payment)
-4. **Channel side** creates a draft post via bot
-5. **Advertiser** reviews draft → approves or requests changes
-6. **Both sides** negotiate posting time
-7. **Bot** auto-posts at scheduled time
-8. **Bot** monitors post for 24h with random integrity checks
-9. **System** auto-releases funds to channel owner on success
+The bot will automatically start polling for Telegram updates when the backend starts.
+
+> **Note:** The Mini App won't work locally in Telegram since it requires an HTTPS URL. You'll need to deploy to test the full Telegram integration. For local development, you can open the frontend directly in a browser.
 
 ---
 
-## 📂 Project Structure
+## Step 8: Deploy
+
+### 8a. Backend — Railway
+
+1. Push your code to GitHub
+2. Go to [railway.app](https://railway.app) and create a new project
+3. Select **Deploy from GitHub repo** and pick your repository
+4. Set the **Root Directory** to `backend`
+5. Railway auto-detects Node.js — it will run `npm install` and `npm start` automatically
+6. Go to **Variables** and add all the env vars from your `backend/.env`
+7. After the first deploy, copy the Railway URL (e.g. `https://your-project.up.railway.app`)
+8. Go back to Variables and set `WEBHOOK_URL` to `https://your-railway-url.com/webhooks/ton`
+
+### 8b. Frontend — Vercel
+
+1. Go to [vercel.com](https://vercel.com) and create a new project
+2. Import your GitHub repository
+3. Set the **Root Directory** to `frontend`
+4. Add these environment variables:
+   - `VITE_API_URL` = your Railway backend URL
+   - `VITE_BOT_USERNAME` = your bot username
+   - `VITE_TON_NETWORK` = `mainnet` or `testnet`
+5. Vercel will build and deploy automatically
+
+### 8c. Update BotFather
+
+Once the frontend is deployed, go back to BotFather and update the Mini App URL:
+
+1. Message [@BotFather](https://t.me/BotFather)
+2. Send `/myapps`
+3. Select your bot → select your app
+4. Tap **Edit Web App URL**
+5. Enter your Vercel URL (e.g. `https://your-app.vercel.app`)
+
+---
+
+## Step 9: Switch Wallet Network (For Testing)
+
+If you're running the **Testnet Bot**, you need to switch your TON Wallet to testnet:
+
+1. Open **Wallet** in Telegram → tap the `⋮` menu → **Settings**
+2. Scroll down and tap **Version & Network**
+3. Under **Network**, select **Testnet**
+4. To get free testnet TON, message the [Testnet Faucet Bot](https://t.me/testgiver_ton_bot)
+
+To switch back to mainnet, repeat the same steps and select **Mainnet**.
+
+> **Important:** Always match the wallet network to the bot you're using. Testnet Bot → Testnet Wallet. Mainnet Bot → Mainnet Wallet.
+
+---
+
+## Project Structure
 
 ```
 telegram-ads-mvp/
-├── frontend/
-│   ├── src/
-│   │   ├── components/          # React components
-│   │   │   ├── ChannelWizard.tsx        # Channel registration wizard
-│   │   │   ├── CampaignWizard.tsx       # Campaign creation wizard
-│   │   │   ├── EscrowPaymentPage.tsx    # TON/USDT payment flow
-│   │   │   ├── ChannelOwnerPartnerships.tsx  # Owner deal management
-│   │   │   ├── PartnershipsList.tsx     # Advertiser deal tracking
-│   │   │   └── TimePickerModal.tsx      # Schedule negotiation
-│   │   ├── hooks/               # Custom hooks
-│   │   ├── providers/           # Context providers (Telegram, Auth)
-│   │   └── lib/                 # API client, utilities
-│   └── package.json
 ├── backend/
 │   ├── src/
-│   │   ├── routes/              # Hono API endpoints
-│   │   ├── services/            # Core business logic
-│   │   │   ├── TonPaymentService.ts     # Escrow deposits + USDT detection
-│   │   │   ├── TonPayoutService.ts      # Fund releases + refunds
-│   │   │   ├── MonitoringService.ts     # 24h post verification
-│   │   │   ├── AutoPostService.ts       # Scheduled posting
-│   │   │   ├── DraftService.ts          # Content negotiation
-│   │   │   ├── SchedulingService.ts     # Time negotiation
-│   │   │   └── CampaignService.ts       # Campaign management
-│   │   ├── repositories/        # Database access (Repository Pattern)
-│   │   ├── domain/              # Entity definitions
-│   │   ├── jobs/                # Background workers
-│   │   └── db.ts                # Supabase client
+│   │   ├── index.ts              # Hono server entry point
+│   │   ├── bot.ts                # Grammy bot handlers
+│   │   ├── botInstance.ts        # Bot singleton & deep link helpers
+│   │   ├── config/
+│   │   │   └── tonConfig.ts      # TON network config (auto testnet/mainnet)
+│   │   ├── routes/               # API endpoints
+│   │   ├── services/             # Business logic
+│   │   ├── repositories/         # Database access layer
+│   │   ├── domain/               # Entity type definitions
+│   │   ├── jobs/                 # Background workers (monitoring, timeouts)
+│   │   └── db.ts                 # Supabase client
 │   ├── .env.example
 │   └── package.json
-├── migrations/                  # SQL migration files
-├── schema.sql                   # Full database schema
-└── docs/                        # Additional documentation
-    ├── ENGINEERING_DECISIONS.md  # 34 detailed technical decisions
-    ├── MVP_COMPLIANCE.md        # Feature compliance matrix
-    ├── ESCROW_DEAL_FLOW.md      # Escrow system deep-dive
+├── frontend/
+│   ├── src/
+│   │   ├── components/           # React components
+│   │   ├── hooks/                # Custom React hooks
+│   │   ├── providers/            # Context providers (Auth, Telegram)
+│   │   ├── lib/                  # API client, utilities, TON config
+│   │   └── api/                  # API client
+│   └── package.json
+├── migrations/                   # Incremental SQL migration files
+├── schema.sql                    # Full database schema (pg_dump)
+└── docs/                         # Additional documentation
+    ├── ENGINEERING_DECISIONS.md
+    ├── MVP_COMPLIANCE.md
+    ├── ESCROW_DEAL_FLOW.md
     └── TELEGRAM_DESIGN_SYSTEM.md
 ```
 
 ---
 
-## 🔑 Key Technical Decisions
+## Troubleshooting
 
-### 1. Memo-Based Payment Tracking
-**Decision:** Use unique memo strings (`DEAL-{uuid}`) instead of generating per-deal wallet addresses.
-- Single escrow wallet receives all payments
-- Backend polls TON blockchain for matching memos
-- Simpler infrastructure, lower gas costs
+### Bot not responding
 
-### 2. Hybrid Webhook + Polling for Payments
-**Decision:** When any TON webhook fires, immediately check `/jettons/history` for USDT transfers.
-- **Problem:** Jetton (USDT) transfers don't trigger main wallet webhooks
-- **Solution:** Webhook triggers an immediate jetton history check
-- Reduces USDT detection from ~30s to ~2-3s
+- Check that `BOT_TOKEN` is correct in `.env`
+- If using testnet, make sure `TON_NETWORK=testnet` and `TESTNET_BOT_TOKEN` is set
+- Check Railway logs for startup errors
 
-### 3. Internal Ledger for Financial Operations
-**Decision:** Track balances in an internal `wallets` table rather than direct P2P transfers.
-- Atomic transactions (no partial states)
-- Instant refunds without blockchain fees
-- Enables future multi-currency support
+### Payments not detected
 
-### 4. Repository Pattern for Database Access
-**Decision:** Abstract all database operations behind interfaces (`IDealRepository`, `IChannelRepository`).
-- Enables database migration without business logic changes
-- Auto-generated TypeScript types from Supabase schema
+- Verify `TONAPI_KEY` and `TON_API_KEY` are set
+- Check that `MASTER_WALLET_ADDRESS` matches the wallet you're sending to
+- For testnet, make sure both the wallet and the bot are on testnet
+- Check the `/admin/transactions` endpoint to see if transactions are being picked up
 
-### 5. Random Monitoring Checks
-**Decision:** Post integrity is verified at **random, unpredictable times** during the 24h monitoring window.
-- Prevents gaming (channel owners can't delete post right after a check)
-- 6-10 checks randomly distributed across the monitoring period
-- Uses `copyMessage` API trick to verify post existence without exposing verification times
+### Mini App shows blank or won't load
 
-### 6. PR Manager Flow
-**Decision:** Support channel teams with role-based permissions.
-- `channel_admins` many-to-many table with `can_negotiate`, `can_approve_creative`, `can_manage_finance`
-- Real-time permission verification via Telegram API before sensitive actions
-- All deal notifications sent to **all** channel admins (owner + PR managers)
+- Verify that the BotFather Mini App URL matches your Vercel deployment URL
+- Check that `VITE_API_URL` points to the correct backend URL
+- Open browser DevTools console for errors
 
-> 📄 See [docs/ENGINEERING_DECISIONS.md](docs/ENGINEERING_DECISIONS.md) for all 34 technical decisions.
+### Channel stats not loading
+
+- The bot must be an **admin** of the channel (add the bot to the channel as admin)
+- MTProto stats (language charts, boosts) require `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` — these are optional but recommended
 
 ---
 
-## 🔒 Security
+## License
 
-### Implemented
-- ✅ **Telegram WebApp data validation** — cryptographic signature verification
-- ✅ **Escrow system** — funds locked until delivery verified
-- ✅ **Real-time permission checks** — Telegram API verification before financial actions
-- ✅ **Random monitoring** — unpredictable check times prevent gaming
-- ✅ **Auto-refunds** — expired deals automatically refund advertiser
-- ✅ **Content moderation** — server-side blacklist checking
-- ✅ **Transaction deduplication** — hash-based prevention of double-crediting
-
-### Future (Post-MVP)
-- [ ] Multi-signature escrow wallet
-- [ ] Smart contract escrow on TON
-- [ ] Rate limiting
-- [ ] Audit logging
-
----
-
-## ⚠️ Known Limitations
-
-1. **Centralized Escrow** — Uses a server-side hot wallet. Production should migrate to smart contract escrow for trustlessness.
-2. **Single Post Format** — Auto-posting supports text + single photo. Stories, videos, and multi-media require manual posting.
-3. **Polling-Based Monitoring** — Post checks run via cron jobs (every minute for auto-posting, every hour for monitoring), not real-time webhooks.
-4. **Bot Admin Required** — The bot must be a channel admin with `can_post_messages` to auto-post and verify content.
-5. **MTProto Dependency** — Advanced stats (language charts, premium boosts) require MTProto credentials. Falls back to basic Bot API stats if not configured.
-
----
-
-## 🔮 Future Roadmap
-
-### Phase 1: Security Hardening
-- [ ] Smart contract escrow on TON mainnet
-- [ ] Multi-signature wallet operations
-- [ ] Rate limiting and abuse prevention
-- [ ] Third-party security audit
-
-### Phase 2: Platform Growth
-- [ ] Dispute resolution with evidence submission
-- [ ] Analytics dashboard (earnings, performance)
-- [ ] Reputation system with on-chain ratings
-- [ ] Multi-language support (i18n)
-
-### Phase 3: Scale
-- [ ] Story/Reels format auto-posting
-- [ ] Bulk campaign management
-- [ ] API for third-party integrations
-- [ ] Mobile-native companion app
-
----
-
-## 🤖 AI Usage Disclosure
-
-This project was developed with AI assistance (Google Antigravity). Approximate breakdown:
-
-| Component | AI-Generated | Human-Written | AI % |
-|-----------|-------------|---------------|------|
-| **Backend Services** | Boilerplate, CRUD, handlers | Business logic, escrow flow, edge cases | **~70%** |
-| **Frontend Components** | Component structure, styling | UX flows, state management, integration | **~65%** |
-| **Database Schema** | Initial schema generation | Relationships, constraints, migrations | **~50%** |
-| **Bot Integration** | Handler scaffolding | Conversation flows, deep links, relay | **~60%** |
-| **Documentation** | Structure, formatting | Content, decisions, philosophy | **~70%** |
-| **DevOps/Config** | Dockerfile templates | Environment config, deployment | **~40%** |
-
-### Overall: **~65% AI-generated, 35% human-written**
-
-All AI-generated code was:
-1. **Reviewed** for correctness and security
-2. **Tested** in development and production environments
-3. **Debugged** when issues arose (many AI-generated patterns needed fixes)
-4. **Refactored** to match project architecture and conventions
-
-The AI served as a **productivity multiplier** — architecture decisions, business logic design, integration testing, and production deployment were entirely human-driven.
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) file.
-
----
-
-## 📞 Links
-
-| | |
-|--|--|
-| **GitHub** | [github.com/Dannyjay-hub/telegram-ads-mvp](https://github.com/Dannyjay-hub/telegram-ads-mvp) |
-| **Mainnet Bot** | [@DanielAdsMVP_bot](https://t.me/DanielAdsMVP_bot) |
-| **Testnet Bot** | [@DanielAdsMvpTestnet_bot](https://t.me/DanielAdsMvpTestnet_bot) |
-| **Mini App** | [Open in Telegram](https://t.me/DanielAdsMVP_bot?startapp=marketplace) |
-
----
-
-**Built for the TON Ecosystem 🚀**
+MIT
