@@ -36,22 +36,7 @@ cd telegram-ads-mvp
 3. Save the **bot token** — you'll need it for the backend `.env`
 4. Note your **bot username** (e.g. `MyAdBot_bot`)
 
-> **Tip:** If you want separate bots for testing and production, create two bots — a mainnet bot and a testnet bot.
-
-### Configure the Bot in BotFather
-
-Set these up for a polished experience:
-
-1. **Bot description** — send `/setdescription`, select your bot, then enter a description (shown when users open the bot for the first time)
-2. **Bot about text** — send `/setabouttext` to set the short bio visible in the bot's profile
-3. **Bot profile picture** — send `/setuserpic` and upload a profile picture
-4. **Inline mode** — send `/setinline` if you want to enable inline mode (optional)
-5. **Bot commands** — send `/setcommands` and set:
-   ```
-   start - Start the bot
-   negotiate - Enter deal negotiation mode
-   stop - Exit negotiation
-   ```
+> **Tip:** If you want separate bots for testing and production, create two bots — one for mainnet and one for testnet.
 
 ### Set Up the Mini App
 
@@ -65,13 +50,6 @@ Still in BotFather:
 6. For the **Web App URL**, enter your frontend URL (e.g. `https://your-app.vercel.app`)
    - You can set a placeholder and update this after deployment (Step 8c)
 7. Set the **short name** to `marketplace` — this is critical because the app links use `https://t.me/<bot_username>/marketplace`
-
-### Enable Group Privacy Mode
-
-The bot needs to receive `edited_channel_post` updates to detect when monitored posts are edited:
-
-1. Send `/setprivacy` and select your bot
-2. Choose **Disable** (this allows the bot to see all messages in groups/channels it's added to)
 
 ---
 
