@@ -218,8 +218,13 @@ export class SupabaseChannelRepository implements IChannelRepository {
         console.log(`[ChannelRepo] Attempting to delete channel ${id}`);
 
         // FIRST: Check if there are any active deals that would block deletion
-        // Only check statuses that definitely exist in the database enum
-        const activeStatuses = ['funded', 'approved', 'posted', 'monitoring', 'disputed'];
+        // Only terminal statuses (cancelled, released) allow deletion — everything else is "active"
+        const activeStatuses = [
+            'draft', 'submitted', 'negotiating', 'funded',
+            'draft_pending', 'draft_submitted', 'changes_requested', 'approved',
+            'scheduling', 'scheduled', 'posted', 'failed_to_post',
+            'monitoring', 'disputed', 'payout_pending'
+        ];
 
         const { data: activeDeals, error: checkError } = await supabase
             .from('deals')
@@ -275,7 +280,21 @@ export class SupabaseChannelRepository implements IChannelRepository {
             }
         }
 
-        // 4. Delete deals (no active deals at this point)
+        // 4. Delete campaign_applications for these deals (FK constraint on deals)
+        if (dealIds.length > 0) {
+            const { error: appsError } = await supabase
+                .from('campaign_applications')
+                .delete()
+                .in('deal_id', dealIds);
+
+            if (appsError) {
+                console.error('[ChannelRepo] Failed to delete campaign_applications:', appsError.message);
+            } else {
+                console.log('[ChannelRepo] Deleted campaign_applications');
+            }
+        }
+
+        // 5. Delete deals (no active deals at this point)
         const { error: dealsError } = await supabase
             .from('deals')
             .delete()
