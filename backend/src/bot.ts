@@ -467,7 +467,7 @@ export async function startBot() {
         console.log('Starting Telegram Bot...');
         try {
             // Drop pending updates to prevent 409 conflict with previous instance
-            await bot.api.deleteWebhook({ drop_pending_updates: true });
+            await bot.api.deleteWebhook({ drop_pending_updates: false });
             console.log('Cleared pending updates');
 
             // Start polling — include edited_channel_post for edit detection
