@@ -410,9 +410,10 @@ async function handleSubmitDraft(
                     {
                         parse_mode: 'Markdown',
                         reply_markup: {
-                            inline_keyboard: [[
-                                { text: '👁 Review Draft', url: getBotDeepLink(`review_${dealId}`) }
-                            ]]
+                            inline_keyboard: [
+                                [{ text: '👁 Review Draft', url: getBotDeepLink(`review_${dealId}`) }],
+                                [{ text: '💬 Chat with Channel', url: getBotDeepLink(`chat_${dealId}`) }]
+                            ]
                         }
                     }
                 );
@@ -502,9 +503,10 @@ async function handleApproveDraft(
                             {
                                 parse_mode: 'Markdown',
                                 reply_markup: {
-                                    inline_keyboard: [[
-                                        { text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }
-                                    ]]
+                                    inline_keyboard: [
+                                        [{ text: '⏰ Set Posting Time', url: `${MINI_APP_URL}?startapp=schedule_${dealId}` }],
+                                        [{ text: '💬 Chat with Advertiser', url: getBotDeepLink(`chat_${dealId}`) }]
+                                    ]
                                 }
                             }
                         );

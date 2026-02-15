@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { tonPayoutService } from './TonPayoutService';
 import { notifyDealStatusChange, notifyNewDealRequest, notifyPaymentConfirmed } from './NotificationService';
 import { supabase } from '../db';
-import { getMiniAppUrl } from '../botInstance';
+import { getMiniAppUrl, getBotDeepLink } from '../botInstance';
 import { SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 
 const campaignRepository = new SupabaseCampaignRepository();
@@ -385,7 +385,8 @@ export class DealService {
                                     reply_markup: {
                                         inline_keyboard: [
                                             [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${dealId}`) }],
-                                            [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }]
+                                            [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }],
+                                            [{ text: '💬 Chat with Advertiser', url: getBotDeepLink(`chat_${dealId}`) }]
                                         ]
                                     }
                                 }
@@ -449,7 +450,8 @@ export class DealService {
                                     reply_markup: {
                                         inline_keyboard: [
                                             [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${dealId}`) }],
-                                            [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }]
+                                            [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }],
+                                            [{ text: '💬 Chat with Advertiser', url: getBotDeepLink(`chat_${dealId}`) }]
                                         ]
                                     }
                                 }

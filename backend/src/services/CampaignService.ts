@@ -1,7 +1,7 @@
 import { campaignRepository, SupabaseCampaignRepository } from '../repositories/supabase/SupabaseCampaignRepository';
 import { SupabaseChannelRepository } from '../repositories/supabase/SupabaseChannelRepository';
 import { SupabaseDealRepository } from '../repositories/supabase/SupabaseDealRepository';
-import { getMiniAppUrl } from '../botInstance';
+import { getMiniAppUrl, getBotDeepLink } from '../botInstance';
 import { SupabaseUserRepository } from '../repositories/supabase/SupabaseUserRepository';
 import { Campaign, CampaignApplication, CampaignInsert, CampaignUpdate, Channel } from '../domain/entities';
 
@@ -345,7 +345,8 @@ export class CampaignService {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '📱 View Partnership', url: getMiniAppUrl(`deal_${deal.id}`) }]
+                                [{ text: '📱 View Partnership', url: getMiniAppUrl(`deal_${deal.id}`) }],
+                                [{ text: '💬 Chat with Channel', url: getBotDeepLink(`chat_${deal.id}`) }]
                             ]
                         }
                     }
@@ -370,7 +371,8 @@ export class CampaignService {
                                 reply_markup: {
                                     inline_keyboard: [
                                         [{ text: '📝 Create Draft', url: getMiniAppUrl(`owner_deal_${deal.id}`) }],
-                                        [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }]
+                                        [{ text: '📋 View Partnerships', url: getMiniAppUrl('partnerships') }],
+                                        [{ text: '💬 Chat with Advertiser', url: getBotDeepLink(`chat_${deal.id}`) }]
                                     ]
                                 }
                             }
