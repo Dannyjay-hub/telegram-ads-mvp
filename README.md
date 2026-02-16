@@ -17,40 +17,40 @@
 ## Table of Contents
 
 0. [Demo Video](#-demo-video)
-1. [Architecture Overview](#1-architecture-overview)
+1. [Setup & Deployment](#setup--deployment)
+2. [Architecture Overview](#1-architecture-overview)
 
 **Part I — Channel Owner**
 
-2. [Channel Listing Flow](#2-channel-listing-flow)
-3. [PR Manager System](#3-pr-manager-system)
-4. [Service Packages & Rate Cards](#4-service-packages--rate-cards)
+3. [Channel Listing Flow](#2-channel-listing-flow)
+4. [PR Manager System](#3-pr-manager-system)
+5. [Service Packages & Rate Cards](#4-service-packages--rate-cards)
 
 **Part II — Advertiser**
 
-5. [Campaign Creation Flow](#5-campaign-creation-flow)
-6. [Campaign Model: Open vs Closed](#6-campaign-model-open-vs-closed)
+6. [Campaign Creation Flow](#5-campaign-creation-flow)
+7. [Campaign Model: Open vs Closed](#6-campaign-model-open-vs-closed)
 
 **Part III — Shared Deal Pipeline**
 
-7. [Unified Deal Flow](#7-unified-deal-flow)
-8. [Creative Approval](#8-creative-approval)
-9. [Scheduling & Auto-Posting](#9-scheduling--auto-posting)
-10. [Monitoring Service](#10-monitoring-service)
+8. [Unified Deal Flow](#7-unified-deal-flow)
+9. [Creative Approval](#8-creative-approval)
+10. [Scheduling & Auto-Posting](#9-scheduling--auto-posting)
+11. [Monitoring Service](#10-monitoring-service)
 
 **Part IV — Platform Infrastructure**
 
-11. [Escrow & Payment System](#11-escrow--payment-system)
-12. [Payout & Refund](#12-payout--refund)
-13. [Platform Fees](#13-platform-fees)
-14. [Deal Timeouts](#14-deal-timeouts)
+12. [Escrow & Payment System](#11-escrow--payment-system)
+13. [Payout & Refund](#12-payout--refund)
+14. [Platform Fees](#13-platform-fees)
+15. [Deal Timeouts](#14-deal-timeouts)
 
 **Part V — Reference**
 
-15. [Partnerships View](#15-partnerships-view)
-16. [Known Limitations](#16-known-limitations)
-17. [Future Roadmap](#17-future-roadmap)
-18. [AI Disclosure](#ai-code-usage-disclosure)
-19. [Setup & Deployment](#setup--deployment)
+16. [Partnerships View](#15-partnerships-view)
+17. [Known Limitations](#16-known-limitations)
+18. [Future Roadmap](#17-future-roadmap)
+19. [AI Disclosure](#ai-code-usage-disclosure)
 20. [License](#license)
 
 ---
@@ -59,6 +59,284 @@
 
 https://github.com/user-attachments/assets/e934d53b-386f-419a-a0d3-cea56193ed35
 
+
+## Setup & Deployment
+
+<details>
+<summary><strong>📦 Click to expand full setup guide</strong></summary>
+
+### Prerequisites
+
+- **Node.js 18+** and **npm** installed
+- A **Supabase** account and project ([supabase.com](https://supabase.com))
+- A **Telegram Bot** created via [@BotFather](https://t.me/BotFather)
+- A **TON Wallet** with a 24-word mnemonic (this will be the escrow wallet)
+- A **TonCenter API key** from [@tonapibot](https://t.me/tonapibot) (free tier available)
+- A **TonAPI key** from [tonapi.io](https://tonapi.io) (for payment webhooks)
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/Dannyjay-hub/telegram-ads-mvp.git
+cd telegram-ads-mvp
+```
+
+### Step 2: Create Your Telegram Bot
+
+1. Open Telegram and message [@BotFather](https://t.me/BotFather)
+2. Send `/newbot` and follow the prompts to create a bot
+3. Save the **bot token** — you'll need it for the backend `.env`
+4. Note your **bot username** (e.g. `MyAdBot_bot`)
+
+> **Tip:** If you want separate bots for testing and production, create two bots — one for mainnet and one for testnet.
+
+> **Note:** Do NOT set up the Mini App yet — you need to deploy the frontend first to get the URL. This is done in Step 10.
+
+### Step 3: Set Up Supabase
+
+#### 3a. Create a Project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Once created, go to **Project Settings → API** and copy:
+   - **Project URL** (e.g. `https://xxxx.supabase.co`)
+   - **Service Role Key** (under "Project API keys" — use the `service_role` key, **not** the `anon` key)
+
+#### 3b. Run the Database Schema
+
+1. Go to **SQL Editor** in your Supabase dashboard
+2. Open the file `schema.sql` from the repo root
+3. Paste the entire contents into the SQL Editor and click **Run**
+
+This creates all required tables (`users`, `channels`, `channel_admins`, `deals`, `campaigns`, `campaign_slots`, `wallets`, `pending_payouts`, `deal_messages`, `user_contexts`, `bot_channel_events`) and all associated enums, indexes, and foreign keys.
+
+> The `migrations/` folder contains incremental migration files used during development. For a fresh setup, `schema.sql` is all you need.
+
+#### 3c. Create the Storage Bucket
+
+The app stores channel profile photos in Supabase Storage.
+
+1. In Supabase, go to **Storage** (left sidebar)
+2. Click **New bucket**
+3. Name it exactly: `channel-photos`
+4. Set it to **Public** (so the frontend can display channel avatars)
+5. Click **Create bucket**
+
+#### 3d. Set Storage Policy
+
+After creating the bucket, you need to allow uploads:
+
+1. Click on the `channel-photos` bucket
+2. Go to the **Policies** tab
+3. Click **New Policy** → **For full customization**
+4. Create a policy that allows `INSERT` and `SELECT` for the `service_role`:
+   - **Policy name:** `Allow service role uploads`
+   - **Allowed operations:** `SELECT`, `INSERT`
+   - **Target roles:** Leave default (applies to all, service role bypasses RLS anyway)
+   - **Policy definition:** `true`
+5. Click **Save**
+
+### Step 4: Create a Verification Channel
+
+The monitoring system logs verification checks to a private Telegram channel for transparency and auditing.
+
+1. Create a **new private channel** in Telegram (e.g. "Ad Verification Logs")
+2. Add your bot as an **admin** of this channel (with permission to post messages)
+3. Get the channel ID:
+   - Forward any message from the channel to [@userinfobot](https://t.me/userinfobot)
+   - Or forward a message from the channel to your bot — it will reply with the channel ID
+   - The ID will be a negative number like `-1001234567890`
+4. Add this ID to your `backend/.env` as `VERIFICATION_CHANNEL_ID`
+
+### Step 5: Set Up TON Wallet
+
+You need a TON wallet that the backend will use to receive and send escrow payments.
+
+#### Option A: Use an Existing Wallet
+
+If you already have a TON wallet with a 24-word mnemonic, use that. You need:
+- The **wallet address** (starts with `UQ` for mainnet, `0Q` for testnet)
+- The **24-word mnemonic phrase**
+
+#### Option B: Create a New Wallet
+
+1. Open the **Wallet** bot in Telegram (@wallet)
+2. Create a wallet and back up your mnemonic
+3. Copy the wallet address
+
+> **Important:** For testnet, use the testnet version of your wallet. The address format changes from `UQ...` (mainnet) to `0Q...` (testnet).
+
+#### Get API Keys
+
+1. **TonCenter API Key:** Message [@tonapibot](https://t.me/tonapibot) on Telegram → get a free API key
+   - For testnet, request a separate testnet key
+2. **TonAPI Key:** Go to [tonapi.io](https://tonapi.io) → create an account → generate an API key
+
+### Step 6: Configure Environment Variables
+
+#### Backend
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env` and fill in all values:
+
+```env
+# ── Supabase ──
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# ── Telegram Bot ──
+BOT_TOKEN=your-bot-token
+BOT_USERNAME=YourBotUsername_bot
+
+
+# ── TON Payments ──
+MASTER_WALLET_ADDRESS=UQxxxxxxx     # Your mainnet escrow wallet
+HOT_WALLET_MNEMONIC="word1 word2 word3 ... word24"
+TON_API_KEY=your-toncenter-api-key
+TONAPI_KEY=your-tonapi-key
+
+# ── TON Webhook ──
+# Your deployed backend URL (set after deployment)
+WEBHOOK_URL=https://your-backend-url.com/webhooks/ton
+
+# ── Post Monitoring ──
+VERIFICATION_CHANNEL_ID=-1001234567890  # From Step 4
+MONITORING_DURATION_HOURS=24        # How long to monitor posts (24 for production, 6 for testing)
+
+# ── Network ──
+# Set to 'testnet' for testing, 'mainnet' for production
+TON_NETWORK=testnet
+
+# ── Testnet-Specific (used when TON_NETWORK=testnet) ──
+TESTNET_BOT_TOKEN=your-testnet-bot-token
+TESTNET_MASTER_WALLET_ADDRESS=0Qxxxxxxx    # Testnet wallet address (0Q prefix)
+TESTNET_HOT_WALLET_MNEMONIC="word1 word2 word3 ... word24"
+TESTNET_TON_API_KEY=your-testnet-toncenter-api-key
+```
+
+**How network switching works:** When `TON_NETWORK=testnet`, the app automatically uses:
+- `TESTNET_BOT_TOKEN` instead of `BOT_TOKEN`
+- `TESTNET_MASTER_WALLET_ADDRESS` instead of `MASTER_WALLET_ADDRESS`
+- `TESTNET_HOT_WALLET_MNEMONIC` instead of `HOT_WALLET_MNEMONIC`
+- Testnet API endpoints (testnet.toncenter.com, testnet.tonapi.io)
+
+#### Frontend
+
+Create `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:3000
+VITE_BOT_USERNAME=YourBotUsername_bot
+VITE_TON_NETWORK=testnet
+```
+
+For production, create `frontend/.env.production`:
+
+```env
+VITE_API_URL=https://your-backend-url.com
+VITE_BOT_USERNAME=YourBotUsername_bot
+VITE_TON_NETWORK=mainnet
+```
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend API URL |
+| `VITE_BOT_USERNAME` | Your bot's username (without @) |
+| `VITE_TON_NETWORK` | `testnet` or `mainnet` — controls which TON Connect network the wallet modal shows |
+| `VITE_PLATFORM_WALLET_ADDRESS` | *(optional)* Overrides the platform wallet address shown in the payment UI |
+
+### Step 7: Install Dependencies
+
+```bash
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd ../frontend
+npm install
+```
+
+### Step 8: Run Locally
+
+Open two terminal windows:
+
+```bash
+# Terminal 1 — Backend
+cd backend
+npm run dev
+```
+
+```bash
+# Terminal 2 — Frontend
+cd frontend
+npm run dev
+```
+
+- Backend runs on **http://localhost:3000**
+- Frontend runs on **http://localhost:5173**
+
+The bot will automatically start polling for Telegram updates when the backend starts.
+
+> **Note:** The Mini App won't work locally in Telegram since it requires an HTTPS URL. You'll need to deploy to test the full Telegram integration. For local development, you can open the frontend directly in a browser.
+
+### Step 9: Deploy
+
+#### 9a. Backend — Railway
+
+1. Push your code to GitHub
+2. Go to [railway.app](https://railway.app) and create a new project
+3. Select **Deploy from GitHub repo** and pick your repository
+4. Set the **Root Directory** to `backend`
+5. Railway auto-detects Node.js — it will run `npm install` and `npm start` automatically
+6. Go to **Variables** and add all the env vars from your `backend/.env`
+7. After the first deploy, copy the Railway URL (e.g. `https://your-project.up.railway.app`)
+8. Go back to Variables and set `WEBHOOK_URL` to `https://your-railway-url.com/webhooks/ton`
+
+#### 9b. Frontend — Vercel
+
+1. Go to [vercel.com](https://vercel.com) and create a new project
+2. Import your GitHub repository
+3. Set the **Root Directory** to `frontend`
+4. Add these environment variables:
+   - `VITE_API_URL` = your Railway backend URL
+   - `VITE_BOT_USERNAME` = your bot username
+   - `VITE_TON_NETWORK` = `mainnet` or `testnet`
+5. Vercel will build and deploy automatically
+
+### Step 10: Set Up the Mini App in BotFather
+
+Now that both backend and frontend are deployed, configure the Mini App:
+
+1. Message [@BotFather](https://t.me/BotFather)
+2. Send `/newapp`
+3. Select your bot
+4. Enter an app title (e.g. "Ad Marketplace")
+5. Enter a short description
+6. Upload an icon (512×512px)
+7. For the **Web App URL**, enter your Vercel URL (e.g. `https://your-app.vercel.app`)
+8. Set the **short name** to `marketplace` — this is critical because the app links use `https://t.me/<bot_username>/marketplace`
+
+> If you've already created the app with a placeholder URL, send `/myapps` → select your bot → select your app → **Edit Web App URL** → enter your Vercel URL.
+
+### Step 11: Switch Wallet Network (For Testing)
+
+If you're running the **Testnet Bot**, you need to switch your TON Wallet to testnet:
+
+1. Open **Wallet** in Telegram → tap the `⋮` menu → **Settings**
+2. Scroll down and tap **Version & Network**
+3. Under **Network**, select **Testnet**
+4. To get free testnet TON, message the [Testnet Faucet Bot](https://t.me/testgiver_ton_bot)
+
+To switch back to mainnet, repeat the same steps and select **Mainnet**.
+
+> **Important:** Always match the wallet network to the bot you're using. Testnet Bot → Testnet Wallet. Mainnet Bot → Mainnet Wallet.
+
+</details>
+
+---
 ### Sample Transaction Evidence
 
 Real mainnet transactions verifiable on TON blockchain (5 of 20 total):
@@ -1032,283 +1310,6 @@ The UI will be revamped to a much more intuitive design based on the screens in 
 
 ---
 
-## Setup & Deployment
-
-<details>
-<summary><strong>📦 Click to expand full setup guide</strong></summary>
-
-### Prerequisites
-
-- **Node.js 18+** and **npm** installed
-- A **Supabase** account and project ([supabase.com](https://supabase.com))
-- A **Telegram Bot** created via [@BotFather](https://t.me/BotFather)
-- A **TON Wallet** with a 24-word mnemonic (this will be the escrow wallet)
-- A **TonCenter API key** from [@tonapibot](https://t.me/tonapibot) (free tier available)
-- A **TonAPI key** from [tonapi.io](https://tonapi.io) (for payment webhooks)
-
-### Step 1: Clone the Repository
-
-```bash
-git clone https://github.com/Dannyjay-hub/telegram-ads-mvp.git
-cd telegram-ads-mvp
-```
-
-### Step 2: Create Your Telegram Bot
-
-1. Open Telegram and message [@BotFather](https://t.me/BotFather)
-2. Send `/newbot` and follow the prompts to create a bot
-3. Save the **bot token** — you'll need it for the backend `.env`
-4. Note your **bot username** (e.g. `MyAdBot_bot`)
-
-> **Tip:** If you want separate bots for testing and production, create two bots — one for mainnet and one for testnet.
-
-> **Note:** Do NOT set up the Mini App yet — you need to deploy the frontend first to get the URL. This is done in Step 10.
-
-### Step 3: Set Up Supabase
-
-#### 3a. Create a Project
-
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Once created, go to **Project Settings → API** and copy:
-   - **Project URL** (e.g. `https://xxxx.supabase.co`)
-   - **Service Role Key** (under "Project API keys" — use the `service_role` key, **not** the `anon` key)
-
-#### 3b. Run the Database Schema
-
-1. Go to **SQL Editor** in your Supabase dashboard
-2. Open the file `schema.sql` from the repo root
-3. Paste the entire contents into the SQL Editor and click **Run**
-
-This creates all required tables (`users`, `channels`, `channel_admins`, `deals`, `campaigns`, `campaign_slots`, `wallets`, `pending_payouts`, `deal_messages`, `user_contexts`, `bot_channel_events`) and all associated enums, indexes, and foreign keys.
-
-> The `migrations/` folder contains incremental migration files used during development. For a fresh setup, `schema.sql` is all you need.
-
-#### 3c. Create the Storage Bucket
-
-The app stores channel profile photos in Supabase Storage.
-
-1. In Supabase, go to **Storage** (left sidebar)
-2. Click **New bucket**
-3. Name it exactly: `channel-photos`
-4. Set it to **Public** (so the frontend can display channel avatars)
-5. Click **Create bucket**
-
-#### 3d. Set Storage Policy
-
-After creating the bucket, you need to allow uploads:
-
-1. Click on the `channel-photos` bucket
-2. Go to the **Policies** tab
-3. Click **New Policy** → **For full customization**
-4. Create a policy that allows `INSERT` and `SELECT` for the `service_role`:
-   - **Policy name:** `Allow service role uploads`
-   - **Allowed operations:** `SELECT`, `INSERT`
-   - **Target roles:** Leave default (applies to all, service role bypasses RLS anyway)
-   - **Policy definition:** `true`
-5. Click **Save**
-
-### Step 4: Create a Verification Channel
-
-The monitoring system logs verification checks to a private Telegram channel for transparency and auditing.
-
-1. Create a **new private channel** in Telegram (e.g. "Ad Verification Logs")
-2. Add your bot as an **admin** of this channel (with permission to post messages)
-3. Get the channel ID:
-   - Forward any message from the channel to [@userinfobot](https://t.me/userinfobot)
-   - Or forward a message from the channel to your bot — it will reply with the channel ID
-   - The ID will be a negative number like `-1001234567890`
-4. Add this ID to your `backend/.env` as `VERIFICATION_CHANNEL_ID`
-
-### Step 5: Set Up TON Wallet
-
-You need a TON wallet that the backend will use to receive and send escrow payments.
-
-#### Option A: Use an Existing Wallet
-
-If you already have a TON wallet with a 24-word mnemonic, use that. You need:
-- The **wallet address** (starts with `UQ` for mainnet, `0Q` for testnet)
-- The **24-word mnemonic phrase**
-
-#### Option B: Create a New Wallet
-
-1. Open the **Wallet** bot in Telegram (@wallet)
-2. Create a wallet and back up your mnemonic
-3. Copy the wallet address
-
-> **Important:** For testnet, use the testnet version of your wallet. The address format changes from `UQ...` (mainnet) to `0Q...` (testnet).
-
-#### Get API Keys
-
-1. **TonCenter API Key:** Message [@tonapibot](https://t.me/tonapibot) on Telegram → get a free API key
-   - For testnet, request a separate testnet key
-2. **TonAPI Key:** Go to [tonapi.io](https://tonapi.io) → create an account → generate an API key
-
-### Step 6: Configure Environment Variables
-
-#### Backend
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-Edit `backend/.env` and fill in all values:
-
-```env
-# ── Supabase ──
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# ── Telegram Bot ──
-BOT_TOKEN=your-bot-token
-BOT_USERNAME=YourBotUsername_bot
-
-
-# ── TON Payments ──
-MASTER_WALLET_ADDRESS=UQxxxxxxx     # Your mainnet escrow wallet
-HOT_WALLET_MNEMONIC="word1 word2 word3 ... word24"
-TON_API_KEY=your-toncenter-api-key
-TONAPI_KEY=your-tonapi-key
-
-# ── TON Webhook ──
-# Your deployed backend URL (set after deployment)
-WEBHOOK_URL=https://your-backend-url.com/webhooks/ton
-
-# ── Post Monitoring ──
-VERIFICATION_CHANNEL_ID=-1001234567890  # From Step 4
-MONITORING_DURATION_HOURS=24        # How long to monitor posts (24 for production, 6 for testing)
-
-# ── Network ──
-# Set to 'testnet' for testing, 'mainnet' for production
-TON_NETWORK=testnet
-
-# ── Testnet-Specific (used when TON_NETWORK=testnet) ──
-TESTNET_BOT_TOKEN=your-testnet-bot-token
-TESTNET_MASTER_WALLET_ADDRESS=0Qxxxxxxx    # Testnet wallet address (0Q prefix)
-TESTNET_HOT_WALLET_MNEMONIC="word1 word2 word3 ... word24"
-TESTNET_TON_API_KEY=your-testnet-toncenter-api-key
-```
-
-**How network switching works:** When `TON_NETWORK=testnet`, the app automatically uses:
-- `TESTNET_BOT_TOKEN` instead of `BOT_TOKEN`
-- `TESTNET_MASTER_WALLET_ADDRESS` instead of `MASTER_WALLET_ADDRESS`
-- `TESTNET_HOT_WALLET_MNEMONIC` instead of `HOT_WALLET_MNEMONIC`
-- Testnet API endpoints (testnet.toncenter.com, testnet.tonapi.io)
-
-#### Frontend
-
-Create `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:3000
-VITE_BOT_USERNAME=YourBotUsername_bot
-VITE_TON_NETWORK=testnet
-```
-
-For production, create `frontend/.env.production`:
-
-```env
-VITE_API_URL=https://your-backend-url.com
-VITE_BOT_USERNAME=YourBotUsername_bot
-VITE_TON_NETWORK=mainnet
-```
-
-| Variable | Description |
-|----------|-------------|
-| `VITE_API_URL` | Backend API URL |
-| `VITE_BOT_USERNAME` | Your bot's username (without @) |
-| `VITE_TON_NETWORK` | `testnet` or `mainnet` — controls which TON Connect network the wallet modal shows |
-| `VITE_PLATFORM_WALLET_ADDRESS` | *(optional)* Overrides the platform wallet address shown in the payment UI |
-
-### Step 7: Install Dependencies
-
-```bash
-# Backend
-cd backend
-npm install
-
-# Frontend
-cd ../frontend
-npm install
-```
-
-### Step 8: Run Locally
-
-Open two terminal windows:
-
-```bash
-# Terminal 1 — Backend
-cd backend
-npm run dev
-```
-
-```bash
-# Terminal 2 — Frontend
-cd frontend
-npm run dev
-```
-
-- Backend runs on **http://localhost:3000**
-- Frontend runs on **http://localhost:5173**
-
-The bot will automatically start polling for Telegram updates when the backend starts.
-
-> **Note:** The Mini App won't work locally in Telegram since it requires an HTTPS URL. You'll need to deploy to test the full Telegram integration. For local development, you can open the frontend directly in a browser.
-
-### Step 9: Deploy
-
-#### 9a. Backend — Railway
-
-1. Push your code to GitHub
-2. Go to [railway.app](https://railway.app) and create a new project
-3. Select **Deploy from GitHub repo** and pick your repository
-4. Set the **Root Directory** to `backend`
-5. Railway auto-detects Node.js — it will run `npm install` and `npm start` automatically
-6. Go to **Variables** and add all the env vars from your `backend/.env`
-7. After the first deploy, copy the Railway URL (e.g. `https://your-project.up.railway.app`)
-8. Go back to Variables and set `WEBHOOK_URL` to `https://your-railway-url.com/webhooks/ton`
-
-#### 9b. Frontend — Vercel
-
-1. Go to [vercel.com](https://vercel.com) and create a new project
-2. Import your GitHub repository
-3. Set the **Root Directory** to `frontend`
-4. Add these environment variables:
-   - `VITE_API_URL` = your Railway backend URL
-   - `VITE_BOT_USERNAME` = your bot username
-   - `VITE_TON_NETWORK` = `mainnet` or `testnet`
-5. Vercel will build and deploy automatically
-
-### Step 10: Set Up the Mini App in BotFather
-
-Now that both backend and frontend are deployed, configure the Mini App:
-
-1. Message [@BotFather](https://t.me/BotFather)
-2. Send `/newapp`
-3. Select your bot
-4. Enter an app title (e.g. "Ad Marketplace")
-5. Enter a short description
-6. Upload an icon (512×512px)
-7. For the **Web App URL**, enter your Vercel URL (e.g. `https://your-app.vercel.app`)
-8. Set the **short name** to `marketplace` — this is critical because the app links use `https://t.me/<bot_username>/marketplace`
-
-> If you've already created the app with a placeholder URL, send `/myapps` → select your bot → select your app → **Edit Web App URL** → enter your Vercel URL.
-
-### Step 11: Switch Wallet Network (For Testing)
-
-If you're running the **Testnet Bot**, you need to switch your TON Wallet to testnet:
-
-1. Open **Wallet** in Telegram → tap the `⋮` menu → **Settings**
-2. Scroll down and tap **Version & Network**
-3. Under **Network**, select **Testnet**
-4. To get free testnet TON, message the [Testnet Faucet Bot](https://t.me/testgiver_ton_bot)
-
-To switch back to mainnet, repeat the same steps and select **Mainnet**.
-
-> **Important:** Always match the wallet network to the bot you're using. Testnet Bot → Testnet Wallet. Mainnet Bot → Mainnet Wallet.
-
-</details>
-
----
 
 ## Project Structure
 
