@@ -833,23 +833,9 @@ Every payment has a **15-minute expiry window**. If payment doesn't arrive withi
 
 After successful 24h monitoring, the system automatically pays the channel owner.
 
-**Wallet Resolution Cascade (3-tier):**
+**Wallet Resolution:**
 
-1. Channel's `payout_wallet` (set during listing)
-2. Deal's `channel_owner_wallet` (stored at deal creation)
-3. Owner's TonConnect `ton_wallet_address` (from user profile)
-
-If no wallet is found at any tier, the deal enters `payout_pending` status (NOT `released` — the DB stays honest that money hasn't moved).
-
-### Payout-Pending Recovery
-
-When a channel owner later connects their TonConnect wallet:
-
-1. Wallet auto-saved to their user profile
-2. All owned channels without a payout wallet get updated
-3. All `payout_pending` deals on their channels are **immediately processed** — payouts are queued and executed
-
-This means owners can list a channel without a wallet, run deals, and connect their wallet later — nothing is lost.
+Payouts go to the channel's `payout_wallet`, which is set during listing (required before a channel can be published).
 
 ### Auto-Approve Threshold
 
