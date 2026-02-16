@@ -10,7 +10,7 @@ const TON_API_KEY = process.env.TON_API_KEY || '';
 const USDT_MASTER_ADDRESS = TON_CONFIG.usdtMasterAddress;
 
 // Auto-approve threshold (in TON or USDT)
-const AUTO_APPROVE_THRESHOLD = 5;
+const AUTO_APPROVE_THRESHOLD = 50;
 
 interface PayoutRequest {
     dealId: string;
