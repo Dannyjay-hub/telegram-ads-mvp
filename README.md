@@ -16,23 +16,39 @@
 
 ## Table of Contents
 
-1. [Demo Video](#-demo-video)
-2. [Architecture Overview](#1-architecture-overview)
-3. [Channel Listing Flow](#2-channel-listing-flow)
-4. [PR Manager System](#3-pr-manager-system)
-5. [Campaign Model: Open vs Closed](#4-campaign-model-open-vs-closed)
-6. [Unified Deal Flow](#5-unified-deal-flow)
-7. [Creative Approval](#6-creative-approval)
-8. [Scheduling & Auto-Posting](#7-scheduling--auto-posting)
-9. [Monitoring Service](#8-monitoring-service)
-10. [Escrow & Payment System](#9-escrow--payment-system)
-11. [Payout & Refund](#10-payout--refund)
-12. [Platform Fees](#11-platform-fees)
-13. [Deal Timeouts](#12-deal-timeouts)
-14. [User Role Flows](#13-user-role-flows)
-15. [Partnerships View](#14-partnerships-view)
-16. [Known Limitations](#15-known-limitations)
-17. [Future Roadmap](#16-future-roadmap)
+0. [Demo Video](#-demo-video)
+1. [Architecture Overview](#1-architecture-overview)
+
+**Part I — Channel Owner**
+
+2. [Channel Listing Flow](#2-channel-listing-flow)
+3. [PR Manager System](#3-pr-manager-system)
+4. [Service Packages & Rate Cards](#4-service-packages--rate-cards)
+
+**Part II — Advertiser**
+
+5. [Campaign Creation Flow](#5-campaign-creation-flow)
+6. [Campaign Model: Open vs Closed](#6-campaign-model-open-vs-closed)
+
+**Part III — Shared Deal Pipeline**
+
+7. [Unified Deal Flow](#7-unified-deal-flow)
+8. [Creative Approval](#8-creative-approval)
+9. [Scheduling & Auto-Posting](#9-scheduling--auto-posting)
+10. [Monitoring Service](#10-monitoring-service)
+
+**Part IV — Platform Infrastructure**
+
+11. [Escrow & Payment System](#11-escrow--payment-system)
+12. [Payout & Refund](#12-payout--refund)
+13. [Platform Fees](#13-platform-fees)
+14. [Deal Timeouts](#14-deal-timeouts)
+
+**Part V — Reference**
+
+15. [Partnerships View](#15-partnerships-view)
+16. [Known Limitations](#16-known-limitations)
+17. [Future Roadmap](#17-future-roadmap)
 18. [AI Disclosure](#ai-code-usage-disclosure)
 19. [Setup & Deployment](#setup--deployment)
 20. [License](#license)
@@ -99,6 +115,22 @@ graph TB
     TAPI --> API
     TON --> TAPI
 ```
+
+---
+
+# Part I — Channel Owner
+
+A **channel owner** is a Telegram channel administrator who lists their channel on the marketplace. Channel owners can:
+
+- **List channels** with automated bot detection and permission verification
+- **Set pricing** via service packages (rate cards) for advertisers to purchase directly
+- **Add/remove PR managers** to delegate day-to-day deal operations
+- **Browse the campaign marketplace** and apply to advertiser campaigns (if their channel meets criteria)
+- **Create draft posts**, negotiate scheduling, and chat with advertisers through the bot
+- **Connect a TON wallet** to receive automatic payouts after deal completion
+- **Rate advertisers** after each deal (1–5 stars)
+
+> **PR Managers** can do everything a channel owner can **except**: receive payouts, delete the channel, or manage other PR managers.
 
 ---
 
@@ -259,7 +291,23 @@ Packages are stored as a `rateCard` JSONB array on the channel record. Duplicate
 
 3. **Draft vs Active**: Channels can be saved as drafts (incomplete listings) and published later. Publishing requires: description (≥10 chars), at least one package, at least one category, at least one language, and a connected payout wallet.
 
-4. **Content Moderation**: All package titles and descriptions are checked against a 250+ word blacklist before saving, same as channel-level fields.
+4. **Content Moderation**: All package titles and descriptions are checked against a 175+ word/phrase blacklist before saving, same as channel-level fields.
+
+---
+
+# Part II — Advertiser
+
+An **advertiser** is a user who wants to promote content across Telegram channels. Advertisers can:
+
+- **Create campaigns** (open or closed) with targeting criteria, then let matching channels apply
+- **Browse the channel marketplace** and purchase service packages directly from channel listings
+- **Review applications** from channels (closed campaigns) and approve or reject them
+- **Review draft posts** submitted by channel owners, provide feedback or request changes
+- **Schedule posting times** (1 hour – 30 days ahead)
+- **Chat with channel owners** through the bot
+- **End campaigns early** — unfilled slots are automatically refunded
+- **Edit campaign duration** while a campaign is active
+- **Rate channels** after deal completion (1–5 stars)
 
 ---
 
@@ -427,6 +475,12 @@ stateDiagram-v2
         before auto-end + refund
     end note
 ```
+
+---
+
+# Part III — Shared Deal Pipeline
+
+Once a deal is created — whether from an open campaign, closed campaign, or service package — both channel owners and advertisers enter the same unified pipeline. The following sections cover the shared flow from funding through completion.
 
 ---
 
@@ -674,6 +728,12 @@ If a post is verified as deleted during any check, the deal is immediately cance
 
 ---
 
+# Part IV — Platform Infrastructure
+
+The following sections cover the systems that power the platform behind the scenes: escrow deposits, payouts, fee structure, and automatic timeouts.
+
+---
+
 ## 11. Escrow & Payment System
 
 ### Master Wallet Architecture
@@ -870,44 +930,11 @@ flowchart TD
 
 ---
 
-## 15. User Role Flows
-
-### What an Advertiser Can Do
-
-1. **Create campaigns** (open or closed) with targeting criteria
-2. **Browse channels** on the marketplace
-3. **Buy service packages** directly from channel listings
-4. **Review applications** (closed campaigns)
-5. **Review draft posts** and provide feedback
-6. **Schedule posting times** (1h – 30 days ahead)
-7. **Chat with channel owners** through the bot
-8. **End campaigns** early (unfilled slots refunded)
-9. **Edit campaign** duration
-10. **Rate channels** after deal completion (1-5 stars)
-
-### What a Channel Owner Can Do
-
-1. **List channels** with verification pipeline
-2. **Set pricing** via rate card (service packages)
-3. **Add/remove PR managers** for delegation
-4. **Browse campaigns** on the marketplace
-5. **Apply to campaigns** (if channel meets criteria)
-6. **Create draft posts** through the bot
-7. **Negotiate scheduling** (accept or counter-propose times)
-8. **Chat with advertisers** through the bot
-9. **Rate advertisers** after deal completion
-10. **Connect wallet** for payouts (can be done anytime)
-
-### What a PR Manager Can Do
-
-Everything a channel owner can do **except**:
-- ❌ Receive payouts
-- ❌ Delete the channel
-- ❌ Add/remove other PR managers
+# Part V — Reference
 
 ---
 
-## 16. Partnerships View
+## 15. Partnerships View
 
 Both sides have a **Partnerships** tab showing their active and historical deals:
 
@@ -919,7 +946,7 @@ Both views use the same underlying deal data but present it from each party's pe
 
 ---
 
-## 17. Known Limitations
+## 16. Known Limitations
 
 ### Story Posting
 
@@ -941,7 +968,7 @@ The current blacklist (250+ words across 10 categories) can be bypassed with cre
 
 ---
 
-## 18. Future Roadmap
+## 17. Future Roadmap
 
 ### Near-Term Enhancements
 
