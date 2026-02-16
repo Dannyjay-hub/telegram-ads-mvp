@@ -216,7 +216,164 @@ When admin permissions are synced, PR managers who are no longer admin on Telegr
 
 ---
 
-## 4. Campaign Model: Open vs Closed
+## 4. Service Packages & Rate Cards
+
+### How It Works
+
+After listing a channel, owners configure **service packages** — the products advertisers can browse and purchase directly. This is one of the three entry points into the deal flow (alongside open and closed campaigns).
+
+```mermaid
+flowchart TD
+    A["Channel listed on marketplace"] --> B["Owner opens Channel Wizard (Step 1)"]
+    B --> C["Pricing Configuration section"]
+    C --> D["Add Package: title, price, currency, type, description"]
+    D --> E{Save as Draft or Publish?}
+    E -->|Draft| F["Channel saved with status: draft"]
+    E -->|Publish| G{Validate required fields}
+    G -->|Missing fields| H["Alert: description, category, language, wallet required"]
+    G -->|All valid| I["Channel active on marketplace"]
+    I --> J["Advertisers browse channel profile"]
+    J --> K["Select package → Create deal"]
+    K --> L["Enter unified deal pipeline (funded)"]
+```
+
+### Package Structure
+
+Each service package contains:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| **Title** | Marketing name for the service | "24h Pinned Post" |
+| **Price** | Amount per placement | 0.5 |
+| **Currency** | TON or USDT | TON |
+| **Type** | Content format | Post, Story, Forward, Others |
+| **Description** | What's included | "Link in bio, 24h pin, 1 story mention" |
+
+Packages are stored as a `rateCard` JSONB array on the channel record. Duplicate titles within the same channel are prevented client-side. Owners can add, edit, and delete packages at any time — changes take effect immediately for new deals.
+
+### Key Engineering Decisions
+
+1. **Per-Channel Rate Cards (not platform-wide pricing)**: Each channel sets its own prices. There's no platform-imposed pricing — channels compete on quality and price naturally.
+
+2. **Multi-Currency Support**: Packages can be priced in TON or USDT independently. The currency is set per-package, not per-channel.
+
+3. **Draft vs Active**: Channels can be saved as drafts (incomplete listings) and published later. Publishing requires: description (≥10 chars), at least one package, at least one category, at least one language, and a connected payout wallet.
+
+4. **Content Moderation**: All package titles and descriptions are checked against a 250+ word blacklist before saving, same as channel-level fields.
+
+---
+
+## 5. Campaign Creation Flow
+
+Campaigns are the second way deals enter the platform. While service packages are channel-initiated (channel sets price, advertiser picks), campaigns are advertiser-initiated (advertiser sets budget and criteria, channels apply).
+
+### 5-Step Creation Wizard
+
+```mermaid
+flowchart TD
+    subgraph "Step 0: Basics"
+        A["Campaign title (≥3 chars)"]
+        B["Brief / instructions (≥10 chars)"]
+        C["Content type: Post | Story | Forward"]
+    end
+
+    subgraph "Step 1: Budget"
+        D["Budget per channel (≥0.1)"]
+        E["Currency: TON or USDT"]
+        F["Number of slots (1–50)"]
+        G["Total = perChannel × slots"]
+    end
+
+    subgraph "Step 2: Targeting"
+        H["Min/max subscribers"]
+        I["Required languages"]
+        J["Required categories"]
+    end
+
+    subgraph "Step 3: Type & Duration"
+        K["Open or Closed campaign"]
+        L["Duration: 3/7/14/30/custom days"]
+    end
+
+    subgraph "Step 4: Review"
+        M["Summary of all settings"]
+        N["Escrow amount shown"]
+    end
+
+    A --> D
+    D --> H
+    H --> K
+    K --> M
+    M --> O["Submit → POST /campaigns"]
+    O --> P["Backend generates payment memo + 15min window"]
+    P --> Q["Navigate to Escrow Payment page"]
+```
+
+### Budget Model
+
+The budget system works **per-channel**, not as a total pool:
+
+- **Per-channel budget**: What each participating channel receives (e.g., 0.5 TON)
+- **Slots**: How many channels the campaign will run on (e.g., 5)
+- **Total budget**: `perChannelBudget × slots` = escrowed amount (e.g., 2.5 TON)
+- **Platform fee**: Flat fee added on top (0.01 TON or 0.1 USDT)
+
+### Draft System
+
+Campaigns support a full draft workflow to prevent data loss during the multi-step wizard:
+
+```mermaid
+flowchart TD
+    A["User starts campaign wizard"] --> B{"Resuming a draft?"}
+    B -->|Yes - from CampaignsList| C["Load draft data + restore wizard step"]
+    B -->|No - fresh create| D["Start with defaults"]
+    B -->|Duplicating| E["Pre-fill from source campaign + '(Copy)' title"]
+    
+    C --> F["Wizard active"]
+    D --> F
+    E --> F
+
+    F --> G{"User action"}
+    G -->|"Save Draft button"| H{Existing draft?}
+    H -->|Yes| I["PATCH /campaigns/:id/draft"]
+    H -->|No| J["POST /campaigns/draft"]
+    I --> K["Navigate to My Campaigns"]
+    J --> K
+
+    G -->|"Form changes"| L["Auto-save to localStorage"]
+    G -->|"Submit (Step 4)"| M["POST /campaigns → payment flow"]
+```
+
+**Deduplication**: The backend uses a 5-second dedup window keyed on `${userId}:${title}` to prevent duplicate drafts from double-clicks or iOS Safari retry behavior. If a duplicate request arrives within the window, it returns the existing draft instead of creating a new one.
+
+### Escrow Payment Flow
+
+After submitting the campaign, the advertiser must fund it within a 15-minute payment window:
+
+1. Backend generates a unique `payment_memo` (e.g., `campaign_a1b2c3d4e5f6g7h8`)
+2. Frontend displays payment instructions: wallet address + memo + amount (budget + fee)
+3. Advertiser sends TON/USDT with the memo via TonConnect
+4. Backend webhook detects the incoming transaction, matches memo → campaign
+5. Guards: expired payment window? Already funded? Amount too low?
+6. On success: campaign status changes `draft → active`, appears on marketplace
+
+### Key Engineering Decisions
+
+1. **Per-Channel Budget (not total pool)**: Advertisers think in "how much per channel," not "how much total to split." The UI multiplies automatically. This also makes slot allocation simple — each channel gets exactly the per-channel amount.
+
+2. **Currency Immutability**: Once a campaign is created with TON or USDT, the currency cannot be changed on subsequent edits. This prevents accounting confusion after escrow deposit.
+
+3. **15-Minute Payment Window**: Payment memos expire after 15 minutes to prevent stale campaigns from being funded days later when market conditions may have changed. The advertiser can resubmit to get a fresh window.
+
+4. **In-Memory Dedup for Drafts**: Rather than complex DB constraints, we use a simple `Map<string, timestamp>` with a 5-second window. This handles the "iOS Safari retries failed requests" problem cheaply. The map is capped at 100 entries to prevent memory leaks.
+
+5. **Draft Step Persistence**: The wizard saves `draftStep` alongside draft data so users resume exactly where they left off, not at step 0.
+
+6. **Campaign Duplication**: Advertisers can duplicate a completed/ended campaign with one tap. All settings are pre-filled with "(Copy)" appended to the title and a fresh expiry deadline.
+
+---
+
+## 6. Campaign Model: Open vs Closed
 
 We implemented two campaign types to serve different advertiser needs.
 
@@ -273,7 +430,7 @@ stateDiagram-v2
 
 ---
 
-## 5. Unified Deal Flow
+## 7. Unified Deal Flow
 
 All three entry points — **Open Campaign**, **Closed Campaign**, and **Service Packages** — converge into a single unified deal pipeline.
 
@@ -323,7 +480,7 @@ Service packages are the simplest entry point. An advertiser browses listed chan
 
 ---
 
-## 6. Creative Approval
+## 8. Creative Approval
 
 ### The Draft → Review → Feedback Loop
 
@@ -388,7 +545,7 @@ Both parties can communicate directly through the bot at any point during the dr
 
 ---
 
-## 7. Scheduling & Auto-Posting
+## 9. Scheduling & Auto-Posting
 
 ### Time Negotiation
 
@@ -441,7 +598,7 @@ If posting fails:
 
 ---
 
-## 8. Monitoring Service
+## 10. Monitoring Service
 
 ### Anti-Gaming Architecture
 
@@ -517,7 +674,7 @@ If a post is verified as deleted during any check, the deal is immediately cance
 
 ---
 
-## 9. Escrow & Payment System
+## 11. Escrow & Payment System
 
 ### Master Wallet Architecture
 
@@ -608,7 +765,7 @@ Every payment has a **15-minute expiry window**. If payment doesn't arrive withi
 
 ---
 
-## 10. Payout & Refund
+## 12. Payout & Refund
 
 ### Automatic Payouts
 
@@ -670,7 +827,7 @@ Active deals continue running — the refund only covers slots that were never u
 
 ---
 
-## 11. Platform Fees
+## 13. Platform Fees
 
 We charge a **flat platform fee** on every payment:
 
@@ -687,7 +844,7 @@ Flat fees are more transparent and predictable. A percentage fee would dispropor
 
 ---
 
-## 12. Deal Timeouts
+## 14. Deal Timeouts
 
 Every stage in the deal flow has a timeout to prevent deals from stalling indefinitely:
 
@@ -713,7 +870,7 @@ flowchart TD
 
 ---
 
-## 13. User Role Flows
+## 15. User Role Flows
 
 ### What an Advertiser Can Do
 
@@ -750,7 +907,7 @@ Everything a channel owner can do **except**:
 
 ---
 
-## 14. Partnerships View
+## 16. Partnerships View
 
 Both sides have a **Partnerships** tab showing their active and historical deals:
 
@@ -762,7 +919,7 @@ Both views use the same underlying deal data but present it from each party's pe
 
 ---
 
-## 15. Known Limitations
+## 17. Known Limitations
 
 ### Story Posting
 
@@ -784,7 +941,7 @@ The current blacklist (250+ words across 10 categories) can be bypassed with cre
 
 ---
 
-## 16. Future Roadmap
+## 18. Future Roadmap
 
 ### Near-Term Enhancements
 
