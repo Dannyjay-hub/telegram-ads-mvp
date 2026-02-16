@@ -11,6 +11,18 @@
 - Both mainnet and testnet operational
 - 25+ days continuous uptime (live since Jan 22, 2026)
 
+**🧪 Testing with Testnet Bot:**
+
+To test the full payment flow without real funds, use the **Testnet Bot** and switch your Telegram Wallet to testnet:
+
+1. Open **@wallet** in Telegram → make sure you're on the **TON** tab (not Crypto) → tap the **⋮** menu (top right) → **Settings**
+2. Tap **Version & Network** → select **Testnet**
+3. Copy your testnet wallet address and get free testnet TON from [@testgiver_ton_bot](https://t.me/testgiver_ton_bot)
+4. Use this wallet with the Testnet Bot to test the full payment flow
+5. To switch back to mainnet, repeat steps 1-2 and select **Mainnet**
+
+> **Note:** If you connect a mainnet wallet to the testnet bot (or vice versa), it will automatically disconnect and prompt you to switch.
+
 ---
 
 ## Table of Contents
