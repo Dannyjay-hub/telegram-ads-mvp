@@ -7,9 +7,10 @@
 - **Testnet Bot:** [@DanielAdsMvpTestnet_bot](https://t.me/DanielAdsMvpTestnet_bot)
 
 **📊 Platform Metrics:**
-- Live since January 22, 2026
+- 14 deals processed, 7 successfully completed
+- 2.8 TON + 1 USDT total escrow volume
 - Both mainnet and testnet operational
-- Real TON escrow with automatic payouts
+- 25+ days continuous uptime (live since Jan 22, 2026)
 
 ---
 
@@ -40,9 +41,17 @@
 
 ## 🎬 Demo Video
 
-https://github.com/user-attachments/assets/placeholder
+https://github.com/user-attachments/assets/e934d53b-386f-419a-a0d3-cea56193ed35
 
-> Upload your `botdemovideo.mp4` to a GitHub Issue comment, then replace the URL above with the generated link.
+### Transaction Evidence
+
+Real mainnet transactions verifiable on TON blockchain:
+
+| Deal | Amount | TX Hash (TONScan) |
+|------|--------|-------------------|
+| USDT Escrow Payment | 1.0 USDT | [5f2e6ca3...c028](https://tonscan.org/tx/5f2e6ca3c3e6e0847382549feb2a276932bd7345648d1d45a546a1ac8699c028) |
+| TON Escrow Payment | 1.0 TON | [5e655f5c...fd83](https://tonscan.org/tx/5e655f5cc31f4c18b0e3cabd3385841738cc8813ca2a75702e397e6898aafd83) |
+| TON Escrow Payment | 0.5 TON | [4b9bca83...b82d](https://tonscan.org/tx/4b9bca831d3040f133290c297c3c84ad2d73e5145f2a0f150549e70d89a9b82d) |
 
 ---
 
