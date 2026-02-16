@@ -1345,8 +1345,7 @@ telegram-ads-mvp/
 │   │   └── assets/               # Static assets
 │   └── package.json
 ├── migrations/                   # Incremental SQL migration files
-├── schema.sql                    # Full database schema (pg_dump)
-└── docs/                         # Additional documentation
+└── schema.sql                    # Full database schema (pg_dump)
 ```
 
 ---
