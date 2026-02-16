@@ -916,6 +916,7 @@ flowchart TD
     DP[draft_pending] -->|12h no draft created| R2[Cancel + refund to advertiser]
     DS[draft_submitted] -->|12h no review| R3[Cancel + refund to advertiser]
     SCH[scheduling] -->|24h no response| R4[Cancel + refund to advertiser]
+    MISS[scheduled] -->|2h past post time| R5[Cancel + refund to advertiser]
     EXP[Campaign expired] -->|24h grace period| END["Auto-end + refund unfilled slots"]
 ```
 
@@ -925,6 +926,7 @@ flowchart TD
 | `draft_pending` → no draft | 12 hours | Cancel + refund to advertiser |
 | `draft_submitted` → no review | 12 hours | Cancel + refund to advertiser |
 | `scheduling` → no response | 24 hours | Cancel + refund to advertiser |
+| `scheduled` → missed post time | 2 hours | Cancel + refund to advertiser |
 | Campaign expired | 24h grace | Auto-end + refund unfilled slots |
 | Payment window | 15 minutes | Logged (payment still accepted) |
 

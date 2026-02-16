@@ -39,162 +39,184 @@ async function runMonitoring() {
 }
 
 /**
+ * Helper to safely release a campaign slot
+ */
+async function releaseCampaignSlot(campaignId: string | null) {
+    if (!campaignId) return;
+
+    try {
+        // 1. Get current campaign data
+        const { data: campaign } = await (supabase as any)
+            .from('campaigns')
+            .select('status, slots_filled, expires_at')
+            .eq('id', campaignId)
+            .single();
+
+        if (!campaign) return;
+
+        // 2. Decrement slots_filled (don't go below 0)
+        const newSlotsFilled = Math.max(0, (campaign.slots_filled || 0) - 1);
+
+        // 3. Determine new status
+        // If it was 'filled', it might go back to 'active' or 'expired'
+        let newStatus = campaign.status;
+        if (campaign.status === 'filled') {
+            const isExpired = campaign.expires_at && new Date(campaign.expires_at) < new Date();
+            newStatus = isExpired ? 'expired' : 'active';
+        }
+
+        // 4. Update
+        await (supabase as any)
+            .from('campaigns')
+            .update({
+                slots_filled: newSlotsFilled,
+                status: newStatus
+            })
+            .eq('id', campaignId);
+
+        console.log(`[BackgroundJobs] Released slot for campaign ${campaignId}`);
+    } catch (e) {
+        console.error(`[BackgroundJobs] Failed to release slot for ${campaignId}:`, e);
+    }
+}
+
+/**
+ * Helper to queue a refund in pending_payouts
+ */
+async function queueRefund(deal: any, reason: string) {
+    if (!deal.advertiser_wallet_address || !deal.price_amount) return;
+
+    try {
+        await (supabase as any)
+            .from('pending_payouts')
+            .insert({
+                recipient_address: deal.advertiser_wallet_address,
+                amount_ton: deal.price_amount,
+                currency: deal.price_currency || 'TON',
+                type: 'refund',
+                status: 'pending',
+                reason: reason,
+                memo: `timeout_refund_${deal.id.substring(0, 8)}`
+            });
+        console.log(`[BackgroundJobs] Queued refund for deal ${deal.id}`);
+    } catch (e: any) {
+        console.error(`[BackgroundJobs] Failed to queue refund for deal ${deal.id}:`, e.message);
+    }
+}
+
+/**
+ * Helper to notify advertiser via bot
+ */
+async function notifyAdvertiser(advertiserId: string, message: string) {
+    if (!bot || !advertiserId) return;
+    try {
+        const { data: advertiser } = await (supabase as any)
+            .from('users')
+            .select('telegram_id')
+            .eq('id', advertiserId)
+            .single();
+        if (advertiser?.telegram_id) {
+            await bot.api.sendMessage(advertiser.telegram_id, message, { parse_mode: 'Markdown' });
+        }
+    } catch (e) { /* ignore send errors */ }
+}
+
+/**
  * Process timeouts - runs every hour
- * - Draft pending > 12h → refund
- * - Draft submitted (no review) > 12h → auto-approve
+ * All timeouts cancel the deal, queue a refund, and release the campaign slot.
  */
 async function runTimeouts() {
     const TWELVE_HOURS_AGO = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const FORTYEIGHT_HOURS_AGO = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const TWENTYFOUR_HOURS_AGO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const TWO_HOURS_AGO = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+    const DEAL_FIELDS = 'id, advertiser_id, campaign_id, price_amount, price_currency, advertiser_wallet_address';
 
     try {
-        // Find deals stuck in draft_pending too long
+        // ── 1. draft_pending > 12h (Advertiser paid, channel didn't submit draft) ──
         const { data: stuckDrafts } = await (supabase as any)
             .from('deals')
-            .select('id, advertiser_id')
+            .select(DEAL_FIELDS)
             .eq('status', 'draft_pending')
             .lt('funded_at', TWELVE_HOURS_AGO);
 
         for (const deal of stuckDrafts || []) {
-            console.log(`[BackgroundJobs] Refunding deal ${deal.id} - no draft after 12h`);
-            // TODO: Trigger refund process
-            await (supabase as any)
-                .from('deals')
-                .update({
-                    status: 'refunded',
-                    status_updated_at: new Date().toISOString()
-                })
-                .eq('id', deal.id);
+            console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - no draft after 12h`);
+            await (supabase as any).from('deals').update({ status: 'refunded', status_updated_at: new Date().toISOString() }).eq('id', deal.id);
+            await queueRefund(deal, 'Deal timeout: no draft submitted after 12h');
+            await releaseCampaignSlot(deal.campaign_id);
+            await notifyAdvertiser(deal.advertiser_id,
+                `⏰ **Deal Cancelled — Draft Timeout**\n\nThe channel owner did not submit a draft within 12 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`
+            );
         }
 
-        // Find drafts waiting for review too long → cancel & refund
+        // ── 2. draft_submitted > 12h (Channel submitted, advertiser didn't review) ──
         const { data: pendingReviews } = await (supabase as any)
             .from('deals')
-            .select('id, advertiser_id, price_amount, price_currency, advertiser_wallet_address')
+            .select(DEAL_FIELDS)
             .eq('status', 'draft_submitted')
             .lt('draft_submitted_at', TWELVE_HOURS_AGO);
 
         for (const deal of pendingReviews || []) {
             console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - no draft review after 12h`);
-            await (supabase as any)
-                .from('deals')
-                .update({
-                    status: 'refunded',
-                    status_updated_at: new Date().toISOString()
-                })
-                .eq('id', deal.id);
-
-            // Queue refund
-            if (deal.advertiser_wallet_address && deal.price_amount > 0) {
-                try {
-                    await (supabase as any)
-                        .from('pending_payouts')
-                        .insert({
-                            recipient_address: deal.advertiser_wallet_address,
-                            amount_ton: deal.price_amount,
-                            currency: deal.price_currency || 'TON',
-                            type: 'refund',
-                            status: 'pending',
-                            reason: `Deal timeout: no draft review after 12h`,
-                            memo: `timeout_refund_${deal.id.substring(0, 8)}`
-                        });
-                } catch (e: any) {
-                    console.error(`[BackgroundJobs] Failed to queue refund for deal ${deal.id}:`, e.message);
-                }
-            }
-
-            // Notify advertiser
-            if (bot && deal.advertiser_id) {
-                const { data: advertiser } = await (supabase as any)
-                    .from('users')
-                    .select('telegram_id')
-                    .eq('id', deal.advertiser_id)
-                    .single();
-                if (advertiser?.telegram_id) {
-                    try {
-                        await bot.api.sendMessage(
-                            advertiser.telegram_id,
-                            `⏰ **Deal Cancelled — Draft Review Timeout**\n\nYour submitted draft received no review within 12 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`,
-                            { parse_mode: 'Markdown' }
-                        );
-                    } catch (e) { /* ignore send errors */ }
-                }
-            }
+            await (supabase as any).from('deals').update({ status: 'refunded', status_updated_at: new Date().toISOString() }).eq('id', deal.id);
+            await queueRefund(deal, 'Deal timeout: no draft review after 12h');
+            await releaseCampaignSlot(deal.campaign_id);
+            await notifyAdvertiser(deal.advertiser_id,
+                `⏰ **Deal Cancelled — Draft Review Timeout**\n\nYour submitted draft received no review within 12 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`
+            );
         }
 
-        // ── Funded too long (48h) → auto-refund ──
-        const FORTYEIGHT_HOURS_AGO = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        // ── 3. funded > 48h (Ghosting — no one started the draft process) ──
         const { data: stuckFunded } = await (supabase as any)
             .from('deals')
-            .select('id, advertiser_id')
+            .select(DEAL_FIELDS)
             .eq('status', 'funded')
             .lt('funded_at', FORTYEIGHT_HOURS_AGO);
 
         for (const deal of stuckFunded || []) {
-            console.log(`[BackgroundJobs] Refunding deal ${deal.id} - no channel owner response after 48h`);
-            await (supabase as any)
-                .from('deals')
-                .update({
-                    status: 'refunded',
-                    status_updated_at: new Date().toISOString()
-                })
-                .eq('id', deal.id);
+            console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - no channel owner response after 48h`);
+            await (supabase as any).from('deals').update({ status: 'refunded', status_updated_at: new Date().toISOString() }).eq('id', deal.id);
+            await queueRefund(deal, 'Deal timeout: no channel response after 48h');
+            await releaseCampaignSlot(deal.campaign_id);
+            await notifyAdvertiser(deal.advertiser_id,
+                `⏰ **Deal Cancelled — No Response**\n\nThe channel owner did not respond within 48 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`
+            );
         }
 
-        // ── Scheduling too long (24h) → cancel & refund ──
-        const TWENTYFOUR_HOURS_AGO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // ── 4. scheduling > 24h (No agreement on post time) ──
         const { data: stuckScheduling } = await (supabase as any)
             .from('deals')
-            .select('id, advertiser_id, price_amount, price_currency, advertiser_wallet_address, proposed_post_time')
+            .select(DEAL_FIELDS)
             .eq('status', 'scheduling')
-            .not('proposed_post_time', 'is', null)
             .lt('status_updated_at', TWENTYFOUR_HOURS_AGO);
 
         for (const deal of stuckScheduling || []) {
-            console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - no scheduling response after 24h`);
-            await (supabase as any)
-                .from('deals')
-                .update({
-                    status: 'refunded',
-                    status_updated_at: new Date().toISOString()
-                })
-                .eq('id', deal.id);
+            console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - scheduling timeout after 24h`);
+            await (supabase as any).from('deals').update({ status: 'refunded', status_updated_at: new Date().toISOString() }).eq('id', deal.id);
+            await queueRefund(deal, 'Deal timeout: no scheduling agreement after 24h');
+            await releaseCampaignSlot(deal.campaign_id);
+            await notifyAdvertiser(deal.advertiser_id,
+                `⏰ **Deal Cancelled — Scheduling Timeout**\n\nNo response to the proposed posting time within 24 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`
+            );
+        }
 
-            // Queue refund
-            if (deal.advertiser_wallet_address && deal.price_amount > 0) {
-                try {
-                    await (supabase as any)
-                        .from('pending_payouts')
-                        .insert({
-                            recipient_address: deal.advertiser_wallet_address,
-                            amount_ton: deal.price_amount,
-                            currency: deal.price_currency || 'TON',
-                            type: 'refund',
-                            status: 'pending',
-                            reason: `Deal timeout: no scheduling response after 24h`,
-                            memo: `timeout_refund_${deal.id.substring(0, 8)}`
-                        });
-                } catch (e: any) {
-                    console.error(`[BackgroundJobs] Failed to queue refund for deal ${deal.id}:`, e.message);
-                }
-            }
+        // ── 5. scheduled but missed post time by >2h (safety net for auto-posting failures) ──
+        const { data: missedPosts } = await (supabase as any)
+            .from('deals')
+            .select(DEAL_FIELDS + ', agreed_post_time')
+            .eq('status', 'scheduled')
+            .lt('agreed_post_time', TWO_HOURS_AGO);
 
-            // Notify advertiser
-            if (bot && deal.advertiser_id) {
-                const { data: advertiser } = await (supabase as any)
-                    .from('users')
-                    .select('telegram_id')
-                    .eq('id', deal.advertiser_id)
-                    .single();
-                if (advertiser?.telegram_id) {
-                    try {
-                        await bot.api.sendMessage(
-                            advertiser.telegram_id,
-                            `⏰ **Deal Cancelled — Scheduling Timeout**\n\nNo response to the proposed posting time within 24 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`,
-                            { parse_mode: 'Markdown' }
-                        );
-                    } catch (e) { /* ignore send errors */ }
-                }
-            }
+        for (const deal of missedPosts || []) {
+            console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - missed post time by >2h`);
+            await (supabase as any).from('deals').update({ status: 'failed_to_post', status_updated_at: new Date().toISOString() }).eq('id', deal.id);
+            await queueRefund(deal, 'Deal failed: missed agreed post time');
+            await releaseCampaignSlot(deal.campaign_id);
+            await notifyAdvertiser(deal.advertiser_id,
+                `⚠️ **Deal Failed — Missed Post Time**\n\nThe scheduled post was not published within 2 hours of the agreed time. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`
+            );
         }
 
     } catch (error) {
