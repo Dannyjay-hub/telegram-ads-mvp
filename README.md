@@ -1062,18 +1062,7 @@ cd telegram-ads-mvp
 
 > **Tip:** If you want separate bots for testing and production, create two bots — one for mainnet and one for testnet.
 
-#### Set Up the Mini App
-
-Still in BotFather:
-
-1. Send `/newapp`
-2. Select your bot
-3. Enter an app title (e.g. "Ad Marketplace")
-4. Enter a short description
-5. Upload an icon (512×512px)
-6. For the **Web App URL**, enter your frontend URL (e.g. `https://your-app.vercel.app`)
-   - You can set a placeholder and update this after deployment
-7. Set the **short name** to `marketplace` — this is critical because the app links use `https://t.me/<bot_username>/marketplace`
+> **Note:** Do NOT set up the Mini App yet — you need to deploy the frontend first to get the URL. This is done in Step 10.
 
 ### Step 3: Set Up Supabase
 
@@ -1118,9 +1107,9 @@ After creating the bucket, you need to allow uploads:
    - **Policy definition:** `true`
 5. Click **Save**
 
-#### 3e. Create a Verification Channel (Optional but Recommended)
+### Step 4: Create a Verification Channel
 
-The monitoring system can log verification checks to a private Telegram channel for transparency:
+The monitoring system logs verification checks to a private Telegram channel for transparency and auditing.
 
 1. Create a **new private channel** in Telegram (e.g. "Ad Verification Logs")
 2. Add your bot as an **admin** of this channel (with permission to post messages)
@@ -1130,7 +1119,7 @@ The monitoring system can log verification checks to a private Telegram channel 
    - The ID will be a negative number like `-1001234567890`
 4. Add this ID to your `backend/.env` as `VERIFICATION_CHANNEL_ID`
 
-### Step 4: Set Up TON Wallet
+### Step 5: Set Up TON Wallet
 
 You need a TON wallet that the backend will use to receive and send escrow payments.
 
@@ -1154,7 +1143,7 @@ If you already have a TON wallet with a 24-word mnemonic, use that. You need:
    - For testnet, request a separate testnet key
 2. **TonAPI Key:** Go to [tonapi.io](https://tonapi.io) → create an account → generate an API key
 
-### Step 5: Configure Environment Variables
+### Step 6: Configure Environment Variables
 
 #### Backend
 
@@ -1185,7 +1174,7 @@ TONAPI_KEY=your-tonapi-key
 WEBHOOK_URL=https://your-backend-url.com/webhooks/ton
 
 # ── Post Monitoring ──
-VERIFICATION_CHANNEL_ID=            # Optional: private channel for verification logs
+VERIFICATION_CHANNEL_ID=-1001234567890  # From Step 4
 MONITORING_DURATION_HOURS=24        # How long to monitor posts (24 for production, 6 for testing)
 
 # ── Network ──
@@ -1230,7 +1219,7 @@ VITE_TON_NETWORK=mainnet
 | `VITE_TON_NETWORK` | `testnet` or `mainnet` — controls which TON Connect network the wallet modal shows |
 | `VITE_PLATFORM_WALLET_ADDRESS` | *(optional)* Overrides the platform wallet address shown in the payment UI |
 
-### Step 6: Install Dependencies
+### Step 7: Install Dependencies
 
 ```bash
 # Backend
@@ -1242,7 +1231,7 @@ cd ../frontend
 npm install
 ```
 
-### Step 7: Run Locally
+### Step 8: Run Locally
 
 Open two terminal windows:
 
@@ -1265,9 +1254,9 @@ The bot will automatically start polling for Telegram updates when the backend s
 
 > **Note:** The Mini App won't work locally in Telegram since it requires an HTTPS URL. You'll need to deploy to test the full Telegram integration. For local development, you can open the frontend directly in a browser.
 
-### Step 8: Deploy
+### Step 9: Deploy
 
-#### 8a. Backend — Railway
+#### 9a. Backend — Railway
 
 1. Push your code to GitHub
 2. Go to [railway.app](https://railway.app) and create a new project
@@ -1278,7 +1267,7 @@ The bot will automatically start polling for Telegram updates when the backend s
 7. After the first deploy, copy the Railway URL (e.g. `https://your-project.up.railway.app`)
 8. Go back to Variables and set `WEBHOOK_URL` to `https://your-railway-url.com/webhooks/ton`
 
-#### 8b. Frontend — Vercel
+#### 9b. Frontend — Vercel
 
 1. Go to [vercel.com](https://vercel.com) and create a new project
 2. Import your GitHub repository
@@ -1289,17 +1278,22 @@ The bot will automatically start polling for Telegram updates when the backend s
    - `VITE_TON_NETWORK` = `mainnet` or `testnet`
 5. Vercel will build and deploy automatically
 
-#### 8c. Update BotFather
+### Step 10: Set Up the Mini App in BotFather
 
-Once the frontend is deployed, go back to BotFather and update the Mini App URL:
+Now that both backend and frontend are deployed, configure the Mini App:
 
 1. Message [@BotFather](https://t.me/BotFather)
-2. Send `/myapps`
-3. Select your bot → select your app
-4. Tap **Edit Web App URL**
-5. Enter your Vercel URL (e.g. `https://your-app.vercel.app`)
+2. Send `/newapp`
+3. Select your bot
+4. Enter an app title (e.g. "Ad Marketplace")
+5. Enter a short description
+6. Upload an icon (512×512px)
+7. For the **Web App URL**, enter your Vercel URL (e.g. `https://your-app.vercel.app`)
+8. Set the **short name** to `marketplace` — this is critical because the app links use `https://t.me/<bot_username>/marketplace`
 
-### Step 9: Switch Wallet Network (For Testing)
+> If you've already created the app with a placeholder URL, send `/myapps` → select your bot → select your app → **Edit Web App URL** → enter your Vercel URL.
+
+### Step 11: Switch Wallet Network (For Testing)
 
 If you're running the **Testnet Bot**, you need to switch your TON Wallet to testnet:
 
