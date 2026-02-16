@@ -106,46 +106,53 @@ graph TB
 
 ### How It Works
 
-A channel goes through a strict verification pipeline before it can appear on the marketplace.
+Channel listing uses an **automatic bot detection** flow inspired by Telegram's Access tool. Instead of manually entering a channel username, the platform detects when the bot is added to a channel and auto-verifies everything.
 
 ```mermaid
 flowchart TD
-    A[Channel Owner enters channel username] --> B{Duplicate Check}
-    B -->|Already listed| CONFLICT[409 Conflict: Already listed]
-    B -->|Not listed| C{Bot Added?}
-    C -->|No| STATE_A["State A: NOT_ADDED — Add bot as admin"]
-    C -->|Yes| D{Bot is Admin?}
-    D -->|No| STATE_B["State B: NOT_ADMIN — Promote bot to admin"]
-    D -->|Yes| E{Required Permissions?}
-    E -->|Missing| STATE_C["State C: MISSING_PERMS — Enable specific permissions"]
-    E -->|All present| F{User is Creator?}
-    F -->|No| NOT_OWNER["NOT_OWNER — Only channel creator can list"]
-    F -->|Yes| G{Public Channel?}
-    G -->|No username| PRIVATE["PRIVATE_CHANNEL — Only public channels allowed"]
-    G -->|Has username| READY["State D: READY ✅"]
-    READY --> H[Owner fills details: description, category, pricing, payout wallet]
-    H --> I{Content Moderation}
-    I -->|Blacklisted content| BLOCKED[400: Content Policy Violation]
-    I -->|Clean| J[Channel saved as draft]
-    J --> K[Owner publishes → status: active]
-    K --> LISTED[Channel appears on marketplace]
+    A["Owner taps 'Add Channel'"] --> B["Deep link opens Telegram: ?startchannel"]
+    B --> C[Owner adds bot as admin to their channel]
+    C --> D["Bot receives my_chat_member event"]
+    D --> E["Event stored in bot_channel_events table"]
+    E --> F["Frontend polls /channels/bot-events every 1.5s"]
+    F --> G{New event detected?}
+    G -->|No — poll again| F
+    G -->|Timeout after ~22s| TIMEOUT["Toast: 'Please check if bot was added'"]
+    G -->|Yes| H["Auto-verify via /channels/verify_permissions"]
+    H --> I{Duplicate Check}
+    I -->|Already listed| CONFLICT["Toast: 'Already listed'"]
+    I -->|Not listed| J{Bot Permissions OK?}
+    J -->|Missing perms| MISSING["Toast: 'Missing permissions'"]
+    J -->|OK| K{User is Creator?}
+    K -->|No| NOT_OWNER["Toast: 'Only channel creator can list'"]
+    K -->|Yes| L{Public Channel?}
+    L -->|No username| PRIVATE["Toast: 'Private channels not allowed'"]
+    L -->|Has username| READY["✅ Success — Channel detected"]
+    READY --> M["Navigate to Channel Wizard with pre-filled data"]
+    M --> N[Owner fills: description, category, pricing, payout wallet]
+    N --> O{Content Moderation}
+    O -->|Blacklisted content| BLOCKED["400: Content Policy Violation"]
+    O -->|Clean| P[Channel saved as draft or active]
+    P --> LISTED[Channel appears on marketplace]
 ```
 
 ### Key Engineering Decisions
 
-1. **Bot Permission State Machine (`A → B → C → D`)**: Rather than a single pass/fail check, we implemented a 4-state machine that guides the user through each specific issue. The bot needs `can_post_messages`, `can_edit_messages`, and `can_delete_messages` — each checked individually with clear error messages.
+1. **Automatic Bot Detection (Access-style)**: Instead of asking users to enter a channel username or ID, we use Telegram's `my_chat_member` event. When a user adds the bot as admin, the backend stores the event, and the frontend polls for it. This eliminates user error and is much smoother UX. A fallback manual entry (username/ID) still exists in the Channel Wizard for edge cases.
 
-2. **Owner-Only Listing**: Only the Telegram channel `creator` can list a channel. We enforce this via `getChatMember()` and checking `status === 'creator'`. PR managers and other admins cannot list channels — this is a security decision to prevent unauthorized listings.
+2. **Bot Permission State Machine (`A → B → C → D`)**: Rather than a single pass/fail check, we implemented a 4-state machine that guides the user through each specific issue. The bot needs `can_post_messages`, `can_edit_messages`, and `can_delete_messages` — each checked individually with clear error messages.
 
-3. **Duplicate Prevention**: Before the expensive Telegram API calls, we run a fast DB query checking `telegram_channel_id` uniqueness. Returns `409 Conflict` with the existing channel details.
+3. **Owner-Only Listing**: Only the Telegram channel `creator` can list a channel. We enforce this via `getChatMember()` and checking `status === 'creator'`. PR managers and other admins cannot list channels — this is a security decision to prevent unauthorized listings.
 
-4. **Private Channel Rejection**: Channels without a `username` (private channels) are blocked. Advertisers need to verify the channel exists and view it.
+4. **Duplicate Prevention**: Before the expensive Telegram API calls, we run a fast DB query checking `telegram_channel_id` uniqueness. Returns `409 Conflict` with the existing channel details.
 
-5. **Content Moderation on Entry**: All text fields (description, category, rate card titles/descriptions) are checked against a 250+ word blacklist before saving. This runs on both creation AND updates.
+5. **Private Channel Rejection**: Channels without a `username` (private channels) are blocked. Advertisers need to verify the channel exists and view it.
 
-6. **Payout Wallet at Listing**: We ask for the channel owner's payout wallet during listing to ensure automatic payouts work after deal completion. If they skip it, they can connect their wallet later via TonConnect, and any `payout_pending` deals will auto-process.
+6. **Content Moderation on Entry**: All text fields (description, category, rate card titles/descriptions) are checked against a 250+ word blacklist before saving. This runs on both creation AND updates.
 
-7. **Channel Deletion Protection**: A channel cannot be deleted if it has active deals in any of 10 active states (`funded`, `draft_pending`, `draft_submitted`, `changes_requested`, `approved`, `scheduling`, `scheduled`, `posted`, `monitoring`, `in_progress`).
+7. **Payout Wallet at Listing**: We ask for the channel owner's payout wallet during listing to ensure automatic payouts work after deal completion. If they skip it, they can connect their wallet later via TonConnect, and any `payout_pending` deals will auto-process.
+
+8. **Channel Deletion Protection**: A channel cannot be deleted if it has active deals in any of 10 active states (`funded`, `draft_pending`, `draft_submitted`, `changes_requested`, `approved`, `scheduling`, `scheduled`, `posted`, `monitoring`, `in_progress`).
 
 ---
 
