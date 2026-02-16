@@ -3,7 +3,7 @@ import { StringSession } from 'telegram/sessions';
 import { Api } from 'telegram/tl';
 // @ts-ignore
 import input from 'input'; // If interactive login needed, but we use bot token
-// import { bot } from '../bot'; // We might need bot token reference
+
 import dotenv from 'dotenv';
 
 dotenv.config();
