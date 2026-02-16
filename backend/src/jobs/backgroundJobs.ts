@@ -66,22 +66,59 @@ async function runTimeouts() {
                 .eq('id', deal.id);
         }
 
-        // Find drafts waiting for review too long
+        // Find drafts waiting for review too long → cancel & refund
         const { data: pendingReviews } = await (supabase as any)
             .from('deals')
-            .select('id')
+            .select('id, advertiser_id, price_amount, price_currency, advertiser_wallet_address')
             .eq('status', 'draft_submitted')
             .lt('draft_submitted_at', TWELVE_HOURS_AGO);
 
         for (const deal of pendingReviews || []) {
-            console.log(`[BackgroundJobs] Auto-approving deal ${deal.id} - no review after 12h`);
+            console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - no draft review after 12h`);
             await (supabase as any)
                 .from('deals')
                 .update({
-                    status: 'scheduling',
+                    status: 'refunded',
                     status_updated_at: new Date().toISOString()
                 })
                 .eq('id', deal.id);
+
+            // Queue refund
+            if (deal.advertiser_wallet_address && deal.price_amount > 0) {
+                try {
+                    await (supabase as any)
+                        .from('pending_payouts')
+                        .insert({
+                            recipient_address: deal.advertiser_wallet_address,
+                            amount_ton: deal.price_amount,
+                            currency: deal.price_currency || 'TON',
+                            type: 'refund',
+                            status: 'pending',
+                            reason: `Deal timeout: no draft review after 12h`,
+                            memo: `timeout_refund_${deal.id.substring(0, 8)}`
+                        });
+                } catch (e: any) {
+                    console.error(`[BackgroundJobs] Failed to queue refund for deal ${deal.id}:`, e.message);
+                }
+            }
+
+            // Notify advertiser
+            if (bot && deal.advertiser_id) {
+                const { data: advertiser } = await (supabase as any)
+                    .from('users')
+                    .select('telegram_id')
+                    .eq('id', deal.advertiser_id)
+                    .single();
+                if (advertiser?.telegram_id) {
+                    try {
+                        await bot.api.sendMessage(
+                            advertiser.telegram_id,
+                            `⏰ **Deal Cancelled — Draft Review Timeout**\n\nYour submitted draft received no review within 12 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`,
+                            { parse_mode: 'Markdown' }
+                        );
+                    } catch (e) { /* ignore send errors */ }
+                }
+            }
         }
 
         // ── Funded too long (48h) → auto-refund ──
@@ -103,25 +140,61 @@ async function runTimeouts() {
                 .eq('id', deal.id);
         }
 
-        // ── Scheduling too long (24h) → auto-accept proposed time ──
+        // ── Scheduling too long (24h) → cancel & refund ──
         const TWENTYFOUR_HOURS_AGO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: stuckScheduling } = await (supabase as any)
             .from('deals')
-            .select('id, proposed_post_time')
+            .select('id, advertiser_id, price_amount, price_currency, advertiser_wallet_address, proposed_post_time')
             .eq('status', 'scheduling')
             .not('proposed_post_time', 'is', null)
             .lt('status_updated_at', TWENTYFOUR_HOURS_AGO);
 
         for (const deal of stuckScheduling || []) {
-            console.log(`[BackgroundJobs] Auto-accepting time for deal ${deal.id} - no counter after 24h`);
+            console.log(`[BackgroundJobs] Cancelling deal ${deal.id} - no scheduling response after 24h`);
             await (supabase as any)
                 .from('deals')
                 .update({
-                    status: 'scheduled',
-                    agreed_post_time: deal.proposed_post_time,
+                    status: 'refunded',
                     status_updated_at: new Date().toISOString()
                 })
                 .eq('id', deal.id);
+
+            // Queue refund
+            if (deal.advertiser_wallet_address && deal.price_amount > 0) {
+                try {
+                    await (supabase as any)
+                        .from('pending_payouts')
+                        .insert({
+                            recipient_address: deal.advertiser_wallet_address,
+                            amount_ton: deal.price_amount,
+                            currency: deal.price_currency || 'TON',
+                            type: 'refund',
+                            status: 'pending',
+                            reason: `Deal timeout: no scheduling response after 24h`,
+                            memo: `timeout_refund_${deal.id.substring(0, 8)}`
+                        });
+                } catch (e: any) {
+                    console.error(`[BackgroundJobs] Failed to queue refund for deal ${deal.id}:`, e.message);
+                }
+            }
+
+            // Notify advertiser
+            if (bot && deal.advertiser_id) {
+                const { data: advertiser } = await (supabase as any)
+                    .from('users')
+                    .select('telegram_id')
+                    .eq('id', deal.advertiser_id)
+                    .single();
+                if (advertiser?.telegram_id) {
+                    try {
+                        await bot.api.sendMessage(
+                            advertiser.telegram_id,
+                            `⏰ **Deal Cancelled — Scheduling Timeout**\n\nNo response to the proposed posting time within 24 hours. The deal has been cancelled and your escrow of **${deal.price_amount} ${deal.price_currency || 'TON'}** will be refunded.`,
+                            { parse_mode: 'Markdown' }
+                        );
+                    } catch (e) { /* ignore send errors */ }
+                }
+            }
         }
 
     } catch (error) {

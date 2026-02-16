@@ -588,7 +588,7 @@ sequenceDiagram
 
 5. **Highest Quality Photo**: When receiving photos, we take `photo[photo.length - 1]` — Telegram provides photos in ascending size order, so the last element is always the highest quality.
 
-6. **12h Auto-Approve**: If the advertiser doesn't review a submitted draft within 12 hours, it's automatically approved and moves to scheduling. This prevents deals from stalling indefinitely.
+6. **12h Timeout**: If the advertiser doesn't review a submitted draft within 12 hours, the deal is automatically cancelled and the escrow is refunded. This prevents deals from stalling indefinitely.
 
 ### In-Bot Chat System
 
@@ -631,7 +631,7 @@ sequenceDiagram
 ### Engineering Details
 
 - **Optimistic Locking**: Time acceptance uses `.is('agreed_post_time', null)` — if two admins try to accept simultaneously, only the first succeeds
-- **24h Auto-Accept Timeout**: If a proposed time gets no response within 24 hours, it's automatically accepted
+- **24h Scheduling Timeout**: If a proposed time gets no response within 24 hours, the deal is cancelled and the escrow is refunded
 - **Scheduling Window**: Posts can be scheduled 1 hour to 30 days ahead
 - **Timezone**: Times are displayed in WAT (UTC+1) for the user's locale
 
@@ -644,7 +644,7 @@ A background job checks every minute for deals where `status = 'scheduled'` and 
 3. **Start monitoring** — generate random check times
 4. **Notify both parties** — "Post is live!"
 
-If posting fails:
+If posting fails (typically because the bot was removed from the channel):
 
 1. Set status to `failed_to_post` (atomic guard prevents double-processing)
 2. Queue refund to advertiser
@@ -912,19 +912,19 @@ Every stage in the deal flow has a timeout to prevent deals from stalling indefi
 
 ```mermaid
 flowchart TD
-    F[funded] -->|48h no response| R1[Auto-refund to advertiser]
-    DP[draft_pending] -->|12h no draft created| R2[Auto-refund to advertiser]
-    DS[draft_submitted] -->|12h no review| AA[Auto-approve → scheduling]
-    SCH[scheduling] -->|24h no counter| AT[Auto-accept proposed time]
+    F[funded] -->|48h no response| R1[Cancel + refund to advertiser]
+    DP[draft_pending] -->|12h no draft created| R2[Cancel + refund to advertiser]
+    DS[draft_submitted] -->|12h no review| R3[Cancel + refund to advertiser]
+    SCH[scheduling] -->|24h no response| R4[Cancel + refund to advertiser]
     EXP[Campaign expired] -->|24h grace period| END["Auto-end + refund unfilled slots"]
 ```
 
 | Stage | Timeout | Action |
 |-------|---------|--------|
-| `funded` → no response | 48 hours | Auto-refund to advertiser |
-| `draft_pending` → no draft | 12 hours | Auto-refund to advertiser |
-| `draft_submitted` → no review | 12 hours | Auto-approve draft → scheduling |
-| `scheduling` → no counter | 24 hours | Auto-accept proposed time |
+| `funded` → no response | 48 hours | Cancel + refund to advertiser |
+| `draft_pending` → no draft | 12 hours | Cancel + refund to advertiser |
+| `draft_submitted` → no review | 12 hours | Cancel + refund to advertiser |
+| `scheduling` → no response | 24 hours | Cancel + refund to advertiser |
 | Campaign expired | 24h grace | Auto-end + refund unfilled slots |
 | Payment window | 15 minutes | Logged (payment still accepted) |
 
