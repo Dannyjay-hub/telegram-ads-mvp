@@ -769,7 +769,7 @@ Telegram's Bot API provides limited channel statistics:
 - Member count (subscribers)
 - Basic channel info (title, username, photo)
 
-Advanced analytics (engagement rates, views per post, audience demographics, language distribution) require the **MTProto client** and the `stats.GetBroadcastStats` API. We have a `TelegramStatsService` with MTProto integration prepared, but it currently falls back to mock data when API credentials aren't configured. Full MTProto integration requires additional security considerations around API key management and session handling.
+Advanced analytics (engagement rates, views per post, audience demographics, language distribution) require the **MTProto client** and the `stats.GetBroadcastStats` API, which is not yet implemented. This is planned for a future release and will require additional security infrastructure around API key management and session handling.
 
 ### Content Moderation Bypass
 
@@ -980,10 +980,6 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 BOT_TOKEN=your-bot-token
 BOT_USERNAME=YourBotUsername_bot
 
-# ── MTProto (optional — for advanced channel stats) ──
-# Get from https://my.telegram.org/apps
-TELEGRAM_API_ID=your-api-id
-TELEGRAM_API_HASH=your-api-hash
 
 # ── TON Payments ──
 MASTER_WALLET_ADDRESS=UQxxxxxxx     # Your mainnet escrow wallet
@@ -1186,7 +1182,7 @@ telegram-ads-mvp/
 ### Channel stats not loading
 
 - The bot must be an **admin** of the channel (add the bot to the channel as admin)
-- MTProto stats (language charts, boosts) require `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` — these are optional but recommended
+- Advanced analytics (language charts, engagement rates) are planned for a future MTProto integration
 
 ---
 
