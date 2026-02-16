@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { API_URL, getHeaders, apiFetch } from '@/api'
 import { TON_TOKEN, USDT_TOKEN } from '@/lib/jettons'
 
-// Temporary GlassCard component if not found
+
 const GlassCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
     <div className={`bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4 ${className}`}>
         {children}

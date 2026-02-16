@@ -30,7 +30,7 @@ export function ChannelWizard() {
     const [savingAction, setSavingAction] = useState<'draft' | 'active' | 'delete' | null>(null) // Track which action is in progress
     const [initialLoading, setInitialLoading] = useState(!!id)
     const [channelId, setChannelId] = useState(addChannelState.channelId || '')
-    // Removed isDraft
+
 
     // Strict Verification State
     const [verifState, setVerifState] = useState<'IDLE' | 'A_BOT_NOT_ADDED' | 'B_MISSING_PERMISSIONS' | 'NOT_OWNER' | 'D_READY'>(addChannelState.fromAddChannel ? 'D_READY' : 'IDLE')

@@ -970,6 +970,18 @@ Advanced analytics (engagement rates, views per post, audience demographics, lan
 
 The current blacklist (175+ words/phrases across 10 categories) can be bypassed with creative spelling, Unicode substitutions, or obfuscation. Future versions will implement more sophisticated NLP-based content moderation, including in the chat system.
 
+### API-Level Authorization
+
+All endpoints are authenticated (Telegram `initData` verified), but **resource ownership is not fully enforced** on three campaign endpoints:
+
+| Endpoint | Gap |
+|----------|-----|
+| `POST /campaigns/:id/apply` | Doesn't verify the caller owns the channel being applied |
+| `POST /campaigns/applications/:id/approve` | Doesn't verify the caller owns the campaign |
+| `POST /campaigns/applications/:id/reject` | Doesn't verify the caller owns the campaign |
+
+The frontend naturally prevents misuse (users only see their own channels/campaigns), so this is only exploitable via direct API calls. A future release should add ownership checks by cross-referencing `telegramId` from the auth middleware against `channel_admins` and `campaigns.advertiser_id`.
+
 ---
 
 ## 17. Future Roadmap

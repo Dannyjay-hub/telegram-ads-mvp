@@ -15,7 +15,6 @@ export function OpenRequests() {
     const [filters, setFilters] = useState({ minBudget: '', tag: '' })
     const navigate = useNavigate()
 
-    // Mock Channel ID
     const myChannelId = 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22';
 
     useEffect(() => {
@@ -25,15 +24,7 @@ export function OpenRequests() {
     const loadBriefs = async () => {
         setLoading(true)
         try {
-            // Updated API call with filters (Need to update api.ts to support params first? No, we pass empty obj if needed, but api.ts definition needs update)
-            // Wait, getBriefs in api.ts doesn't support args yet in my previous step. I need to check api.ts.
-            // Assuming I update api.ts next.
-            const url = new URLSearchParams();
-            if (filters.minBudget) url.append('minBudget', filters.minBudget);
-            if (filters.tag) url.append('tag', filters.tag);
 
-            // Temporary manual fetch slightly bypassing api.ts if needed or I update api.ts
-            // Let's rely on api.ts update coming next.
             const data = await getBriefs(filters)
             setBriefs(data)
         } catch (e) {
