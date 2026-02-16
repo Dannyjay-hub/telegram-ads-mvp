@@ -8,7 +8,6 @@
 
 **📊 Platform Metrics:**
 - 20 deals processed (14 mainnet + 6 testnet), 11 successfully completed
-- 3.7 TON + 1 USDT total escrow volume
 - Both mainnet and testnet operational
 - 25+ days continuous uptime (live since Jan 22, 2026)
 
