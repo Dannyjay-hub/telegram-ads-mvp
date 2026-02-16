@@ -1,6 +1,6 @@
 # Telegram Ad Marketplace
 
-> A decentralized advertising marketplace built as a Telegram Mini App. Connects advertisers with channel owners through TON blockchain escrow.
+> A Telegram Mini App ads marketplace that connects channel owners and advertisers through an escrow-style deal flow on the TON blockchain.
 
 **🚀 Live Deployment:**
 - **Mainnet Bot:** [@DanielAdsMVP_bot](https://t.me/DanielAdsMVP_bot)
@@ -59,15 +59,17 @@
 
 https://github.com/user-attachments/assets/e934d53b-386f-419a-a0d3-cea56193ed35
 
-### Transaction Evidence
+### Sample Transaction Evidence
 
-Real mainnet transactions verifiable on TON blockchain:
+Real mainnet transactions verifiable on TON blockchain (5 of 20 total):
 
-| Deal | Amount | TX Hash (TONScan) |
+| Type | Amount | TX Hash (TONScan) |
 |------|--------|-------------------|
-| USDT Escrow Payment | 1.0 USDT | [5f2e6ca3...c028](https://tonscan.org/tx/5f2e6ca3c3e6e0847382549feb2a276932bd7345648d1d45a546a1ac8699c028) |
-| TON Escrow Payment | 1.0 TON | [5e655f5c...fd83](https://tonscan.org/tx/5e655f5cc31f4c18b0e3cabd3385841738cc8813ca2a75702e397e6898aafd83) |
-| TON Escrow Payment | 0.5 TON | [4b9bca83...b82d](https://tonscan.org/tx/4b9bca831d3040f133290c297c3c84ad2d73e5145f2a0f150549e70d89a9b82d) |
+| Campaign Escrow | 1.5 TON | [ae0b95a1...ccae](https://tonscan.org/tx/ae0b95a19f72854c2a1f929c0d071f9039154b6405a1e061c2d53ac3fb1bccae) |
+| Campaign Escrow | 1.0 USDT | [40927a33...063c](https://tonscan.org/tx/40927a33277a3302aa9f3aabe57347835d7c5e850b6271e65e3c8026b4dc063c) |
+| Deal Escrow | 1.0 USDT | [5f2e6ca3...c028](https://tonscan.org/tx/5f2e6ca3c3e6e0847382549feb2a276932bd7345648d1d45a546a1ac8699c028) |
+| Deal Escrow | 1.0 TON | [5e655f5c...fd83](https://tonscan.org/tx/5e655f5cc31f4c18b0e3cabd3385841738cc8813ca2a75702e397e6898aafd83) |
+| Deal Escrow | 0.5 TON | [4b9bca83...b82d](https://tonscan.org/tx/4b9bca831d3040f133290c297c3c84ad2d73e5145f2a0f150549e70d89a9b82d) |
 
 ---
 
@@ -180,7 +182,7 @@ flowchart TD
 
 5. **Private Channel Rejection**: Channels without a `username` (private channels) are blocked. Advertisers need to verify the channel exists and view it.
 
-6. **Content Moderation on Entry**: All text fields (description, category, rate card titles/descriptions) are checked against a 250+ word blacklist before saving. This runs on both creation AND updates.
+6. **Content Moderation on Entry**: All text fields (description, category, rate card titles/descriptions) are checked against a 175+ word/phrase blacklist before saving. This runs on both creation AND updates.
 
 7. **Payout Wallet at Listing**: We ask for the channel owner's payout wallet during listing to ensure automatic payouts work after deal completion. If they skip it, they can connect their wallet later via TonConnect, and any `payout_pending` deals will auto-process.
 
@@ -964,7 +966,7 @@ Advanced analytics (engagement rates, views per post, audience demographics, lan
 
 ### Content Moderation Bypass
 
-The current blacklist (250+ words across 10 categories) can be bypassed with creative spelling, Unicode substitutions, or obfuscation. Future versions will implement more sophisticated NLP-based content moderation, including in the chat system.
+The current blacklist (175+ words/phrases across 10 categories) can be bypassed with creative spelling, Unicode substitutions, or obfuscation. Future versions will implement more sophisticated NLP-based content moderation, including in the chat system.
 
 ---
 
