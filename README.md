@@ -1319,27 +1319,33 @@ telegram-ads-mvp/
 │   │   ├── index.ts              # Hono server entry point
 │   │   ├── bot.ts                # Grammy bot handlers
 │   │   ├── botInstance.ts        # Bot singleton & deep link helpers
-│   │   ├── config/
-│   │   │   └── tonConfig.ts      # TON network config (auto testnet/mainnet)
+│   │   ├── db.ts                 # Supabase client
+│   │   ├── types.ts              # Shared type definitions
+│   │   ├── config/               # TON network config (auto testnet/mainnet)
 │   │   ├── routes/               # API endpoints
 │   │   ├── services/             # Business logic
 │   │   ├── repositories/         # Database access layer
 │   │   ├── domain/               # Entity type definitions
+│   │   ├── middleware/            # Auth middleware
 │   │   ├── jobs/                 # Background workers (monitoring, timeouts)
-│   │   └── db.ts                 # Supabase client
+│   │   ├── scripts/              # Utility scripts (cleanup)
+│   │   ├── types/                # Additional type modules
+│   │   └── utils/                # Helper utilities
 │   ├── .env.example
 │   └── package.json
 ├── frontend/
 │   ├── src/
 │   │   ├── components/           # React components
+│   │   ├── pages/                # Page components
 │   │   ├── hooks/                # Custom React hooks
 │   │   ├── providers/            # Context providers (Auth, Telegram)
-│   │   ├── lib/                  # API client, utilities, TON config
-│   │   └── api/                  # API client
+│   │   ├── lib/                  # Utilities, TON config
+│   │   ├── api/                  # API client
+│   │   ├── utils/                # Frontend utilities
+│   │   └── assets/               # Static assets
 │   └── package.json
 ├── migrations/                   # Incremental SQL migration files
 ├── schema.sql                    # Full database schema (pg_dump)
-├── Platform_Documentation.md     # Detailed platform documentation
 └── docs/                         # Additional documentation
 ```
 
