@@ -853,8 +853,8 @@ This means owners can list a channel without a wallet, run deals, and connect th
 
 ### Auto-Approve Threshold
 
-- Payouts ≤ 5 TON/USDT: **auto-executed immediately**
-- Payouts > 5 TON/USDT: require admin approval (`pending_approval` status)
+- Payouts ≤ 50 TON/USDT: **auto-executed immediately**
+- Payouts > 50 TON/USDT: require admin approval (`pending_approval` status)
 
 ### Retry Logic
 
