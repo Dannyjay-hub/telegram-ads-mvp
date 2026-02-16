@@ -7,8 +7,8 @@
 - **Testnet Bot:** [@DanielAdsMvpTestnet_bot](https://t.me/DanielAdsMvpTestnet_bot)
 
 **📊 Platform Metrics:**
-- 14 deals processed, 7 successfully completed
-- 2.8 TON + 1 USDT total escrow volume
+- 20 deals processed (14 mainnet + 6 testnet), 11 successfully completed
+- 3.7 TON + 1 USDT total escrow volume
 - Both mainnet and testnet operational
 - 25+ days continuous uptime (live since Jan 22, 2026)
 
