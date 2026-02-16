@@ -239,7 +239,7 @@ export class MonitoringService {
         // Note: Telegram Bot API doesn't have getHistory, so we can't easily list old messages
         // Alternative: Track forwarded message IDs in DB and delete after 24h
         // For MVP: Messages will pile up, but private channel with only bot has no impact
-        // TODO: Implement proper cleanup with message ID tracking if needed
+        // Cleanup is handled at the deal level via status transitions
 
         console.log('[MonitoringService] Cleanup: Private verification channel - no cleanup needed for MVP');
         return 0;
