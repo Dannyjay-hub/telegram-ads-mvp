@@ -47,6 +47,28 @@ function addressesEqual(addr1: string, addr2: string | Address): boolean {
     }
 }
 
+/**
+ * Fetch with exponential backoff retry on 5xx errors.
+ * 4xx errors are returned immediately (don't retry — they are deterministic failures).
+ */
+async function fetchWithRetry(
+    url: string,
+    headers: Record<string, string>,
+    retries = 3
+): Promise<Response> {
+    for (let attempt = 0; attempt < retries; attempt++) {
+        const res = await fetch(url, { headers });
+        if (res.ok || res.status < 500) return res; // success or 4xx — return as-is
+        if (attempt < retries - 1) {
+            const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+            console.warn(`[TonPaymentService] ${res.status} on attempt ${attempt + 1}, retrying in ${delay}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+        }
+    }
+    // Final attempt failed — throw so callers can track failure count
+    throw new Error(`TON API unavailable after ${retries} retries`);
+}
+
 
 interface TonTransaction {
     hash: string;
@@ -91,6 +113,8 @@ export class TonPaymentService {
     private processedJettonTxHashes: Set<string> = new Set();
     // Max size to prevent memory leak
     private readonly MAX_PROCESSED_CACHE = 1000;
+    // Track consecutive API failures to extend lookback window on recovery
+    private consecutiveFailures: number = 0;
 
     constructor() {
         const dealRepo = new SupabaseDealRepository();
@@ -147,23 +171,29 @@ export class TonPaymentService {
         }
 
         try {
-            // Use TON API which returns user-friendly addresses
-            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/events?limit=20`;
+            // Extend lookback window after outages to recover missed payments
+            const limit = this.consecutiveFailures > 3 ? 100 : 20;
+            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/events?limit=${limit}`;
             const headers: Record<string, string> = {};
             if (TON_API_KEY) {
                 headers['Authorization'] = `Bearer ${TON_API_KEY}`;
             }
 
-            const response = await fetch(url, { headers });
+            const response = await fetchWithRetry(url, headers);
             if (!response.ok) {
                 throw new Error(`TON API error: ${response.status}`);
+            }
+
+            // Successful poll — reset failure counter
+            if (this.consecutiveFailures > 0) {
+                console.log(`TonPaymentService: API recovered after ${this.consecutiveFailures} failures. Used limit=${limit} for catchup.`);
+                this.consecutiveFailures = 0;
             }
 
             const data = await response.json();
             const events = data.events || [];
 
             for (const event of events) {
-                // Process transaction events
                 if (event.actions) {
                     for (const action of event.actions) {
                         if (action.type === 'TonTransfer' && action.TonTransfer) {
@@ -174,7 +204,8 @@ export class TonPaymentService {
             }
 
         } catch (error) {
-            console.error('TonPaymentService: Error polling TON transactions', error);
+            this.consecutiveFailures++;
+            console.error(`TonPaymentService: Error polling TON transactions (failure #${this.consecutiveFailures})`, error);
         }
     }
 
@@ -254,33 +285,32 @@ export class TonPaymentService {
         }
 
         try {
-            // Use /jettons/history endpoint for Jetton transfers
-            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/jettons/history?limit=20`;
+            // Extend lookback window after outages
+            const limit = this.consecutiveFailures > 3 ? 100 : 20;
+            const url = `${TON_API_URL}/accounts/${MASTER_WALLET_ADDRESS}/jettons/history?limit=${limit}`;
 
             const headers: Record<string, string> = {};
             if (TON_API_KEY) {
                 headers['Authorization'] = `Bearer ${TON_API_KEY}`;
             }
 
-            const response = await fetch(url, { headers });
+            const response = await fetchWithRetry(url, headers);
 
             if (!response.ok) {
                 console.error(`[JettonPoll] TON API error: ${response.status}`);
+                this.consecutiveFailures++;
                 return;
             }
 
             const data = await response.json();
-            // API returns 'operations' not 'events'
             const operations = data.operations || [];
-
-            // Only log if there are new operations to process
-            // (Most operations will be skipped by idempotency check)
 
             for (const op of operations) {
                 await this.processJettonOperation(op);
             }
 
         } catch (error) {
+            this.consecutiveFailures++;
             console.error('TonPaymentService: Error polling Jetton transfers', error);
         }
     }

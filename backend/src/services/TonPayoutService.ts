@@ -111,14 +111,14 @@ export class TonPayoutService {
             reason: reason,
             memo: `refund_${(dealId || 'campaign').substring(0, 8)}`
         };
-        // Only set deal_id if it's a real deal (not a campaign ID)
         if (dealId) {
             insertData.deal_id = dealId;
         }
 
+        // Upsert: if a refund already exists for this deal, do nothing (idempotent)
         const { data, error } = await supabase
             .from('pending_payouts')
-            .insert(insertData)
+            .upsert(insertData, { onConflict: 'deal_id,type', ignoreDuplicates: true })
             .select()
             .single();
 
@@ -129,14 +129,17 @@ export class TonPayoutService {
 
         console.log(`TonPayoutService: Refund queued with ID ${data.id}`);
 
-        // Auto-execute if under threshold
+        // Auto-execute if under threshold (fire and forget — don't block caller)
         if (amount <= AUTO_APPROVE_THRESHOLD) {
-            console.log(`TonPayoutService: Auto-executing refund (under ${AUTO_APPROVE_THRESHOLD} TON threshold)`);
-            await this.executePayout(data.id);
+            console.log(`TonPayoutService: Auto-executing refund (under ${AUTO_APPROVE_THRESHOLD} threshold)`);
+            this.executePayout(data.id).catch(err =>
+                console.error(`TonPayoutService: Auto-execute refund failed for ${data.id}:`, err)
+            );
         }
 
         return data as PendingPayout;
     }
+
 
     /**
      * Queue a payout to channel owner after deal completion
@@ -151,17 +154,21 @@ export class TonPayoutService {
         console.log(`  Amount: ${amount} ${currency}`);
         console.log(`  Recipient: ${recipientAddress}`);
 
+        // Upsert: if a payout already exists for this deal, do nothing (idempotent)
         const { data, error } = await supabase
             .from('pending_payouts')
-            .insert({
-                deal_id: dealId,
-                recipient_address: recipientAddress,
-                amount_ton: amount,
-                currency: currency,
-                type: 'payout',
-                status: amount <= AUTO_APPROVE_THRESHOLD ? 'pending' : 'pending_approval',
-                memo: `payout_${dealId.substring(0, 8)}`
-            })
+            .upsert(
+                {
+                    deal_id: dealId,
+                    recipient_address: recipientAddress,
+                    amount_ton: amount,
+                    currency: currency,
+                    type: 'payout',
+                    status: amount <= AUTO_APPROVE_THRESHOLD ? 'pending' : 'pending_approval',
+                    memo: `payout_${dealId.substring(0, 8)}`
+                },
+                { onConflict: 'deal_id,type', ignoreDuplicates: true }
+            )
             .select()
             .single();
 
@@ -172,14 +179,17 @@ export class TonPayoutService {
 
         console.log(`TonPayoutService: Payout queued with ID ${data.id}`);
 
-        // Auto-execute if under threshold
+        // Auto-execute if under threshold (fire and forget — don't block caller)
         if (amount <= AUTO_APPROVE_THRESHOLD) {
-            console.log(`TonPayoutService: Auto-executing payout (under ${AUTO_APPROVE_THRESHOLD} TON threshold)`);
-            await this.executePayout(data.id);
+            console.log(`TonPayoutService: Auto-executing payout (under ${AUTO_APPROVE_THRESHOLD} threshold)`);
+            this.executePayout(data.id).catch(err =>
+                console.error(`TonPayoutService: Auto-execute payout failed for ${data.id}:`, err)
+            );
         }
 
         return data as PendingPayout;
     }
+
 
     /**
      * Execute a pending payout (send TON or USDT)

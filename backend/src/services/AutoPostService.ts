@@ -28,6 +28,22 @@ export class AutoPostService {
             return null;
         }
 
+        // ✅ ATOMIC CLAIM: update status from 'scheduled' -> 'posting'
+        // Only succeeds if status is still 'scheduled' — prevents concurrent double-posts
+        const { data: claimed } = await (supabase as any)
+            .from('deals')
+            .update({ status: 'posting', status_updated_at: new Date().toISOString() })
+            .eq('id', dealId)
+            .eq('status', 'scheduled')
+            .select('id')
+            .single();
+
+        if (!claimed) {
+            // Another runner already claimed or posted this deal — skip silently
+            console.log(`[AutoPostService] Deal ${dealId} already claimed by another runner, skipping`);
+            return null;
+        }
+
         // Get deal with draft and channel info
         const deal = await this.draftService.getDealWithDraft(dealId);
         if (!deal) {
@@ -44,6 +60,7 @@ export class AutoPostService {
             await this.markFailed(dealId, botPermission.reason || 'Bot permission lost');
             return null;
         }
+
 
         try {
             let messageId: number;

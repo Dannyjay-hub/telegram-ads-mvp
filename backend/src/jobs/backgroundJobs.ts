@@ -87,22 +87,45 @@ async function queueRefund(deal: any, reason: string) {
     if (!deal.advertiser_wallet_address || !deal.price_amount) return;
 
     try {
-        await (supabase as any)
+        // Upsert: prevent duplicate refunds for the same deal (idempotent)
+        const { data, error } = await (supabase as any)
             .from('pending_payouts')
-            .insert({
-                recipient_address: deal.advertiser_wallet_address,
-                amount_ton: deal.price_amount,
-                currency: deal.price_currency || 'TON',
-                type: 'refund',
-                status: 'pending',
-                reason: reason,
-                memo: `timeout_refund_${deal.id.substring(0, 8)}`
-            });
+            .upsert(
+                {
+                    deal_id: deal.id,
+                    recipient_address: deal.advertiser_wallet_address,
+                    amount_ton: deal.price_amount,
+                    currency: deal.price_currency || 'TON',
+                    type: 'refund',
+                    status: 'pending',
+                    reason: reason,
+                    memo: `timeout_refund_${deal.id.substring(0, 8)}`
+                },
+                { onConflict: 'deal_id,type', ignoreDuplicates: true }
+            )
+            .select('id')
+            .single();
+
+        if (error) {
+            console.error(`[BackgroundJobs] Failed to queue refund for deal ${deal.id}:`, error.message);
+            return;
+        }
+
         console.log(`[BackgroundJobs] Queued refund for deal ${deal.id}`);
+
+        // Wire execution: trigger payout immediately (fire and forget)
+        if (data?.id) {
+            const { TonPayoutService } = await import('../services/TonPayoutService');
+            const tonPayoutService = new TonPayoutService();
+            tonPayoutService.executePayout(data.id).catch((e: any) =>
+                console.error(`[BackgroundJobs] Auto-execute refund failed for ${data.id}:`, e.message)
+            );
+        }
     } catch (e: any) {
         console.error(`[BackgroundJobs] Failed to queue refund for deal ${deal.id}:`, e.message);
     }
 }
+
 
 /**
  * Helper to notify advertiser via bot
@@ -367,6 +390,21 @@ async function runCampaignExpiration() {
 }
 
 /**
+ * Retry pending/failed payouts — runs every 10 minutes
+ * Safety net: catches any payouts/refunds that were queued but never executed
+ * (e.g. due to a 502 at queue time, server restart, etc.)
+ */
+async function runPayoutRetry() {
+    try {
+        const { TonPayoutService } = await import('../services/TonPayoutService');
+        const tonPayoutService = new TonPayoutService();
+        await tonPayoutService.retryFailedPayouts();
+    } catch (error) {
+        console.error('[BackgroundJobs] Payout retry failed:', error);
+    }
+}
+
+/**
  * Start all background jobs
  * Call this from your main server startup
  */
@@ -385,13 +423,18 @@ export function startBackgroundJobs() {
     // Campaign expiration: every hour
     setInterval(runCampaignExpiration, 60 * 60 * 1000);
 
+    // Payout retry: every 10 minutes (catches stuck pending/failed payouts)
+    setInterval(runPayoutRetry, 10 * 60 * 1000);
+
     // Run immediately on startup
     runAutoPosting();
     runMonitoring();
     runTimeouts();
     runCampaignExpiration();
+    runPayoutRetry(); // Clear any payouts that were stuck before restart
 
     console.log('[BackgroundJobs] ✅ Background jobs started');
 }
 
-export { runAutoPosting, runMonitoring, runTimeouts, runCampaignExpiration };
+export { runAutoPosting, runMonitoring, runTimeouts, runCampaignExpiration, runPayoutRetry };
+
