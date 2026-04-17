@@ -445,17 +445,31 @@ export class TonPayoutService {
      * Retry failed payouts
      */
     async retryFailedPayouts(): Promise<void> {
+        // 1. Retry explicitly failed payouts (retry_count < 3)
         const { data: failed } = await supabase
             .from('pending_payouts')
             .select('*')
             .eq('status', 'failed')
             .lt('retry_count', 3);
 
-        if (!failed || failed.length === 0) return;
+        // 2. Pick up stale 'pending' rows stuck for more than 5 minutes
+        //    (fire-and-forget auto-execute silently failed, or server restarted)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: stale } = await supabase
+            .from('pending_payouts')
+            .select('*')
+            .eq('status', 'pending')
+            .lt('created_at', fiveMinutesAgo);
 
-        console.log(`TonPayoutService: Retrying ${failed.length} failed payouts`);
+        const all = [...(failed || []), ...(stale || [])];
+        if (all.length === 0) return;
 
-        for (const payout of failed) {
+        if (stale?.length) {
+            console.log(`TonPayoutService: Found ${stale.length} stale pending payouts (>5min old)`);
+        }
+        console.log(`TonPayoutService: Retrying ${all.length} payouts (${failed?.length || 0} failed, ${stale?.length || 0} stale)`);
+
+        for (const payout of all) {
             await this.executePayout(payout.id);
         }
     }
