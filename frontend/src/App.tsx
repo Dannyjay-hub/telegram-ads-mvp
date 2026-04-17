@@ -20,6 +20,7 @@ import { AddChannelPage } from '@/pages/AddChannelPage'
 import { ChannelViewPage } from '@/pages/ChannelViewPage'
 import { WalletButton } from '@/components/WalletButton'
 import { EscrowPaymentPage } from '@/pages/EscrowPaymentPage'
+import { BottomNav } from '@/components/BottomNav'
 import { useTelegramBackButton, initTelegramViewport } from '@/hooks/useTelegramBackButton'
 
 // TON Connect manifest URL - must be accessible publicly
@@ -111,10 +112,9 @@ function AppContent() {
         WebApp.disableVerticalSwipes();
       }
 
-      // Sync colors with theme (matches Access/Giveaway reference apps)
-      const isDark = WebApp.colorScheme === 'dark';
-      const bgColor = isDark ? '#1c1c1e' : '#EFEFF4';
-      const headerColor = isDark ? '#1c1c1e' : '#EFEFF4';
+      // Sync colors with new Figma marketplace theme (always dark)
+      const bgColor = '#101922';
+      const headerColor = '#101922';
 
       if (typeof WebApp.setHeaderColor === 'function') {
         WebApp.setHeaderColor(headerColor);
@@ -126,12 +126,8 @@ function AppContent() {
         WebApp.setBottomBarColor(bgColor);
       }
 
-      // Apply theme class
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      // Always use dark mode for the new marketplace design
+      document.documentElement.classList.add('dark');
     } catch (e) {
       console.error('WebApp initialization error:', e);
     }
@@ -157,9 +153,9 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-background transition-colors duration-300">
+    <div className="min-h-screen w-full bg-[#101922] text-white">
 
-      {/* Global Fixed WalletButton - centered in Telegram header safe area (like giveaway-tool) */}
+      {/* Global Fixed WalletButton - centered in Telegram header safe area */}
       <div
         className="fixed top-0 left-0 right-0 z-50 flex items-end justify-center pointer-events-none"
         style={{
@@ -172,11 +168,12 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Content - uses CSS variable for proper top padding below Telegram header */}
+      {/* Content - padded for Telegram header + bottom nav */}
       <div
-        className="relative z-10 p-4 max-w-md mx-auto"
+        className="relative z-10 max-w-md mx-auto"
         style={{
-          paddingTop: 'calc(var(--tg-header-height, 56px) + 16px)'
+          paddingTop: 'var(--tg-header-height, 56px)',
+          paddingBottom: '80px',
         }}
       >
         <Routes>
@@ -184,7 +181,6 @@ function AppContent() {
           <Route path="/advertiser" element={<AdvertiserDashboard />} />
           <Route path="/channel-owner" element={<ChannelOwnerDashboard />} />
           <Route path="/create" element={<CampaignWizard />} />
-          <Route path="/campaign/create" element={<CampaignWizard />} />
           <Route path="/campaign/create" element={<CampaignWizard />} />
           <Route path="/campaigns" element={<CampaignsList />} />
           <Route path="/campaigns/marketplace" element={<CampaignMarketplace />} />
@@ -205,6 +201,9 @@ function AppContent() {
           <Route path="/partnerships" element={<PartnershipsList />} />
         </Routes>
       </div>
+
+      {/* Bottom Navigation Bar */}
+      <BottomNav />
     </div>
   )
 }

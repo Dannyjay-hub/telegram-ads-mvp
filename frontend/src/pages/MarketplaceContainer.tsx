@@ -39,14 +39,14 @@ export function MarketplaceContainer() {
                     <button
                         onClick={() => setTab('channels')}
                         className="relative z-10 flex items-center justify-center h-full w-[140px] text-[15px] font-semibold bg-transparent transition-colors"
-                        style={{ color: 'var(--tg-theme-text-color, inherit)' }}
+                        style={{ color: 'var(#f1f5f9, inherit)' }}
                     >
                         Find Channels
                     </button>
                     <button
                         onClick={() => setTab('campaigns')}
                         className="relative z-10 flex items-center justify-center h-full w-[140px] text-[15px] font-semibold bg-transparent transition-colors"
-                        style={{ color: 'var(--tg-theme-text-color, inherit)' }}
+                        style={{ color: 'var(#f1f5f9, inherit)' }}
                     >
                         Find Campaigns
                     </button>

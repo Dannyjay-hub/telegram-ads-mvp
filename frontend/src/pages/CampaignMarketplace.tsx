@@ -205,7 +205,7 @@ export function CampaignMarketplace() {
                     </div>
 
                     {/* Result Count */}
-                    <p className="text-[13px] text-[--tg-theme-hint-color] flex-1 text-center">
+                    <p className="text-[13px] text-[#94a3b8] flex-1 text-center">
                         {loading ? 'Loading...' : `${resultCount} campaign${resultCount !== 1 ? 's' : ''}`}
                     </p>
 
@@ -278,7 +278,7 @@ export function CampaignMarketplace() {
                                 <div
                                     key={i}
                                     className="bg-card px-4 py-[10px] animate-pulse"
-                                    style={i > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
+                                    style={i > 0 ? { borderTop: '0.5px solid rgba(30, 41, 59, 0.8)' } : undefined}
                                 >
                                     <div className="flex items-center gap-[10px]">
                                         <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
@@ -319,7 +319,7 @@ export function CampaignMarketplace() {
                                     <div
                                         key={campaign.id}
                                         className="bg-card px-4 py-[10px] cursor-pointer active:bg-accent transition-colors"
-                                        style={index > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
+                                        style={index > 0 ? { borderTop: '0.5px solid rgba(30, 41, 59, 0.8)' } : undefined}
                                         onClick={() => navigate(`/campaigns/marketplace/${campaign.id}${selectedChannel ? `?channel=${selectedChannel}` : ''}`)}
                                     >
                                         <div className="flex items-center gap-[10px]">

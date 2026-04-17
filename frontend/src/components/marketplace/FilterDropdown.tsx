@@ -92,11 +92,11 @@ export function FilterDropdown({
                 className={cn(
                     'flex items-center gap-2 px-3 h-[36px] rounded-[10px]',
                     'text-[14px] font-medium',
-                    'bg-[--tg-theme-secondary-bg-color] border transition-all duration-200',
+                    'bg-[#1e293b] border transition-all duration-200',
                     'active:scale-[0.97]',
                     activeCount > 0
                         ? 'text-[--tg-theme-button-color] border-[--tg-theme-button-color]/30'
-                        : 'text-[--tg-theme-text-color] border-transparent',
+                        : 'text-[#f1f5f9] border-transparent',
                     isOpen && 'border-[--tg-theme-button-color]/50'
                 )}
             >
@@ -122,7 +122,7 @@ export function FilterDropdown({
                     'absolute top-[calc(100%+8px)] left-0',
                     'w-[300px] max-h-[70vh] overflow-y-auto',
                     'rounded-[12px]',
-                    'bg-[--tg-theme-secondary-bg-color] border border-[--tg-theme-hint-color]/20',
+                    'bg-[#1e293b] border border-[#94a3b8]/20',
                     'shadow-xl',
                     'transition-all duration-200 origin-top-left',
                     isOpen
@@ -131,15 +131,15 @@ export function FilterDropdown({
                 )}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-[--tg-theme-hint-color]/10">
-                    <span className="text-[16px] font-semibold text-[--tg-theme-text-color]">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-[#94a3b8]/10">
+                    <span className="text-[16px] font-semibold text-[#f1f5f9]">
                         Filters
                     </span>
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="p-1 rounded-full hover:bg-[--tg-theme-hint-color]/10"
+                        className="p-1 rounded-full hover:bg-[#94a3b8]/10"
                     >
-                        <X className="w-5 h-5 text-[--tg-theme-hint-color]" />
+                        <X className="w-5 h-5 text-[#94a3b8]" />
                     </button>
                 </div>
 
@@ -215,7 +215,7 @@ export function FilterDropdown({
 
                 {/* Footer - Clear All */}
                 {activeCount > 0 && (
-                    <div className="px-4 py-3 border-t border-[--tg-theme-hint-color]/10">
+                    <div className="px-4 py-3 border-t border-[#94a3b8]/10">
                         <button
                             onClick={() => {
                                 haptic.soft()
@@ -243,7 +243,7 @@ function FilterSection({
 }) {
     return (
         <div>
-            <p className="text-[11px] font-semibold text-[--tg-theme-hint-color] tracking-wider mb-2">
+            <p className="text-[11px] font-semibold text-[#94a3b8] tracking-wider mb-2">
                 {title}
             </p>
             {children}
@@ -273,7 +273,7 @@ function FilterChip({
                 'active:scale-[0.95]',
                 selected
                     ? 'bg-[--tg-theme-button-color]/15 text-[--tg-theme-button-color] border-[--tg-theme-button-color]/40'
-                    : 'bg-transparent text-[--tg-theme-text-color] border-[--tg-theme-hint-color]/30'
+                    : 'bg-transparent text-[#f1f5f9] border-[#94a3b8]/30'
             )}
         >
             {label}
