@@ -19,34 +19,40 @@ export function MarketplaceContainer() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
-            {/* Sticky Header — center-aligned compact pill toggle (matches Access) */}
-            <div className="flex-shrink-0 flex justify-center pb-4">
+        <div className="flex flex-col h-[calc(100dvh-56px-80px)]">
+            {/* Tab Toggle - Figma style pill */}
+            <div className="flex-shrink-0 flex justify-center px-6 pb-4 pt-4">
                 <div
-                    className="relative flex items-center rounded-[18px] h-[36px] p-[2px]"
-                    style={{ backgroundColor: 'var(--fill-secondary)' }}
+                    className="relative flex items-center rounded-[16px] h-[40px] p-[3px] w-full max-w-[320px]"
+                    style={{ background: 'rgba(30, 41, 59, 0.8)' }}
                 >
-                    {/* Sliding indicator — equal 50% width for both tabs */}
+                    {/* Sliding indicator */}
                     <div
-                        className="absolute top-[2px] h-[calc(100%-4px)] rounded-[16px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none z-0"
+                        className="absolute top-[3px] h-[calc(100%-6px)] rounded-[13px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none z-0"
                         style={{
-                            backgroundColor: 'var(--tg-theme-section-bg-color, hsl(var(--card)))',
-                            width: 'calc(50% - 2px)',
-                            left: activeTab === 'channels' ? '2px' : '50%',
+                            background: '#137fec',
+                            width: 'calc(50% - 3px)',
+                            left: activeTab === 'channels' ? '3px' : '50%',
                         }}
                     />
 
                     <button
                         onClick={() => setTab('channels')}
-                        className="relative z-10 flex items-center justify-center h-full w-[140px] text-[15px] font-semibold bg-transparent transition-colors"
-                        style={{ color: 'var(#f1f5f9, inherit)' }}
+                        className="relative z-10 flex items-center justify-center h-full flex-1 text-[14px] font-bold bg-transparent transition-colors rounded-[13px]"
+                        style={{
+                            color: activeTab === 'channels' ? '#ffffff' : '#94a3b8',
+                            fontFamily: "'Manrope', sans-serif",
+                        }}
                     >
                         Find Channels
                     </button>
                     <button
                         onClick={() => setTab('campaigns')}
-                        className="relative z-10 flex items-center justify-center h-full w-[140px] text-[15px] font-semibold bg-transparent transition-colors"
-                        style={{ color: 'var(#f1f5f9, inherit)' }}
+                        className="relative z-10 flex items-center justify-center h-full flex-1 text-[14px] font-bold bg-transparent transition-colors rounded-[13px]"
+                        style={{
+                            color: activeTab === 'campaigns' ? '#ffffff' : '#94a3b8',
+                            fontFamily: "'Manrope', sans-serif",
+                        }}
                     >
                         Find Campaigns
                     </button>
@@ -54,7 +60,7 @@ export function MarketplaceContainer() {
             </div>
 
             {/* Content Area - Scrollable */}
-            <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide px-4">
                 {activeTab === 'channels' ? (
                     <MarketplacePage />
                 ) : (

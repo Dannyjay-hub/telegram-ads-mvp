@@ -64,7 +64,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
                 className={cn(
                     "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                     "text-[13px] font-medium",
-                    "bg-[var(--fill-secondary)]",
+                    "bg-[rgba(30, 41, 59, 0.6)]",
                     "transition-all duration-200",
                     "active:scale-[0.96]"
                 )}

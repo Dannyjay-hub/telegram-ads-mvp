@@ -37,7 +37,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
                     placeholder={placeholder}
                     className={cn(
                         "w-full h-[36px] pl-9 pr-9 rounded-[10px] text-[15px]",
-                        "bg-[var(--fill-secondary)] border-0",
+                        "bg-[rgba(30, 41, 59, 0.6)] border-0",
                         "text-foreground placeholder:text-muted-foreground",
                         "focus:outline-none focus:ring-2 focus:ring-primary/30",
                         "transition-all duration-200"

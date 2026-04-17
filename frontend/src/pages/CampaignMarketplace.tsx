@@ -138,7 +138,7 @@ export function CampaignMarketplace() {
                 {userChannels.length > 0 && (
                     <div className="mb-3">
                         <select
-                            className="w-full bg-[var(--fill-secondary)] border-0 rounded-[10px] px-3 py-2.5 text-sm text-foreground appearance-none"
+                            className="w-full bg-[rgba(30, 41, 59, 0.6)] border-0 rounded-[10px] px-3 py-2.5 text-sm text-foreground appearance-none"
                             value={selectedChannel || ''}
                             onChange={e => setSelectedChannel(e.target.value)}
                         >
@@ -161,7 +161,7 @@ export function CampaignMarketplace() {
                             className={cn(
                                 "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                                 "text-[13px] font-medium",
-                                "bg-[var(--fill-secondary)]",
+                                "bg-[rgba(30, 41, 59, 0.6)]",
                                 "transition-all duration-200 active:scale-[0.96]",
                                 (filters.budgetRange || activeFilterCount > 0) && "text-primary"
                             )}
@@ -217,7 +217,7 @@ export function CampaignMarketplace() {
                             className={cn(
                                 "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                                 "text-[13px] font-medium",
-                                "bg-[var(--fill-secondary)]",
+                                "bg-[rgba(30, 41, 59, 0.6)]",
                                 "transition-all duration-200 active:scale-[0.96]"
                             )}
                         >
