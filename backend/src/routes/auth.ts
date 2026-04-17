@@ -3,6 +3,7 @@ import { UserService } from '../services/UserService';
 import { supabase } from '../db';
 import { createRouter } from '../types/app';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { Address } from '@ton/core';
 
 const auth = createRouter();
 
@@ -47,11 +48,22 @@ auth.post('/wallet', async (c) => {
             return c.json({ error: 'Missing walletAddress' }, 400);
         }
 
-        // Update user's wallet address
+        // Validate address checksum before saving
+        // TonConnect/wallets can occasionally provide addresses with invalid checksums
+        let validatedAddress: string;
+        try {
+            const parsed = Address.parse(walletAddress);
+            validatedAddress = parsed.toString({ bounceable: false, urlSafe: true });
+        } catch (e: any) {
+            console.error(`[Auth] ❌ Invalid wallet address from TonConnect: ${walletAddress}`, e.message);
+            return c.json({ error: 'Invalid wallet address checksum' }, 400);
+        }
+
+        // Update user's wallet address (using validated/normalized address)
         const { data, error } = await supabase
             .from('users')
             .update({
-                ton_wallet_address: walletAddress,
+                ton_wallet_address: validatedAddress,
                 wallet_connected_at: new Date().toISOString()
             })
             .eq('telegram_id', telegramId)
@@ -63,7 +75,7 @@ auth.post('/wallet', async (c) => {
             return c.json({ error: 'Failed to save wallet address' }, 500);
         }
 
-        console.log(`[Auth] ✅ Wallet saved for user ${telegramId}: ${walletAddress.slice(0, 8)}...`);
+        console.log(`[Auth] ✅ Wallet saved for user ${telegramId}: ${validatedAddress.slice(0, 8)}...`);
 
         // Also update payout_wallet on any channels this user owns
         // (in case they listed without a wallet)
@@ -79,7 +91,7 @@ auth.post('/wallet', async (c) => {
             // Update channels that don't have a payout wallet yet
             await supabase
                 .from('channels')
-                .update({ payout_wallet: walletAddress } as any)
+                .update({ payout_wallet: validatedAddress } as any)
                 .in('id', channelIds)
                 .is('payout_wallet', null);
 
@@ -100,7 +112,7 @@ auth.post('/wallet', async (c) => {
                     try {
                         await tonPayoutService.queuePayout(
                             deal.id,
-                            walletAddress,
+                            validatedAddress,
                             deal.price_amount,
                             deal.price_currency || 'TON'
                         );
