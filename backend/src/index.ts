@@ -25,14 +25,28 @@ type AppVariables = {
 
 const app = new Hono<{ Variables: AppVariables }>();
 
-// Enable CORS — H-05: restrict to known frontend origin
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || (() => {
-    console.warn('[CORS] ALLOWED_ORIGIN not set — defaulting to * (insecure). Set this in Railway.');
-    return '*';
-})();
+// Enable CORS — H-05: restrict to known frontend origins (mainnet + testnet)
+// Set ALLOWED_ORIGINS in Railway as comma-separated URLs, e.g.:
+// https://telegram-ads-mainnet.vercel.app,https://telegram-ads-testnet.vercel.app
+const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || '';
+const ALLOWED_ORIGINS: string[] = rawOrigins
+    ? rawOrigins.split(',').map(o => o.trim()).filter(Boolean)
+    : [];
+
+if (ALLOWED_ORIGINS.length === 0) {
+    console.warn('[CORS] ALLOWED_ORIGINS not set — defaulting to * (insecure). Set this in Railway.');
+}
 
 app.use('/*', async (c, next) => {
-    c.header('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+    const requestOrigin = c.req.header('Origin') || '';
+    const allowedOrigin =
+        ALLOWED_ORIGINS.length === 0
+            ? '*'                                             // fallback if not configured
+            : ALLOWED_ORIGINS.includes(requestOrigin)
+                ? requestOrigin                              // echo back matched origin
+                : ALLOWED_ORIGINS[0];                        // default to first (mainnet)
+
+    c.header('Access-Control-Allow-Origin', allowedOrigin);
     c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (c.req.method === 'OPTIONS') {
