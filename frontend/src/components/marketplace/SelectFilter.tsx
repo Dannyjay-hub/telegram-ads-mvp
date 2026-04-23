@@ -83,7 +83,7 @@ export function SelectFilter({
                     'active:scale-[0.97]',
                     value
                         ? 'bg-primary/10 text-primary border-primary/30'
-                        : 'bg-[#1e293b] text-[#f1f5f9] border-transparent',
+                        : 'bg-[--tg-theme-secondary-bg-color] text-[--tg-theme-text-color] border-transparent',
                     isOpen && 'border-primary/50'
                 )}
             >
@@ -103,7 +103,7 @@ export function SelectFilter({
                     'absolute top-[calc(100%+8px)] left-0',
                     'min-w-[180px] max-w-[280px]',
                     'rounded-[12px] overflow-hidden',
-                    'bg-[#1e293b] border border-[#94a3b8]/20',
+                    'bg-[--tg-theme-secondary-bg-color] border border-[--tg-theme-hint-color]/20',
                     'shadow-lg',
                     'transition-all duration-200 origin-top-left',
                     isOpen
@@ -122,8 +122,8 @@ export function SelectFilter({
                                 className={cn(
                                     'flex items-center gap-2 px-4 py-[11px]',
                                     'cursor-pointer whitespace-nowrap',
-                                    'border-b border-[#94a3b8]/10 last:border-b-0',
-                                    'active:bg-[#94a3b8]/10'
+                                    'border-b border-[--tg-theme-hint-color]/10 last:border-b-0',
+                                    'active:bg-[--tg-theme-hint-color]/10'
                                 )}
                             >
                                 <Check
@@ -138,7 +138,7 @@ export function SelectFilter({
                                         'text-[15px]',
                                         isSelected
                                             ? 'text-[--tg-theme-link-color] font-medium'
-                                            : 'text-[#f1f5f9]'
+                                            : 'text-[--tg-theme-text-color]'
                                     )}
                                 >
                                     {optLabel}
@@ -225,7 +225,7 @@ export function MultiSelectFilter({
                     'active:scale-[0.97]',
                     hasSelection
                         ? 'bg-primary/10 text-primary border-primary/30'
-                        : 'bg-[#1e293b] text-[#f1f5f9] border-transparent',
+                        : 'bg-[--tg-theme-secondary-bg-color] text-[--tg-theme-text-color] border-transparent',
                     isOpen && 'border-primary/50'
                 )}
             >
@@ -245,7 +245,7 @@ export function MultiSelectFilter({
                     'absolute top-[calc(100%+8px)] left-0',
                     'min-w-[180px] max-w-[280px] max-h-[300px] overflow-y-auto',
                     'rounded-[12px]',
-                    'bg-[#1e293b] border border-[#94a3b8]/20',
+                    'bg-[--tg-theme-secondary-bg-color] border border-[--tg-theme-hint-color]/20',
                     'shadow-lg',
                     'transition-all duration-200 origin-top-left',
                     isOpen
@@ -264,8 +264,8 @@ export function MultiSelectFilter({
                                 className={cn(
                                     'flex items-center gap-2 px-4 py-[11px]',
                                     'cursor-pointer whitespace-nowrap',
-                                    'border-b border-[#94a3b8]/10 last:border-b-0',
-                                    'active:bg-[#94a3b8]/10'
+                                    'border-b border-[--tg-theme-hint-color]/10 last:border-b-0',
+                                    'active:bg-[--tg-theme-hint-color]/10'
                                 )}
                             >
                                 <div
@@ -274,7 +274,7 @@ export function MultiSelectFilter({
                                         'transition-all duration-150',
                                         isSelected
                                             ? 'bg-primary border-primary'
-                                            : 'border-[#94a3b8]/40'
+                                            : 'border-[--tg-theme-hint-color]/40'
                                     )}
                                 >
                                     {isSelected && (
@@ -285,8 +285,8 @@ export function MultiSelectFilter({
                                     className={cn(
                                         'text-[15px]',
                                         isSelected
-                                            ? 'text-[#f1f5f9] font-medium'
-                                            : 'text-[#f1f5f9]'
+                                            ? 'text-[--tg-theme-text-color] font-medium'
+                                            : 'text-[--tg-theme-text-color]'
                                     )}
                                 >
                                     {optLabel}

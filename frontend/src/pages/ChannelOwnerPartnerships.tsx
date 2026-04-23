@@ -288,7 +288,7 @@ export function ChannelOwnerPartnerships() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-80px)]">
+        <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
             {/* Pinned Tabs */}
             <div className="flex-shrink-0 pb-3">
                 <div className="flex gap-1 bg-secondary p-1 rounded-lg">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getMarketplaceChannels, type Channel } from '@/api'
-import { Star } from 'lucide-react'
+import { ChevronRight, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { parseTagArray } from '@/lib/parseTagArray'
 
@@ -110,7 +110,7 @@ export function MarketplacePage() {
                     />
 
                     {/* Result Count (centered) */}
-                    <p className="text-[13px] text-[#94a3b8] flex-1 text-center">
+                    <p className="text-[13px] text-[--tg-theme-hint-color] flex-1 text-center">
                         {loading ? 'Loading...' : `${resultCount} channel${resultCount !== 1 ? 's' : ''}`}
                     </p>
 
@@ -138,12 +138,12 @@ export function MarketplacePage() {
             <div className="flex-1 overflow-y-auto scrollbar-hide pb-4">
                 {loading ? (
                     // Loading Skeletons — Access-style grouped list
-                    <div className="rounded-[16px] overflow-hidden">
+                    <div className="rounded-[10px] overflow-hidden">
                         {Array.from({ length: 5 }).map((_, i) => (
                             <div
                                 key={i}
                                 className="bg-card px-4 py-[10px] animate-pulse"
-                                style={i > 0 ? { borderTop: '0.5px solid rgba(30, 41, 59, 0.8)' } : undefined}
+                                style={i > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
                             >
                                 <div className="flex items-center gap-[10px]">
                                     <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
@@ -168,7 +168,7 @@ export function MarketplacePage() {
                     </div>
                 ) : (
                     /* Grouped List — Access mini app style */
-                    <div className="rounded-[16px] overflow-hidden">
+                    <div className="rounded-[10px] overflow-hidden">
                         {filteredChannels.map((channel, index) => {
                             const minPrice = getMinPrice(channel)
                             const currency = getCurrency(channel)
@@ -178,7 +178,7 @@ export function MarketplacePage() {
                                 <div
                                     key={channel.id}
                                     className="bg-card px-4 py-[10px] cursor-pointer active:bg-accent transition-colors"
-                                    style={index > 0 ? { borderTop: '0.5px solid rgba(30, 41, 59, 0.8)' } : undefined}
+                                    style={index > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
                                     onClick={() => navigate(`/marketplace/channel/${channel.id}`, { state: { from: '/marketplace?tab=channels' } })}
                                 >
                                     <div className="flex items-center gap-[10px]">
@@ -236,7 +236,7 @@ export function MarketplacePage() {
                                                     {minPrice} {currency}
                                                 </span>
                                             )}
-                                            <span className="material-icons-round text-[18px] text-[#64748b]">chevron_right</span>
+                                            <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
                                         </div>
                                     </div>
                                 </div>

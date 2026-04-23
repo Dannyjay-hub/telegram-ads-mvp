@@ -138,7 +138,7 @@ export function CampaignMarketplace() {
                 {userChannels.length > 0 && (
                     <div className="mb-3">
                         <select
-                            className="w-full bg-[rgba(30, 41, 59, 0.6)] border-0 rounded-[10px] px-3 py-2.5 text-sm text-foreground appearance-none"
+                            className="w-full bg-[var(--fill-secondary)] border-0 rounded-[10px] px-3 py-2.5 text-sm text-foreground appearance-none"
                             value={selectedChannel || ''}
                             onChange={e => setSelectedChannel(e.target.value)}
                         >
@@ -161,7 +161,7 @@ export function CampaignMarketplace() {
                             className={cn(
                                 "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                                 "text-[13px] font-medium",
-                                "bg-[rgba(30, 41, 59, 0.6)]",
+                                "bg-[var(--fill-secondary)]",
                                 "transition-all duration-200 active:scale-[0.96]",
                                 (filters.budgetRange || activeFilterCount > 0) && "text-primary"
                             )}
@@ -205,7 +205,7 @@ export function CampaignMarketplace() {
                     </div>
 
                     {/* Result Count */}
-                    <p className="text-[13px] text-[#94a3b8] flex-1 text-center">
+                    <p className="text-[13px] text-[--tg-theme-hint-color] flex-1 text-center">
                         {loading ? 'Loading...' : `${resultCount} campaign${resultCount !== 1 ? 's' : ''}`}
                     </p>
 
@@ -217,7 +217,7 @@ export function CampaignMarketplace() {
                             className={cn(
                                 "flex items-center gap-1.5 px-3 h-[32px] rounded-[10px]",
                                 "text-[13px] font-medium",
-                                "bg-[rgba(30, 41, 59, 0.6)]",
+                                "bg-[var(--fill-secondary)]",
                                 "transition-all duration-200 active:scale-[0.96]"
                             )}
                         >
@@ -278,7 +278,7 @@ export function CampaignMarketplace() {
                                 <div
                                     key={i}
                                     className="bg-card px-4 py-[10px] animate-pulse"
-                                    style={i > 0 ? { borderTop: '0.5px solid rgba(30, 41, 59, 0.8)' } : undefined}
+                                    style={i > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
                                 >
                                     <div className="flex items-center gap-[10px]">
                                         <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
@@ -319,7 +319,7 @@ export function CampaignMarketplace() {
                                     <div
                                         key={campaign.id}
                                         className="bg-card px-4 py-[10px] cursor-pointer active:bg-accent transition-colors"
-                                        style={index > 0 ? { borderTop: '0.5px solid rgba(30, 41, 59, 0.8)' } : undefined}
+                                        style={index > 0 ? { borderTop: '0.5px solid var(--tg-theme-section-separator-color, rgba(84,84,88,0.34))' } : undefined}
                                         onClick={() => navigate(`/campaigns/marketplace/${campaign.id}${selectedChannel ? `?channel=${selectedChannel}` : ''}`)}
                                     >
                                         <div className="flex items-center gap-[10px]">

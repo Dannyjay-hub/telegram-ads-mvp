@@ -102,7 +102,7 @@ export function CampaignsList() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-80px)]">
+        <div className="flex flex-col h-[calc(100dvh-56px-32px)]">
             {/* Pinned Header */}
             <div className="flex-shrink-0 pb-4">
                 {/* Header */}
