@@ -8,6 +8,15 @@ import { authMiddleware } from './middleware/authMiddleware';
 
 dotenv.config();
 
+// C-03: Crash on startup if critical env vars are missing — never boot with fallbacks
+const REQUIRED_ENV_VARS = ['JWT_SECRET', 'BOT_TOKEN', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+for (const key of REQUIRED_ENV_VARS) {
+    if (!process.env[key]) {
+        console.error(`FATAL: Required environment variable ${key} is not set. Refusing to start.`);
+        process.exit(1);
+    }
+}
+
 // Type-safe context variables set by auth middleware
 type AppVariables = {
     telegramId: number;
@@ -31,7 +40,7 @@ import channels from './routes/channels';
 import auth from './routes/auth';
 import briefs from './routes/briefs';
 import campaigns from './routes/campaigns';
-import wallets from './routes/wallets';
+
 import webhooks from './routes/webhooks';
 
 // Apply auth middleware to all protected routes
@@ -40,7 +49,8 @@ app.use('/deals/*', authMiddleware);
 app.use('/channels/*', authMiddleware);
 app.use('/briefs/*', authMiddleware);
 app.use('/campaigns/*', authMiddleware);
-app.use('/wallets/*', authMiddleware);
+app.use('/admin/*', authMiddleware); // C-01: admin routes require authentication
+
 
 // Routes
 app.route('/deals', deals);
@@ -48,22 +58,14 @@ app.route('/channels', channels);
 app.route('/auth', auth);
 app.route('/briefs', briefs);
 app.route('/campaigns', campaigns);
-app.route('/wallets', wallets);
+
 app.route('/webhooks', webhooks);
 
 app.get('/', (c) => c.text('Telegram Ad Marketplace Backend is Running!'));
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Dev endpoints to test mock services
-app.get('/dev/chat-member', async (c) => {
-    const res = await getChatMember(123, 456);
-    return c.json(res);
-});
-
-app.get('/dev/channel-stats', async (c) => {
-    const res = await getChannelStats(123);
-    return c.json(res);
-});
+// H-08: /dev/* endpoints removed — used hardcoded dummy IDs, served no production
+// purpose, and were publicly accessible with no authentication.
 
 // Start Bot
 // Run in background so it doesn't block

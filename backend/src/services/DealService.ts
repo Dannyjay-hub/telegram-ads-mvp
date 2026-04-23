@@ -493,7 +493,7 @@ export class DealService {
             dealId,
             channelOwnerWalletAddress,
             deal.priceAmount,
-            'TON'
+            deal.priceCurrency as 'TON' | 'USDT'
         );
 
         return this.dealRepo.updateStatus(dealId, 'released', 'Funds released to channel owner');

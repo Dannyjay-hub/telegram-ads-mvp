@@ -20,7 +20,11 @@ export async function authMiddleware(c: Context, next: Next) {
     const token = authHeader.slice(7); // Remove "Bearer "
 
     try {
-        const jwtSecret = process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod';
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            console.error('[Auth Middleware] FATAL: JWT_SECRET environment variable is not set');
+            return c.json({ error: 'Server misconfiguration' }, 500);
+        }
         const payload = await verify(token, jwtSecret, 'HS256');
 
         if (!payload.tg_id) {
