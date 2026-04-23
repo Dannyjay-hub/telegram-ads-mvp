@@ -91,8 +91,10 @@ export class DealService {
             throw new Error(`No deal found for memo: ${paymentMemo}`);
         }
 
+        // H-06: Treat already-funded deals as idempotent success (covers server restart replays)
         if (deal.status !== 'draft') {
-            throw new Error(`Deal ${deal.id} is not in draft status`);
+            console.warn(`[DealService] Duplicate payment event for deal ${deal.id} (status: ${deal.status}) — ignoring`);
+            return deal;
         }
 
         // Check if payment window expired
@@ -100,8 +102,19 @@ export class DealService {
             throw new Error(`Deal ${deal.id} payment window has expired`);
         }
 
-        // Update deal status to 'pending' (awaiting channel owner approval)
-        const updatedDeal = await this.dealRepo.updatePaymentConfirmed(deal.id, txHash);
+        // Update deal status to funded — DB unique constraint on payment_tx_hash
+        // guards against concurrent race conditions (two identical webhooks at same ms)
+        let updatedDeal: Deal;
+        try {
+            updatedDeal = await this.dealRepo.updatePaymentConfirmed(deal.id, txHash);
+        } catch (e: any) {
+            if (e.message?.includes('23505') || e.code === '23505') {
+                // Unique constraint violation — concurrent duplicate tx, safe to ignore
+                console.warn(`[DealService] Concurrent duplicate tx_hash ${txHash} blocked by DB constraint — ignoring`);
+                return deal;
+            }
+            throw e;
+        }
 
         // Send notifications (fire and forget - don't block on notification failures)
         try {
