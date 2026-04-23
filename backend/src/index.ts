@@ -25,9 +25,14 @@ type AppVariables = {
 
 const app = new Hono<{ Variables: AppVariables }>();
 
-// Enable CORS
+// Enable CORS — H-05: restrict to known frontend origin
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || (() => {
+    console.warn('[CORS] ALLOWED_ORIGIN not set — defaulting to * (insecure). Set this in Railway.');
+    return '*';
+})();
+
 app.use('/*', async (c, next) => {
-    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
     c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (c.req.method === 'OPTIONS') {
