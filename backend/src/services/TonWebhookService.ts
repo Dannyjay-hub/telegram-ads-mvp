@@ -19,7 +19,13 @@ export class TonWebhookService {
 
     constructor() {
         this.apiKey = process.env.TONAPI_KEY || '';
-        this.webhookUrl = process.env.WEBHOOK_URL || '';
+
+        // C-02: Append shared secret token to webhook URL so TonAPI sends it
+        // on every call, allowing the receiver to reject forged requests.
+        const baseUrl = process.env.WEBHOOK_URL || '';
+        const secret = process.env.WEBHOOK_SECRET;
+        this.webhookUrl = secret && baseUrl ? `${baseUrl}?token=${secret}` : baseUrl;
+
         this.platformWallet = TON_CONFIG.masterWalletAddress;
     }
 

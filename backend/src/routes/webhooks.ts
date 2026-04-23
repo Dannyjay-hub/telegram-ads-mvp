@@ -76,6 +76,18 @@ app.get('/ton', (c) => {
  * We need to fetch full transaction details to get memo/comment
  */
 app.post('/ton', async (c) => {
+    // C-02: Verify shared secret token — reject anything not from TonAPI
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    if (webhookSecret) {
+        const token = c.req.query('token');
+        if (!token || token !== webhookSecret) {
+            console.warn('[Webhook] Unauthorized request — invalid or missing token');
+            return c.json({ error: 'Unauthorized' }, 401);
+        }
+    } else {
+        console.warn('[Webhook] WEBHOOK_SECRET not set — skipping token verification (insecure)');
+    }
+
     try {
         const payload: AccountTxNotification = await c.req.json();
 
