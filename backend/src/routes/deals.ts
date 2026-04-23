@@ -11,10 +11,15 @@ const dealRepo = new SupabaseDealRepository();
 const userRepo = new SupabaseUserRepository();
 const dealService = new DealService(dealRepo);
 
-// GET /deals - List all deals
+// GET /deals - List deals for the authenticated user only
 app.get('/', async (c) => {
     try {
-        const deals = await dealService.listDeals();
+        const telegramId = c.get('telegramId');
+        const user = await userRepo.findByTelegramId(telegramId);
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+        const deals = await dealService.getDealsForAdvertiserWithChannel(user.id);
         return c.json(deals);
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
@@ -127,18 +132,12 @@ app.post('/create-with-items', async (c) => {
     }
 });
 
-// POST /deals/:id/confirm-payment - Confirm payment (called by payment monitor)
-app.post('/:id/confirm-payment', async (c) => {
-    try {
-        const body = await c.req.json();
-        const { paymentMemo, txHash } = body;
-
-        const deal = await dealService.confirmPayment(paymentMemo, txHash);
-        return c.json(deal);
-    } catch (e: any) {
-        return c.json({ error: e.message }, 400);
-    }
-});
+// NOTE: confirm-payment has been removed as a public HTTP endpoint.
+// Payment confirmation is handled exclusively by the TonAPI webhook
+// at POST /webhooks/ton, which verifies the actual on-chain transaction
+// before calling dealService.confirmPayment() internally.
+// Exposing this as a public route allowed any authenticated user to
+// mark their own deal as funded without paying.
 
 // POST /deals - Create a campaign (legacy)
 app.post('/', async (c) => {
@@ -186,13 +185,29 @@ app.post('/', async (c) => {
 });
 
 // POST /deals/:id/approve
+// approver identity derived from JWT — never trusted from request body
 app.post('/:id/approve', async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
-        const { approver_id, is_advertiser, reject } = body;
+        const { reject } = body;
 
-        const result = await dealService.approveCampaign(id, approver_id, is_advertiser, reject);
+        // Resolve approver from verified JWT, not body
+        const telegramId = c.get('telegramId');
+        const user = await userRepo.findByTelegramId(telegramId);
+        if (!user) {
+            return c.json({ error: 'User not found' }, 404);
+        }
+
+        // Determine if caller is the advertiser or channel owner
+        const deal = await dealRepo.findById(id);
+        if (!deal) {
+            return c.json({ error: 'Deal not found' }, 404);
+        }
+
+        const isAdvertiser = deal.advertiserId === user.id;
+
+        const result = await dealService.approveCampaign(id, user.id, isAdvertiser, reject);
         return c.json(result);
     } catch (e: any) {
         return c.json({ error: e.message }, 400);
