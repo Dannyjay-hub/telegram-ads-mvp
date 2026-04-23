@@ -8,6 +8,7 @@ import { Campaign, CampaignApplication, CampaignInsert, CampaignUpdate, Channel 
 export interface ApplyResult {
     success: boolean;
     error?: string;
+    forbidden?: boolean; // H-01: set when caller doesn't own the campaign
     application?: CampaignApplication;
     dealId?: string;
 }
@@ -455,7 +456,7 @@ export class CampaignService {
     // APPLICATION REVIEW (Closed Campaigns)
     // ============================================
 
-    async approveApplication(applicationId: string): Promise<ApplyResult> {
+    async approveApplication(applicationId: string, requestingUserId: string): Promise<ApplyResult> {
         const application = await this.campaignRepo.findApplicationById(applicationId);
         if (!application) {
             return { success: false, error: 'Application not found' };
@@ -468,6 +469,11 @@ export class CampaignService {
         const campaign = await this.campaignRepo.findById(application.campaignId);
         if (!campaign) {
             return { success: false, error: 'Campaign not found' };
+        }
+
+        // H-01: Verify the caller owns the campaign
+        if (campaign.advertiserId !== requestingUserId) {
+            return { success: false, forbidden: true, error: 'You do not own this campaign' };
         }
 
         if (campaign.campaignType !== 'closed') {
@@ -568,7 +574,7 @@ export class CampaignService {
         };
     }
 
-    async rejectApplication(applicationId: string): Promise<ApplyResult> {
+    async rejectApplication(applicationId: string, requestingUserId: string): Promise<ApplyResult> {
         const application = await this.campaignRepo.findApplicationById(applicationId);
         if (!application) {
             return { success: false, error: 'Application not found' };
@@ -576,6 +582,12 @@ export class CampaignService {
 
         if (application.status !== 'pending') {
             return { success: false, error: 'Application already processed' };
+        }
+
+        // H-01: Verify the caller owns the campaign
+        const campaign = await this.campaignRepo.findById(application.campaignId);
+        if (!campaign || campaign.advertiserId !== requestingUserId) {
+            return { success: false, forbidden: true, error: 'You do not own this campaign' };
         }
 
         await this.campaignRepo.updateApplication(applicationId, 'rejected');

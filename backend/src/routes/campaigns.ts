@@ -607,12 +607,13 @@ campaigns.get('/:id/applications', async (c) => {
 campaigns.post('/applications/:id/approve', async (c) => {
     try {
         const applicationId = c.req.param('id');
-        // telegramId available via c.get('telegramId') for ownership verification
+        const requestingUserId = c.get('userId') as string; // H-01: from verified JWT
 
+        const result = await campaignService.approveApplication(applicationId, requestingUserId);
 
-        // TODO: Verify advertiser owns the campaign
-
-        const result = await campaignService.approveApplication(applicationId);
+        if (result.forbidden) {
+            return c.json({ error: result.error }, 403);
+        }
 
         if (!result.success) {
             return c.json({ error: result.error }, 400);
@@ -635,11 +636,13 @@ campaigns.post('/applications/:id/approve', async (c) => {
 campaigns.post('/applications/:id/reject', async (c) => {
     try {
         const applicationId = c.req.param('id');
-        // telegramId available via c.get('telegramId') for ownership verification
+        const requestingUserId = c.get('userId') as string; // H-01: from verified JWT
 
-        // TODO: Verify advertiser owns the campaign
+        const result = await campaignService.rejectApplication(applicationId, requestingUserId);
 
-        const result = await campaignService.rejectApplication(applicationId);
+        if (result.forbidden) {
+            return c.json({ error: result.error }, 403);
+        }
 
         if (!result.success) {
             return c.json({ error: result.error }, 400);
