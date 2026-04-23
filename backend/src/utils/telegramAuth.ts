@@ -74,7 +74,7 @@ export const validateTelegramData = (initData: string, botToken: string): InitDa
     const now = Math.floor(Date.now() / 1000);
     const timeDiff = now - authDate;
 
-    if (timeDiff > 86400) { // 24 hours in seconds
+    if (timeDiff > 3600) { // 1 hour in seconds — industry standard for Mini App initData (M-01)
         throw new Error('Data is outdated');
     }
 
