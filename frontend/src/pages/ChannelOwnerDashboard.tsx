@@ -13,9 +13,7 @@ export function ChannelOwnerDashboard() {
     const navigate = useNavigate()
     const { user } = useTelegram()
 
-    const displayName = user?.firstName
-        ? `${user.firstName} ${user.lastName || ''}`.trim()
-        : 'Channel Owner'
+    const displayName = user?.firstName || 'Channel Owner'
 
     const openSupport = () => {
         haptic.light();

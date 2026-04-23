@@ -12,9 +12,7 @@ export function AdvertiserDashboard() {
     const navigate = useNavigate()
     const { user } = useTelegram()
 
-    const displayName = user?.firstName
-        ? `${user.firstName} ${user.lastName || ''}`.trim()
-        : 'Advertiser'
+    const displayName = user?.firstName || 'Advertiser'
 
     const openSupport = () => {
         haptic.light();
